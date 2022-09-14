@@ -1,0 +1,105 @@
+<robot name="bookshelves">
+    <link name="bookshelf" type="static">
+        <contact>
+            <lateral_friction value="1.0"/>
+        </contact>
+        <inertial>
+            <origin rpy="0 0 0" xyz="1 0 0"/>
+            <mass value="5000"/>
+            <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+        </inertial>
+
+        <visual>
+            <origin xyz="0.95 0 0.20" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+            <material name="white">
+                <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.95 0 0.20" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+        </collision>
+
+        <visual>
+            <origin xyz="0.95 0 0.60" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+            <material name="white">
+                <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.95 0 0.60" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+        </collision>
+
+        <visual>
+            <origin xyz="0.95 0 1.00" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+            <material name="white">
+                <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.95 0 1.00" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+        </collision>
+
+        <visual>
+            <origin xyz="0.95 0 1.40" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0.95 0 1.40" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 1.1 0.02"/>
+            </geometry>
+        </collision>
+
+        <visual>
+            <origin xyz="0.95 0.55 0.7" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 0.02 1.40"/>
+            </geometry>
+            <material name="white">
+                <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.95 0.55 0.7" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 0.02 1.40"/>
+            </geometry>
+        </collision>
+
+        <visual>
+            <origin xyz="0.95 -0.55 0.7" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 0.02 1.40"/>
+            </geometry>
+            <material name="white">
+                <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.95 -0.55 0.7" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.60 0.02 1.40"/>
+            </geometry>
+        </collision>
+    </link>
+</robot>

@@ -1,0 +1,81 @@
+- robot:
+    #Choose robot (pr2, franka)
+    arm: pr2
+    robot_start_pos: [ 0, 0, 0 ]
+    robot_start_orientation_euler: [ 0, 0, 0 ]
+    basename: "torso_lift_link"
+    wrist_test: "r_wrist_roll_link"
+    spheres_over_links:
+      [
+        "r_shoulder_pan_joint",
+        "r_shoulder_lift_joint",
+        "r_upper_arm_roll_joint",
+        "r_elbow_flex_joint",
+        "r_forearm_roll_joint",
+        "r_wrist_flex_joint",
+        "r_wrist_roll_joint",
+      ]
+    path: "data/Robots/pr2/pr2.urdf"
+    radius: [ 0.160000, 0.18000, 0.120000, 0.120000, 0.075000, 0.055000, 0.05500, 0.05000, 0.050000, 0.050000, 0.050000, 0.105000, 0.040000, 0.040000, 0.040000, 0.040000, 0.035000, 0.030000, 0.020000, 0.040000, 0.035000, 0.030000, 0.020000 ]
+    dh_parameters:
+      # d, a, alpha
+      [
+        0, 0.1, -1.5708,  # r_shoulder_pan_joint
+        0, 0, 1.5708,  # r_shoulder_lift_joint
+        .4, 0, -1.5708,  # r_upper_arm_joint
+        0, 0, 1.5708,  # r_elbow_flex_joint
+        0.321, 0, -1.5708,  # r_forearm_roll_joint
+        0, 0, 1.5708,  # r_wrist_flex_joint
+        0, 0, 0  # r_wrist_roll_joint
+      ]
+    pi: [ 0., 1.5708, 0., 0., 0., 0., 0. ]
+    time_spacing: 20
+    max_time: 30
+    joint_constraints:
+      [ # Values in radians
+        0.714601836603, -2.2853981634,  # r_shoulder_pan_joint
+        1.3963, -0.5236,  # r_shoulder_lift_joint
+        0.8, -3.9,  # r_upper_arm_joint
+        0.0, -2.3213,  # r_elbow_flex_joint
+        3.1415, -3.1415,  # r_forearm_roll_joint
+        0.0, -2.18,  # r_wrist_flex_joint
+        3.1415, -3.1415  # r_wrist_roll_joint
+      ]
+    velocity_constraints:
+      [ # Values in radians / s
+        2.088, -2.088,  # r_shoulder_pan_joint
+        2.082, -2.082,  # r_shoulder_lift_joint
+        3.27, -3.27,  # r_upper_arm_joint
+        3.3, -3.3,  # r_elbow_flex_joint
+        3.6, -3.6,  # r_forearm_roll_joint
+        3.078, -3.078,  # r_wrist_flex_joint
+        3.6, -3.6  # r_wrist_roll_joint
+      ]
+
+- scene:
+    object_position: [ 0.94, -0.12, 0.835 ]
+    object_path: "/data/scenes/bookshelves/bookshelves_mesh.urdf"
+    problemset: "bookshelves"
+    sdf_path: "data/scenes/bookshelves/bookshelves_center_vgpmp.sdf"
+- planner:
+    sigma_obs: 0.05
+    num_inducing: 20
+    num_spheres: 23
+    learning_rate: 0.05
+    alpha: 5
+    num_steps: 20
+    lengthscale: 0.335
+
+- simulation:
+    #Choose object (Bottle, cube_small.urdf, cube_no_rotation.urdf, r2d2.urdf, sphere2.urdf,teddy_vhacd.urdf,teddy_vhacd.urdf) or other standard objects from pybullet
+    timestep: 0.1
+    object_name: r2d2.urdf
+    object_mass: 0.1
+    object_inertial_frame_position: None
+    object_orientation: None
+
+
+- graphics:
+    visuals: True
+    quality: high
+    GUI: True
