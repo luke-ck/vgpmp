@@ -6,14 +6,15 @@ pybullet == 3.1.9
 pynput >= 1.7.1
 pytest >= 6.1.2
 pyyaml >= 5.3.1
-pandas >= 1.1.4
 pyglm == 0.4.8b1
 scipy == 1.9.1
 tensorflow == 2.10.0
 tensorflow-probability == 0.15.0
-PyQt5 >= 5.15.5
 setuptools>=47.1.0
 ipython>=7.31.1
 open3d~=0.14.1
 tqdm~=4.62.3
-# gpflow~=2.2.1
+gpflow~=2.2.1
+bunch
+sympy~=1.11.0
+roboticstoolbox-python~=1.0.2
