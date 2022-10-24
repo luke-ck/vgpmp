@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <robot name="industrial">
-    <link name="bookshelf" type="static">
+    <link name="industrial_env" type="static">
         <contact>
             <lateral_friction value="0.6"/>
             <rolling_friction value="0.0"/>

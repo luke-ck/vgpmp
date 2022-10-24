@@ -1,0 +1,591 @@
+<robot name="panda">
+  <link name="world">
+    <inertial>
+      <mass value="3.06"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="-0.08 0.0 0.02" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.09"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 0.0 0.04" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.11"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link0.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link0">
+    <inertial>
+      <mass value="3.06"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="-0.08 0.0 0.02" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.09"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 0.0 0.04" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.11"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link0.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link1">
+    <inertial>
+      <mass value="2.34"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 -0.06 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.08"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 -0.02 -0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.0 0.0 -0.16" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.08"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link1.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link2">
+    <inertial>
+      <mass value="2.36"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.0 0.05" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.08"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 -0.08 0.02" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.0 -0.16 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.08"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link2.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link3">
+    <inertial>
+      <mass value="2.38"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.0 -0.1" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.01 0.0 -0.06" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.08 0.02 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.065"/>
+      </geometry>
+    </visual>
+    <visual name="ball_3">
+      <origin xyz="0.075 0.07 -0.005" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.065"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link3.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link4">
+    <inertial>
+      <mass value="2.43"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link4.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="-0.085 0.11 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="-0.08 0.06 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.0625"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="-0.005 0.0 0.015" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.065"/>
+      </geometry>
+    </visual>
+    <visual name="ball_3">
+      <origin xyz="-0.01 0.005 0.07" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.065"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link4.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link5">
+    <inertial>
+      <mass value="3.5"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link5.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.04 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.055"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 0.09 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.055"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.0 0.09 -0.05" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.04"/>
+      </geometry>
+    </visual>
+    <visual name="ball_3">
+      <origin xyz="0.0 0.085 -0.09" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.04"/>
+      </geometry>
+    </visual>
+    <visual name="ball_4">
+      <origin xyz="0.0 0.08 -0.13" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.04"/>
+      </geometry>
+    </visual>
+    <visual name="ball_5">
+      <origin xyz="0.0 0.05 -0.18" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </visual>
+    <visual name="ball_6">
+      <origin xyz="0.0 0.0 -0.23" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.07"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link5.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link6">
+    <inertial>
+      <mass value="1.47"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link6.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.0 0.01" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.08 0.03 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.09 -0.03 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.055"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link6.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link7">
+    <inertial>
+      <mass value="0.45"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/link7.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.0 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.055"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.045 0.045 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.045"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/link7.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_link8">
+    <inertial>
+      <mass value="1e-05"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  <link name="panda_hand">
+    <inertial>
+      <mass value="0.68"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.1" iyy="0.1" izz="0.1" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/hand.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 -0.06 0.03" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 0.0 0.03" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.0 0.06 0.03" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/hand.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_leftfinger">
+    <inertial>
+      <mass value="0.01"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.1" iyy="0.1" izz="0.1" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/finger.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.005 0.045" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.015"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 0.015 0.03" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.015"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.0 0.015 0.01" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.0175"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/finger.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="panda_rightfinger">
+    <inertial>
+      <mass value="0.01"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <inertia ixx="0.1" iyy="0.1" izz="0.1" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual name="visual">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 -3.1415926535895866"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/visual/finger.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 -0.005 0.045" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.015"/>
+      </geometry>
+    </visual>
+    <visual name="ball_1">
+      <origin xyz="0.0 -0.015 0.03" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.015"/>
+      </geometry>
+    </visual>
+    <visual name="ball_2">
+      <origin xyz="0.0 -0.015 0.01" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.0175"/>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 -3.1415926535895866"/>
+      <geometry>
+        <mesh filename="package://franka/meshes/collision/finger.stl" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="panda_joint1" type="revolute">
+    <parent link="world"/>
+    <child link="panda_link1"/>
+    <limit lower="-2.8973" upper="2.8973" effort="87.0" velocity="2.175"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="0.0 0.0 0.333" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint2" type="revolute">
+    <parent link="panda_link1"/>
+    <child link="panda_link2"/>
+    <limit lower="-1.7628" upper="1.7628" effort="87.0" velocity="2.175"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="-1.57079632679 0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint3" type="revolute">
+    <parent link="panda_link2"/>
+    <child link="panda_link3"/>
+    <limit lower="-2.8973" upper="2.8973" effort="87.0" velocity="2.175"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="0.0 -0.31600000000000006 -3.418232909935797e-28" rpy="1.57079632679 -0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint4" type="revolute">
+    <parent link="panda_link3"/>
+    <child link="panda_link4"/>
+    <limit lower="-3.0718" upper="-0.0698" effort="87.0" velocity="2.175"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="0.0825 0.0 0.0" rpy="1.57079632679 -0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint5" type="revolute">
+    <parent link="panda_link4"/>
+    <child link="panda_link5"/>
+    <limit lower="-2.8973" upper="2.8973" effort="12.0" velocity="2.61"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="-0.0825 0.38400000000000023 1.0846837446788912e-29" rpy="-1.57079632679 0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint6" type="revolute">
+    <parent link="panda_link5"/>
+    <child link="panda_link6"/>
+    <limit lower="-0.0175" upper="3.7525" effort="12.0" velocity="2.61"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="1.57079632679 -0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint7" type="revolute">
+    <parent link="panda_link6"/>
+    <child link="panda_link7"/>
+    <limit lower="-2.8973" upper="2.8973" effort="12.0" velocity="2.61"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <dynamics damping="1.0" friction="0.0"/>
+    <origin xyz="0.088 0.0 0.0" rpy="1.57079632679 -0.0 0.0"/>
+  </joint>
+  <joint name="panda_joint8" type="fixed">
+    <parent link="panda_link7"/>
+    <child link="panda_link8"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+    <origin xyz="0.0 4.845297921863539e-28 0.10700000000000003" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <joint name="panda_hand_joint" type="fixed">
+    <parent link="panda_link8"/>
+    <child link="panda_hand"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="2.8683722064215544e-12 6.924822375381442e-12 0.7853981633970006"/>
+  </joint>
+  <joint name="panda_finger_joint1" type="prismatic">
+    <parent link="panda_hand"/>
+    <child link="panda_leftfinger"/>
+    <limit lower="0.0" upper="0.04" effort="10000.0" velocity="0.1"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <dynamics damping="0.0" friction="0.0"/>
+    <origin xyz="4.92356258589313e-19 4.923562586112739e-19 0.058400000000000035" rpy="4.484155085839416e-44 8.077935669463163e-28 1.1102230246251568e-16"/>
+  </joint>
+  <joint name="panda_finger_joint2" type="prismatic">
+    <parent link="panda_hand"/>
+    <child link="panda_rightfinger"/>
+    <limit lower="0.0" upper="0.04" effort="10000.0" velocity="0.1"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <dynamics damping="0.0" friction="0.0"/>
+    <origin xyz="4.92356258589313e-19 4.923562586112739e-19 0.058400000000000035" rpy="4.484155085839416e-44 8.077935669463163e-28 1.1102230246251568e-16"/>
+  </joint>
+</robot>
