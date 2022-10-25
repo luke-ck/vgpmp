@@ -1,3 +1,4 @@
+import sys
 import time
 from collections import defaultdict
 from typing import List, Union, Tuple
@@ -7,25 +8,13 @@ from .ops import *
 
 __all__ = 'robot'
 
-# <---------------- global variables ----------------->
-DH = np.array([
-    0, 0.1, -1.5708,  # r_shoulder_pan_joint
-    0, 0, 1.5708,  # r_shoulder_lift_joint
-    .4, 0, -1.5708,  # r_upper_arm_joint
-    0, 0, 1.5708,  # r_elbow_flex_joint
-    0.321, 0, -1.5708,  # r_forearm_roll_joint
-    0, 0, 1.5708,  # r_wrist_flex_joint
-    0, 0, 0  # r_wrist_roll_joint
-], dtype=np.float64).reshape((7, 3))
-PI = np.array([0., 1.5708, 0., 0., 0., 0., 0.], dtype=np.float64).reshape((7, 1))
-
 
 # <---------------- robot class ----------------->
 class Robot:
     """
     Input: Dict{arm:"name", gripper:"name", robot_start_pos:[x,y,z], robot_start_orientation_euler:[x,y,z]}
 
-    Creates a robot object based on wanted robot. 
+    Creates a robot object based on wanted robot.
     Possible to move robot arm as wanted
     """
 
@@ -38,8 +27,9 @@ class Robot:
         self.sphere_offsets = None
         self.base_pose = None
         self.joint_to_link = None
-        self.arm = params["arm"]
         self.start_pos = params["robot_start_pos"]
+        self.DH = np.array(params["dh_parameters"]).reshape((-1, 3))
+        self.twist = np.array(params["twist"]).reshape((-1, 1))
         self.start_orientation = p.getQuaternionFromEuler(
             params["robot_start_orientation_euler"])
         self.joints = None
@@ -55,12 +45,13 @@ class Robot:
         self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
         self.num_spheres = []
         self.active_links = None
-        with suppress_stdout():
-            self.robot_model = p.loadURDF(
-                self.urdf_path, self.start_pos, self.start_orientation, useFixedBase=1)
+        # with suppress_stdout():
+        self.robot_model = p.loadURDF(
+            self.urdf_path, self.start_pos, self.start_orientation, useFixedBase=1)
         self.link_idx = self.get_link_idx()
         self.base_idx = self.link_idx[self.base]
         self.wrist_idx = self.link_idx[self.wrist_test]
+        self.neutral_config = None
         self.joint_link_offsets = None
         self.curr_config = None
 
@@ -70,20 +61,24 @@ class Robot:
         """
 
     def initialise(self, start_config, active_joints, sphere_links, initial_config_names, initial_config_pose,
-                   initial_config_joints):
+                   initial_config_joints, benchmark: bool):
         self.set_active_joints(active_joints)
-
-        self.set_scene(initial_config_names, initial_config_joints, initial_config_pose)
+        # print(active_joints)
+        if benchmark:
+            self.set_scene(initial_config_names, initial_config_joints, initial_config_pose)
         self.set_active_links(sphere_links)
         self.set_active_link_idx()
+
         self.set_joint_idx()
         self.set_joint_names()
-        self.set_curr_config(start_config)
         self.init_mapping_links_to_spheres()
-
-        time.sleep(3)
         self.enable_collision_active_links(0)
+        time.sleep(3)
+        print(start_config)
+        self.set_curr_config(start_config)
+        print(self.curr_config)
         self.init_base_pose()
+        time.sleep(3)
         self.set_joint_link_frame_offset()
 
     def enable_collision_active_links(self, mask: int = 0):
@@ -115,7 +110,7 @@ class Robot:
 
     def init_base_pose(self):
         base_pose = self.get_base_pos()
-        self.base_pose = set_base(base_pose)
+        self.base_pose = base_pose
 
     def set_active_link_idx(self):
         for link in self.active_links:
@@ -127,13 +122,16 @@ class Robot:
         assert initial_config_pose != []
         for (name, val) in zip(initial_config_names, initial_config_joints):
             idx = self.get_joint_idx_from_name(name)
+            assert idx != -1
             self.set_joint_config(idx, val)
 
     def set_active_links(self, sphere_links):
         self.active_links = sphere_links
 
     def get_base_pos(self) -> np.array:
-        return np.array(p.getLinkState(self.robot_model, self.base_idx, computeForwardKinematics=True)[0])
+        base_pos, base_rot = p.getBasePositionAndOrientation(self.robot_model)
+        base_rot = quat_to_rotmat(base_rot).reshape((-1, 1))
+        return get_base(base_rot, base_pos)
 
     def get_joints_info(self):
         return [p.getJointInfo(self.robot_model, i) for i in range(0, p.getNumJoints(self.robot_model))]
@@ -145,10 +143,18 @@ class Robot:
             config = np.squeeze(config)
         self.curr_config = config
         self.set_joint_position(self.curr_config)
+        p.stepSimulation()
 
     def set_joint_idx(self):
-        self.joint_idx = [self.get_joint_idx_from_name(
-            i) for i in self.active_joints]
+        self.joint_idx = []
+        for i in self.active_joints:
+            idx = self.get_joint_idx_from_name(i)
+            if idx == -1:
+                print(f"Could not find the corresponding index for joint name {i}. There is a mismatch between naming"
+                      f"given in the parameter file and actual robot joints. This can give rise to unexpected "
+                      f"behaviour, so please edit the parameter file such that this message doesn't appear.")
+                sys.exit(-1)
+            self.joint_idx.append(idx)
         self.dof = len(self.joint_idx)
         self.set_joints_to_links()
 
@@ -177,11 +183,19 @@ class Robot:
         return self.active_joints
 
     def get_joint_idx_from_name(self, name: str) -> int:
-        joint_idx = 0
+        """
+        For a given joint name, return its index in the kinematic chain of the robot.
+        Args:
+            name(str): name of the joint to return index of
+        Returns:
+            joint_idx(int): index of the joint. If not found returns -1
+        """
+        joint_idx = -1
         for j in range(p.getNumJoints(self.robot_model)):
             joint_info = p.getJointInfo(self.robot_model, j)
             if joint_info[1].decode('utf-8') == name:
                 joint_idx = joint_info[0]
+
         return joint_idx
 
     def set_joint_config(self, idx, targets):
@@ -206,7 +220,7 @@ class Robot:
         for idx, joint in enumerate(self.joint_idx):
             p.resetJointState(self.robot_model, joint, joint_config[idx])
 
-    def get_joint_position(self) -> np.ndarray:
+    def get_curr_config(self) -> np.ndarray:
         r"""
         Return joint position for each joint as a list
         """
@@ -233,7 +247,7 @@ class Robot:
             Return:
                 success(bool): Whether next joint config in trajectory has been reached or not
         """
-        cur_pos = np.array(self.get_joint_position())
+        cur_pos = np.array(self.get_curr_config())
         delta = next_pos - cur_pos
         eps = 0.1
         success = 1
@@ -242,7 +256,7 @@ class Robot:
 
             self.set_joint_motor_control(next_pos, 3, 0)
             p.stepSimulation()
-            cur_pos = np.array(self.get_joint_position())
+            cur_pos = np.array(self.get_curr_config())
 
             delta = next_pos - cur_pos
             if iteration % 100 == 0:
@@ -271,8 +285,8 @@ class Robot:
 
     def get_sphere_id(self) -> Tuple[defaultdict, int]:
         r"""
-        Return: dictionary of sphere ids. The keys are link ids and the values are dictionaries with sphere ids as 
-        keys and relative sphere frame offsets for values. 
+        Return: dictionary of sphere ids. The keys are link ids and the values are dictionaries with sphere ids as
+        keys and relative sphere frame offsets for values.
         """
         sphere_idx = defaultdict(dict)
         counter = 0
@@ -305,25 +319,24 @@ class Robot:
 
     def forward_kinematics(self, thetas) -> np.array:
         T00 = self.base_pose
-        angles = thetas + PI
+        angles = thetas + self.twist
         transform_matrices = np.zeros((7, 4, 4))
-        DH_mat = np.concatenate([angles, DH], axis=-1)
+        DH_mat = np.concatenate([angles, self.DH], axis=-1)
         for idx, params in enumerate(DH_mat):
-            transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
+            transform_matrix = get_transform_matrix_craig(params[0], params[1], params[2], params[3])
             transform_matrices[idx] = transform_matrix
 
         homogenous_transforms = np.zeros((8, 4, 4), dtype=np.float64)
-        homogenous_transforms[0] = np.expand_dims(T00, axis=0)
+        homogenous_transforms[0] = T00
         for i in range(len(transform_matrices)):
             homogenous_transforms[i + 1] = np.array(
-                homogenous_transforms[i] @ transform_matrices[i]).reshape(1, 4, 4)
-
+                homogenous_transforms[i] @ transform_matrices[i]).reshape(4, 4)
         return homogenous_transforms
 
     def compute_joint_positions(self, joint_config) -> np.array:
-        pos = self.forward_kinematics(joint_config)
-        pos = pos[1:, :3, 3]
-        return pos
+        pos_aux = self.forward_kinematics(joint_config)
+        pos = pos_aux[1:, :3, 3]
+        return pos, pos_aux
 
     def compute_joint_link_frame_offset(self) -> np.array:
         r"""
@@ -331,14 +344,12 @@ class Robot:
             Returns:
                 [np.array]: (len(self.link_idx), 3)
         """
-        curr_config = self.curr_config
-        curr_config = np.array(curr_config).reshape(-1, 1)
-        link_pos = self.get_link_world_pos(self.active_link_idx)
-        joint_pos = self.compute_joint_positions(curr_config)
-        self.link_pos = link_pos
-        self.joint_pos = joint_pos
-        link_offset = link_pos - joint_pos
-        return link_offset
+        assert self.active_link_idx is not None
+        return np.array(
+            [
+                np.array(_coord[2]).astype(np.float64)
+                for _coord in p.getLinkStates(self.robot_model, self.active_link_idx, computeForwardKinematics=True)
+            ], dtype=np.object).astype(np.float64)
 
     def get_sphere_transform(self, joints):
         # Union[np.array, TensorLike]
@@ -350,7 +361,6 @@ class Robot:
         Returns:
             [np.array]: sphere cartesian coordinates
         """
-        # print(f"joints are {joints}")
         return np.array([list(get_world_transform(joint, sphere)[0]) for i, joint in enumerate(joints) for sphere in
                          self.sphere_link_idx[self.joint_idx[i]].values()])
 

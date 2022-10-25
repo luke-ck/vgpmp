@@ -1,27 +1,32 @@
+from abc import ABC
 import numpy as np
 import tensorflow as tf
 from gpflow.base import Parameter
 from gpflow.config import default_float
 from gpflow.likelihoods import GaussianMC
 from gpflow.utilities import positive
+from gpflow_vgpmp.utils.miscellaneous import decay_sigma
 from tensorflow_probability import bijectors as tfb
 
-__all__ = ("likelihood")
+__all__ = "likelihood"
 
 TWOPI = np.log(2 * np.pi)
 
 
-class VariationalMonteCarloLikelihood(GaussianMC):
+class VariationalMonteCarloLikelihood(GaussianMC, ABC):
     r"""
     Main class for computing likelihood. Interfaces with pybullet and the signed distance field.
     """
 
-    def __init__(self, sigma_obs, sampler, sdf, alpha, radius, offset, joint_constraints, velocity_constraints,
-                 DEFAULT_VARIANCE_LOWER_BOUND=1e-4, **kwargs):
+    def __init__(self, sigma_obs, num_latent_gps, num_spheres, sampler, sdf, radius, offset, joint_constraints,
+                 velocity_constraints,
+                 DEFAULT_VARIANCE_LOWER_BOUND=1e-10, **kwargs):
         super().__init__(**kwargs)
-        self.variance = Parameter(sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
-        self.alpha = Parameter(alpha, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
+
         self.sampler = sampler
+        sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
+        Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
+        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
         self.sdf = sdf
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
@@ -39,10 +44,9 @@ class VariationalMonteCarloLikelihood(GaussianMC):
         )
 
     @tf.function
-    def _log_prob(self, F):
-        r"""Takes in a tensor of joint configs, computes the 3D world position of sphere coordinates 
-        and their signed distances for the respective joint configs, and returns the log likelihood for 
-        those configurations
+    def log_prob(self, F):
+        r"""
+        Returns the log probability density log p(e|f) for samples S
 
         Args:
             F (tf.Tensor): [S x N x D]
@@ -51,14 +55,25 @@ class VariationalMonteCarloLikelihood(GaussianMC):
             [tf.Tensor]: [S x N]
         """
 
-        L = self._sample_config_cost(F)
-        logp = tf.reduce_sum(self._scalar_log_prob(L), axis=-1)
+        return self._log_prob(F)
+
+    def _log_prob(self, F):
+        r"""
+        Takes in a tensor of joint configs, computes the 3D world position of sphere coordinates
+        and their signed distances for the respective joint configs, and returns the log likelihood for
+        those configurations. Ideally shape checks should be done as well.
+        Args:
+            F (tf.Tensor): [S x N x D]
+        Returns:
+            logp (tf.Tensor): [S x N]
+        """
+        L = self._sample_config_cost(F)  # S x N x P x 3
+        logp = self._scalar_log_prob(L)
         return logp
 
     @tf.function
     def _scalar_log_prob(self, f):
         r"""
-
         Args:
             f (tf.Tensor): [S x N x P x 3]
 
@@ -74,7 +89,7 @@ class VariationalMonteCarloLikelihood(GaussianMC):
 
         S, N, P = cost.shape
         delta = tf.expand_dims(cost, -1)
-        var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) * self.variance
+        var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) / self.variance
 
         res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
         dist_list = tf.reshape(res, shape=(S, N))
@@ -85,11 +100,11 @@ class VariationalMonteCarloLikelihood(GaussianMC):
     def _sample_config_cost(self, f):
         r"""
         This function computes the cartesian position for each configuration
-        in each sample. More explicitly, each iteration of map_fn returns a 
+        in each sample. More explicitly, each iteration of map_fn returns a
         tensor of N x P x 3, where P is the dimensionality of spheres fitted
-        on the robot arm. Under the hood we do forward kinematics, going from 
-        active joints to sphere locations in the cartesian space, and handle 
-        gradients associated with these operations.We do S iterations, 
+        on the robot arm. Under the hood we do forward kinematics, going from
+        active joints to sphere locations in the cartesian space, and handle
+        gradients associated with these operations.We do S iterations,
         one iteration per sample.
 
         Args:
@@ -112,15 +127,15 @@ class VariationalMonteCarloLikelihood(GaussianMC):
         out = tf.where(data <= epsilon, - data + epsilon, 0.0)
 
         def grad(upstream):
-            upstream = tf.where(data <= epsilon, tf.cast(-0.5, dtype=default_float()), upstream)
+            upstream = tf.where(data == epsilon, tf.cast(-0.5, dtype=default_float()), upstream)
             return upstream, tf.cast(0., dtype=default_float())
 
         return out, grad
 
     @tf.function
-    def _hinge_loss(self, data, epsilon=0.05):
+    def _hinge_loss(self, data, epsilon=0.1):
         r"""
-            Penalise configurations where arm is too close to objects with negative cost -d + \epsilon, otherwise 
+            Penalise configurations where arm is too close to objects with negative cost -d + \epsilon, otherwise
         Args:
             data ([tf.Tensor]): [N x P x 3]
             epsilon (float, optional): Safety distance. Defaults to 0.5.
@@ -128,15 +143,24 @@ class VariationalMonteCarloLikelihood(GaussianMC):
         Returns:
             [tf.Tensor]: [N x P]
         """
-        # data = self.check_gradients(data)
         d = self._signed_distance_grad(data)
-        return tf.where(d <= epsilon, - d + epsilon, 0.0)
-        # return self.papirus_loss(d, epsilon)
+        epsilon = tf.cast(epsilon, dtype=default_float())
+        loss1 = tf.where(d <= epsilon, - d + epsilon, 0.0)
+        return loss1
+        # return self.smoothed_hinge_loss(d, epsilon)
+
+    @tf.function
+    def smoothed_hinge_loss(self, data, epsilon):
+        out = tf.where(tf.math.logical_and(data > tf.cast(0.0, dtype=default_float()), data < epsilon),
+                       (epsilon - data) ** 2 / 2, data)
+        out = tf.where(out > epsilon, tf.cast(0.0, dtype=default_float()), out)
+        out = tf.where(out < tf.cast(0.0, dtype=default_float()), tf.cast(0.5, dtype=default_float()) - out, out)
+        return out
 
     @tf.custom_gradient
     def _signed_distance_grad(self, data):
         r"""
-            Compute the signed distance from the sdf its gradient. Here we take the total gradient cost to be 
+            Compute the signed distance from the sdf its gradient. Here we take the total gradient cost to be
             x_d * dx + y_d * dy + z_d * dz where d = [x_d, y_d, z_d]^T is the signed distance expressed in
             cartesian coordinates.
         Args:
@@ -153,9 +177,9 @@ class VariationalMonteCarloLikelihood(GaussianMC):
         dist_grad = self.sdf.get_distance_grad_tf(norm_data)
 
         def grad(upstream):
-            gradient = tf.stack([upstream + dist_grad[..., 0],
-                                 upstream + dist_grad[..., 1],
-                                 upstream + dist_grad[..., 2]], axis=-1)
+            gradient = tf.stack([upstream * dist_grad[..., 0],
+                                 upstream * dist_grad[..., 1],
+                                 upstream * dist_grad[..., 2]], axis=-1)
 
             return gradient
 

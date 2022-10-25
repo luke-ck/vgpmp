@@ -1,8 +1,10 @@
 import sys
+from abc import ABC
+
 from problemset import AbstractProblemset
 
 
-class Problemset(AbstractProblemset):
+class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def active_joints(problemset):

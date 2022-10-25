@@ -8,35 +8,6 @@ from gpflow.kernels.multioutput.kernels import (SeparateIndependent, Independent
 from gpflow_vgpmp.derivatives.dispatch import K_grad, K_grad_grad
 
 
-# @Kuu.register(FallbackSharedIndependentInducingVariables, SharedIndependent)
-# def Kuu_shared_shared(
-#         inducing_variable: FallbackSharedIndependentInducingVariables,
-#         kernel: SharedIndependent,
-#         *,
-#         jitter: float = 0.0,
-# ) -> tf.Tensor:
-#     # TODO
-#     print(os.getcwd())
-#     Kmm = Kuu(inducing_variable.inducing_variable, kernel.kernel)  # [M, M]
-#     jittermat = tf.eye(inducing_variable.num_inducing, dtype=Kmm.dtype) * jitter
-#     return Kmm + jittermat
-#
-#
-# @Kuu.register(FallbackSeparateIndependentInducingVariables, SharedIndependent)
-# def Kuu_fallback_separate_shared(
-#         inducing_variable: FallbackSeparateIndependentInducingVariables,
-#         kernel: SharedIndependent,
-#         *,
-#         jitter: float = 0.0,
-# ) -> tf.Tensor:
-#     # TODO
-#     Kmm = tf.stack(
-#         [Kuu(f, kernel.kernel) for f in inducing_variable.inducing_variable_list], axis=0
-#     )  # [L, M, M]
-#     jittermat = tf.eye(inducing_variable.num_inducing, dtype=Kmm.dtype)[None, :, :] * jitter
-#     return Kmm + jittermat
-
-
 @Kuu.register(FallbackSharedIndependentInducingVariables, (SeparateIndependent, IndependentLatent))
 def Kuu_fallback_shared(
         inducing_variable: FallbackSharedIndependentInducingVariables,

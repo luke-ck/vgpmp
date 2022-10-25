@@ -3,13 +3,16 @@ import os
 import sys
 import time
 from contextlib import contextmanager
-
+from sympy import lambdify, symbols, init_printing, Matrix, eye, sin, cos, pi
+from gpflow.config import default_float
 import numpy as np
 import pybullet as p
 import tensorflow as tf
+import roboticstoolbox as rtb
+from gpflow import set_trainable
 from tqdm import tqdm
-
-import gpflow_vgpmp.utils.problemsets as problemsets
+# from gpflow_vgpmp.models.vgpmp import VGPMP
+# from gpflow_vgpmp.utils.simulator import RobotSimulator
 
 try:
     # Disable all GPUS
@@ -114,23 +117,23 @@ def print_state(query_states, right_arm, robot) -> None:
     print("arm base as computed by pybullet: ", right_arm.base_pose_cart)
 
 
-def create_problems(problemset):
+def create_problems(problemset, robot_name):
     r"""
     Open the problemsets
     """
     # Start and end joint angles
-    n_states, states = problemsets.states(problemset)
+    Problemset = import_problemsets(robot_name)
+    n_states, states = Problemset.states(problemset)
     print('There are %s total robot positions' % (n_states))
     # all possible combinations of 2 pairs
     benchmark = list(itertools.combinations(states, 2))
     print('And a total of %d problems in the %s problemset' %
           (len(benchmark), problemset))
-    names = problemsets.joint_names(problemset)
-    pose = problemsets.default_base_pose(problemset)
-    joint_values = problemsets.default_joint_values(problemset)
-    active_joints = problemsets.active_joints(problemset)
-    sphere_links = problemsets.active_sphere_links()
-    return benchmark, names, pose, joint_values, active_joints, sphere_links
+    names = Problemset.joint_names(problemset)
+    pose = Problemset.default_base_pose(problemset)
+    joint_values = Problemset.default_joint_values(problemset)
+    active_joints = Problemset.active_joints(problemset)
+    return states, names, pose, joint_values, active_joints
 
 
 def set_scene(robot, active_joints, initial_config_joints, initial_config_names, initial_config_pose):
@@ -181,11 +184,11 @@ def init_trainset(grid_spacing, degree_of_freedom, start_joints, end_joints):
     return X, y, Xnew
 
 
-def solve_planning_problem(start_joints, end_joints, params):
-    grid_spacing = params["time_spacing"]
-    dof = params["dof"]
-    max_time = params["max_time"]
-    num_steps = params["num_steps"]
+def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params):
+    grid_spacing = robot_params["time_spacing"]
+    dof = robot_params["dof"]
+    max_time = robot_params["max_time"]
+    num_steps = robot_params["num_steps"]
     X, y, Xnew = init_trainset(grid_spacing, dof, start_joints, end_joints)
     num_data, num_output_dims = y.shape
     planner = VGPMP.initialize(num_data=num_data,
@@ -201,7 +204,7 @@ def solve_planning_problem(start_joints, end_joints, params):
                                robot=robot,
                                mean_function='default',
                                num_latent_gps=dof,
-                               parameters=params.robot
+                               parameters=robot_params
                                )
     disable_hyperparam_opt(planner)
     training_loop(planner, num_steps, data=X, max_time=max_time, optimizer=planner.optimizer)
@@ -215,14 +218,12 @@ def solve_planning_problem(start_joints, end_joints, params):
     EE = [link_joint_pos[-1]]
     prev = link_joint_pos[-1]
     for joint_config in joint_configs:
-        joint_pos = robot.compute_joint_positions(joint_config.reshape((dof, 1)))
-        joint_pos += robot.joint_link_offsets
-        joint_pos = np.array(link_pos[-1])
-        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+        link_pos = robot.compute_joint_positions(joint_config.reshape((dof, 1)))
+        p.addUserDebugLine(prev, link_pos[-1], lineColorRGB=[0, 0, 1],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
         time.sleep(2)
-        prev = link_pos
-        EE.append(link_pos)
+        prev = link_pos[-1]
+        EE.append(link_pos[-1])
 
     EE = np.array(EE)
 
@@ -240,27 +241,75 @@ def draw_active_config(robot: object, config_array: np.ndarray, color: int, clie
     color_arr = [0, 0, 0]
     color_arr[color] += 1
 
-    prev = robot.get_base_pos().reshape(3)
+    prev = robot.base_pose[:3, 3]
+    print(prev)
     for joint in config_array:
         cur = joint
         p.addUserDebugLine(prev, cur, lineColorRGB=color_arr,
                            lineWidth=5.0, lifeTime=0, physicsClientId=client)
         prev = cur
 
+def angle_axis_error(Te: np.ndarray, Tep: np.ndarray, We: np.ndarray):
+    """
+    Calculates the angle axis error between current end-effector pose Te and
+    the desired end-effector pose Tep. Also calulates the quadratic error E
+    which is weighted by the diagonal matrix We.
+
+    Returns a tuple:
+    e: angle-axis error (ndarray in R^6)
+    E: The quadratic error weighted by We
+    """
+    e = rtb.angle_axis(Te, Tep)
+    E = 0.5 * e @ We @ e
+
+    return e, E
+
+def lm_chan_step(ets: rtb.ETS, Tep: np.ndarray, q: np.ndarray, We: np.ndarray):
+        Te = ets.eval(q)
+        e, E = angle_axis_error(Te, Tep, We)
+
+        Wn = 1 * E * np.eye(ets.n)
+        J = ets.jacob0(q)
+        g = J.T @ We @ e
+
+        q += np.linalg.inv(J.T @ We @ J + Wn) @ g
+
+        return E, q
+
+
+def gauss_newton_step(ets: rtb.ETS, Tep: np.ndarray, q: np.ndarray, We: np.ndarray):
+    Te = ets.eval(q)
+    e, E = angle_axis_error(Te, Tep, We)
+
+    J = ets.jacob0(q)
+    g = J.T @ We @ e
+
+    q += np.linalg.pinv(J.T @ We @ J) @ g
+
+    return E, q
+
+def interpolate(p1, p2, n=10):
+    """
+    Interpolates between two matrices each of size 4 x 4
+    """
+    return np.stack([p1 + t * (p2 - p1) for t in np.linspace(0, 1, n+2)])[1:-1]
 
 def benchmarking():
     env = RobotSimulator()
     params = env.get_simulation_params()
     planner_params = params.planner
-
+    robot_params = params.robot
     robot = env.robot
     scene = env.scene
     sdf = env.sdf
+    robot_name = robot_params['robot_name']
     scene = params.scene["problemset"]
-    queries, initial_config_names, initial_config_pose, initial_config_joints, active_joints, sphere_links = create_problems(
-        scene)
+    sphere_links = robot_params['spheres_over_links']
+    queries, initial_config_names, initial_config_pose, initial_config_joints, active_joints = create_problems(
+        scene, robot_name)
 
     total_problems = len(queries)
+    solved_problems = 0
 
     for query in queries:
         start_joints = np.array(query[0], dtype=np.float64)
@@ -273,3 +322,174 @@ def benchmarking():
         if res:
             solved_problems += 1
     print(f"For scene {scene} planner solved {solved_problems} out of {total_problems} problems")
+
+def import_problemsets(robot_name):
+    sys.path.insert(0, os.path.abspath('data/problemsets'))
+    if robot_name == "franka":
+        from franka import Problemset
+        return Problemset
+    elif robot_name == "pr2":
+        from pr2 import Problemset
+        return Problemset
+    else:
+        print("Robot not available. Check params file and try again... The simulator will now exit.")
+        sys.exit(-1)
+
+class RTB_IK:
+    def __init__(self, name, solve, problems=10000):
+        # Solver attributes
+        self.name = name
+        self.solve = solve
+
+        # Solver results
+        self.success = np.zeros(problems)
+        self.searches = np.zeros(problems)
+        self.iterations = np.zeros(problems)
+
+        # initialise with NaN
+        self.success[:] = np.nan
+        self.searches[:] = np.nan
+        self.iterations[:] = np.nan
+
+def get_ik_solvers(problems=10000, ets=rtb.models.DH.Panda().ets(), ilimit=30, slimit=1000, we=np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), tol=1e-6):
+
+
+    rtb_solvers = [
+        RTB_IK(
+            "Newton Raphson (pinv=False)",
+            lambda Tep: ets.ik_nr(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                use_pinv=True,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "Gauss Newton (pinv=False)",
+            lambda Tep: ets.ik_gn(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                use_pinv=True,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "Newton Raphson (pinv=True)",
+            lambda Tep: ets.ik_nr(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                use_pinv=True,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "Gauss Newton (pinv=True)",
+            lambda Tep: ets.ik_gn(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                use_pinv=True,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "LM Wampler 1e-4",
+            lambda Tep: ets.ik_lm_wampler(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                λ=1e-4,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "LM Wampler 1e-6",
+            lambda Tep: ets.ik_lm_wampler(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                λ=1e-6,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "LM Chan 1.0",
+            lambda Tep: ets.ik_lm_chan(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                λ=1.0,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "LM Chan 0.1",
+            lambda Tep: ets.ik_lm_chan(
+                Tep,
+                q0=None,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                λ=0.1,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "LM Sugihara 0.001",
+            lambda Tep: ets.ik_lm_sugihara(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                λ=0.001,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+        RTB_IK(
+            "LM Sugihara 0.0001",
+            lambda Tep: ets.ik_lm_sugihara(
+                Tep,
+                ilimit=ilimit,
+                slimit=slimit,
+                tol=tol,
+                we=we,
+                λ=0.0001,
+                reject_jl=True
+            ),
+            problems=problems,
+        ),
+    ]
+    return rtb_solvers
+
+def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
+    func = tf.range(num_latent_gps + 1)
+    return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
+                     fn_output_signature=default_float())

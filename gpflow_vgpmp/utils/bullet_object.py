@@ -52,6 +52,9 @@ class Object:
             try:
                 if name == "plane":
                     object_path = os.path.join(pybullet_data_path, "plane_transparent.urdf")
+                elif name == "table":
+                    object_path = os.path.join(pybullet_data_path, "table/table.urdf")
+
             except:
                 print(f"No path for {name} found")
                 pass

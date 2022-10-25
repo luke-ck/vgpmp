@@ -1,3 +1,5 @@
+from abc import ABC
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 from gpflow.base import Parameter, TensorData, Optional
@@ -35,6 +37,6 @@ class InducingPointsBase(InducingVariables):
         return tf.shape(self._Z)[0]
 
 
-class VariableInducingPoints(InducingPointsBase):
+class VariableInducingPoints(InducingPointsBase, ABC):
     def __init__(self, Z, dof, name=None):
         super().__init__(Z, dof, name=name)

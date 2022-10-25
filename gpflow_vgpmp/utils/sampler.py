@@ -22,6 +22,24 @@ def get_transform_matrix(theta, d, a, alpha):
 
     return T
 
+@tf.function
+def get_modified_transform_matrix(theta, d, a, alpha):
+    r"""
+    Returns 4x4 homogenous matrix from DH parameters
+    """
+    cTheta = tf.math.cos(theta)
+    sTheta = tf.math.sin(theta)
+    calpha = tf.math.cos(alpha)
+    salpha = tf.math.sin(alpha)
+
+    T = tf.stack([
+        tf.cast([cTheta, -sTheta, 0., a], dtype=default_float()),
+        tf.cast([sTheta * calpha, cTheta * calpha, -salpha, -d * salpha], dtype=default_float()),
+        tf.cast([sTheta * salpha, cTheta * salpha, calpha, d * calpha], dtype=default_float()),
+        tf.cast([0., 0., 0., 1.], dtype=default_float())
+    ])
+
+    return T
 
 def translation_vector(position):
     return np.concatenate([position, [1]]).reshape((4, 1))
@@ -44,20 +62,30 @@ class Sampler:
         self.robot = robot
         link_offsets = self.robot.joint_link_offsets
         sphere_offsets = self.robot.sphere_offsets
+
         self.DH = tf.constant(parameters["dh_parameters"], shape=(self.robot.dof, 3), dtype=default_float())
         self.pi = tf.reshape(tf.constant(parameters["pi"], dtype=default_float()), (self.robot.dof, 1))
         self.arm_base = tf.expand_dims(tf.constant(self.robot.base_pose), axis=0)
         self.spheres_to_links = np.array(self.robot.sphere_link_interval)
         self.num_spheres = self.robot.num_spheres
-        link_offsets = np.repeat(link_offsets, repeats=self.num_spheres, axis=0)
-        link_sphere_offsets = link_offsets + sphere_offsets
-        self.link_sphere_offsets = np.zeros((len(link_sphere_offsets), 4, 4))
+        # link_offsets = np.repeat(link_offsets, repeats=self.num_spheres, axis=0)
+        # link_sphere_offsets = link_offsets + sphere_offsets
 
-        for index, offset in enumerate(link_sphere_offsets):
+        self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
+
+        for index, offset in enumerate(sphere_offsets):
             mat = set_base(offset)
-            self.link_sphere_offsets[index] = mat
+            self.sphere_offsets[index] = mat
 
-        self.link_sphere_offsets = tf.convert_to_tensor(self.link_sphere_offsets, dtype=default_float())
+        self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
+        # self.link_sphere_offsets = np.zeros((len(link_sphere_offsets), 4, 4))
+        self.joint_config_uncertainty = tf.constant([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], shape=(7, 1), dtype=default_float()) * 10
+        # for index, offset in enumerate(link_sphere_offsets):
+        #     mat = set_base(offset)
+        #     self.link_sphere_offsets[index] = mat
+
+        # self.link_sphere_offsets = tf.convert_to_tensor(self.link_sphere_offsets, dtype=default_float())
+        self.one = tf.ones((23, 1), dtype=default_float())
 
     @tf.custom_gradient
     def check_gradients(self, input):
@@ -74,7 +102,7 @@ class Sampler:
         DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
 
         transform_matrices = tf.map_fn(
-            lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+            lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
             parallel_iterations=4)
 
         homogeneous_transforms = tf.concat(
@@ -82,7 +110,22 @@ class Sampler:
 
         out = tf.scan(tf.matmul, homogeneous_transforms)
 
-        return out[1:]  # don't return the static base
+        return out
+
+    @tf.function
+    def _compute_fk_ee_pos(self, joint_config):
+        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
+
+        transform_matrices = tf.map_fn(
+            lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+            parallel_iterations=4)
+
+        homogeneous_transforms = tf.concat(
+            [self.arm_base, transform_matrices], axis=0)
+
+        out = tf.scan(tf.matmul, homogeneous_transforms)
+
+        return out[-1, :3, 3]
 
     @tf.function
     def _fk_cost(self, joint_config):
@@ -102,40 +145,42 @@ class Sampler:
         # <------------- Computing Forward Kinematics ------------>
 
         fk_pos = self._compute_fk(joint_config)
-        # tf.print(fk_pos)
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
-        fk_pos = tf.matmul(self.link_sphere_offsets, fk_pos)
+        sphere_positions = fk_pos @ self.sphere_offsets # hardcoded for now
+        return tf.squeeze(sphere_positions[:, :3, 3])
 
-        # fk_pos = tf.matmul(fk_pos, self.link_sphere_offsets)
-        # tf.print(self.link_sphere_offsets, summarize=-1)
-        # tf.print(self.num_spheres)
-        # out = tf.math.add(out, self.joint_to_link_offsets)
-        #
-        # J = jacobian(spheres_loc, out)
-        # rows = tf.range(out.shape[0])
-        # cols = tf.range(out.shape[1])
-        #
-        # ii = tf.range(out.shape[0])
-        # to_check_plus = tf.map_fn(lambda i: self.per_row_plus(out, i), ii, fn_output_signature=default_float())
-        # to_check_minus = tf.map_fn(lambda i: self.per_row_minus(out, i), ii, fn_output_signature=default_float())
+    @tf.function
+    def compute_joint_pos_uncertainty(self, joint_config, joint_config_uncertainty):
+        r"""Computes the uncertainties for a given joint config. The function
+        needs the use of autograph.
 
-        # func1 = tf.range(to_check_plus.shape[0])
-        # func2 = tf.range(to_check_plus.shape[1])
-        #
-        # up_shift = tf.map_fn(lambda i: tf.map_fn(lambda j: self.joint_to_spheres(to_check_plus[i][j]), func2,
-        #                                     fn_output_signature=default_float()),
-        #                 func1, fn_output_signature=default_float())
-        #
-        # down_shift = tf.map_fn(lambda i: tf.map_fn(lambda j: self.joint_to_spheres(to_check_minus[i][j]), func2,
-        #                                               fn_output_signature=default_float()),
-        #                           func1, fn_output_signature=default_float())
-        #
-        # finite_diff = (up_shift - down_shift) / (2 * 1e-5)
-        #
-        # one_string = tf.strings.format("{}\n FINITE DIFF is HERE \n{}\n", (J, finite_diff), summarize=-1)
-        # tf.io.write_file("fk_gradients.txt", one_string)
+        Args:
+            matrices ([tf.tensor]): D + 1 (from base) x 4 x 4
+            joint_config ([tf.tensor]): D x 1
+            joint_config_uncertainty ([tf.tensor]): D x 1
+        returns:
+            position_uncertainties [tf.tensor]: D x 3
+        """
+        joint_config = tf.reshape(joint_config, (7, 1))
+        joint_config_uncertainty = tf.reshape(joint_config_uncertainty, (7, 1))
 
-        return tf.squeeze(fk_pos[:, :3, 3])
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(joint_config)
+            fk_pos = self._compute_fk(joint_config)
+            xyz_positions = fk_pos[-1, :3, 3]
+            func1 = tf.range(xyz_positions.shape[0])
+            x = xyz_positions[0]
+            y = xyz_positions[1]
+            z = xyz_positions[2]
+        # print(tape.gradient(xyz_positions, joint_config))
+        gradients = tf.stack([tape.gradient(x, joint_config),
+        tape.gradient(y, joint_config),
+        tape.gradient(z, joint_config)])
+
+        position_uncertainties = gradients * joint_config_uncertainty[None, ...]
+        position_uncertainties = tf.squeeze(position_uncertainties ** 2)
+        # print(position_uncertainties)
+        return tf.math.sqrt(tf.reduce_sum(position_uncertainties, axis=-1))
 
     @tf.custom_gradient
     def joint_to_spheres(self, joints):
@@ -227,13 +272,12 @@ class Sampler:
         r"""
 
         Args:
-            joint_configs ([tf.tensor]): S x D
-            sample_dim ([type]): S
+            joint_configs ([tf.tensor]): N x D
+            sample_dim ([type]): N
 
         Returns:
-            [type]: S x P x 3
+            [type]: N x P x 3
         """
-
         K = tf.map_fn(lambda i: self._fk_cost(tf.reshape(
             joint_configs[i], (-1, 1))), tf.range(sample_dim), fn_output_signature=default_float(),
                       parallel_iterations=None)

@@ -78,7 +78,7 @@ class SignedDensityField(object):
     def get_distance_grad(self, rel_pos):
         idxes = self._rel_pos_to_idxes(rel_pos)
         i_min = np.array([0, 0, 0], dtype=np.int)
-        i_max = np.array([self.nx - 1, self.ny - 1, self.nz - 1], dtype=np.int)
+        i_max = np.array([self.nx - 1, self.ny - 1, self.nz - 1], dtype=np.int64)
         neighbor1 = np.clip(idxes + 1, i_min, i_max)
         neighbor2 = np.clip(idxes - 1, i_min, i_max)
         dx = (
@@ -121,18 +121,18 @@ class SignedDensityField(object):
                      dx1 - dx2
              ) / (2 * self.delta)
 
-        dx = tf.where(dx == 0, tf.cast(0.1, dtype=tf.float64), dx)
+        # dx = tf.where(dx == 0, tf.cast(0.1, dtype=tf.float64), dx)
 
         dy = (
                      dy1 - dy2
              ) / (2 * self.delta)
-        dy = tf.where(dy == 0, tf.cast(0.1, dtype=tf.float64), dy)
+        # dy = tf.where(dy == 0, tf.cast(0.1, dtype=tf.float64), dy)
 
         dz = (
                      dz1 - dz2
              ) / (2 * self.delta)
 
-        dz = tf.where(dz == 0, tf.cast(0.1, dtype=tf.float64), dz)
+        # dz = tf.where(dz == 0, tf.cast(0.1, dtype=tf.float64), dz)
         return tf.stack([dx, dy, dz], axis=-1)
 
     def trim(self, dim, center=True):
