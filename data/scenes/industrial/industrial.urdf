@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <robot name="industrial">
-    <link name="industrial_env" type="static">
+    <link name="bookshelf" type="static">
         <contact>
             <lateral_friction value="0.6"/>
             <rolling_friction value="0.0"/>
@@ -13,7 +13,7 @@
 
         <visual>
             <geometry>
-                <mesh filename="industrial.obj"/>
+                <mesh filename="industrial-acd.obj"/>
             </geometry>
             <material name="white">
                 <color rgba="1 1 1 1"/>
@@ -22,7 +22,7 @@
 
         <collision>
             <geometry>
-                <mesh filename="industrial.obj"/>
+                <mesh filename="industrial-acd.obj"/>
             </geometry>
         </collision>
     </link>
