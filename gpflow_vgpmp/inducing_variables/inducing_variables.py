@@ -7,7 +7,7 @@ from gpflow.base import default_float
 from gpflow.inducing_variables import InducingVariables
 
 
-class InducingPointsBase(InducingVariables):
+class InducingPointsBase(InducingVariables, ABC):
     def __init__(self, Z: TensorData, dof, name: Optional[str] = None):
         """
         :param Z: the initial positions of the inducing points, size [M, D]

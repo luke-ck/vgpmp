@@ -20,14 +20,14 @@ class VariationalMonteCarloLikelihood(GaussianMC, ABC):
 
     def __init__(self, sigma_obs, num_latent_gps, num_spheres, sampler, sdf, radius, offset, joint_constraints,
                  velocity_constraints,
-                 DEFAULT_VARIANCE_LOWER_BOUND=1e-10, **kwargs):
+                 DEFAULT_VARIANCE_LOWER_BOUND=1e-4, **kwargs):
         super().__init__(**kwargs)
 
         self.sampler = sampler
+        self.sdf = sdf
         sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
         self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
-        self.sdf = sdf
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
         self.joint_constraints = tf.constant(joint_constraints, shape=(len(joint_constraints) // 2, 2),
@@ -94,7 +94,7 @@ class VariationalMonteCarloLikelihood(GaussianMC, ABC):
         res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
         dist_list = tf.reshape(res, shape=(S, N))
 
-        return -0.5 * (TWOPI * P - tf.linalg.logdet(var) + dist_list)
+        return - 0.5 * dist_list
 
     @tf.function
     def _sample_config_cost(self, f):
@@ -133,7 +133,7 @@ class VariationalMonteCarloLikelihood(GaussianMC, ABC):
         return out, grad
 
     @tf.function
-    def _hinge_loss(self, data, epsilon=0.1):
+    def _hinge_loss(self, data, epsilon=0.05):
         r"""
             Penalise configurations where arm is too close to objects with negative cost -d + \epsilon, otherwise
         Args:

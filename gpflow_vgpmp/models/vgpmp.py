@@ -16,7 +16,7 @@ from gpflow_vgpmp.utils.ops import initialize_Z, bounded_lengthscale
 from gpflow_vgpmp.utils.sampler import Sampler
 
 # <------ Exports
-__all__ = ("vgpmp")
+__all__ = "vgpmp"
 
 
 # =========================================
@@ -39,7 +39,7 @@ class VGPMP(PathwiseSVGP, ABC):
         self.num_inducing = num_inducing
         self.prior = prior
         self.planner_parameters = parameters
-        self.alpha = Parameter(alpha, transform=positive(1))
+        self.alpha = Parameter(alpha, transform=positive(1e-4))
 
     @classmethod
     def initialize(cls,
@@ -62,8 +62,11 @@ class VGPMP(PathwiseSVGP, ABC):
                    robot=None,
                    kernels: List[Kernel] = None,
                    num_latent_gps: int = None,
-                   parameters: dict = {},
+                   parameters=None,
                    **kwargs):
+
+        if parameters is None:
+            parameters = {}
 
         if num_latent_gps is None:
             num_latent_gps = num_output_dims
@@ -86,7 +89,7 @@ class VGPMP(PathwiseSVGP, ABC):
             kernels = []
             for i in range(num_latent_gps):
                 kern = SquaredExponential(lengthscales=lengthscale - i * 0.05)
-                kern.lengthscales = bounded_lengthscale(0.2, 0.91, kern.lengthscales)
+                kern.lengthscales = bounded_lengthscale(0.2, 0.95, kern.lengthscales)
                 kern.variance = Parameter(0.95, transform=positive(0.1), trainable=False)
                 kernels.append(kern)
 
@@ -183,8 +186,6 @@ class VGPMP(PathwiseSVGP, ABC):
 
         Args:
             data (tf.Tensor): (2 x dof)
-            num_samples (int): number of samples to draw
-            num_bases (int): num bases for VFF prior
         Returns:
             ELBO (float): ELBO for the current posterior
         """
