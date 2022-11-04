@@ -22,6 +22,7 @@ def get_transform_matrix(theta, d, a, alpha):
 
     return T
 
+
 @tf.function
 def get_modified_transform_matrix(theta, d, a, alpha):
     r"""
@@ -40,6 +41,7 @@ def get_modified_transform_matrix(theta, d, a, alpha):
     ])
 
     return T
+
 
 def translation_vector(position):
     return np.concatenate([position, [1]]).reshape((4, 1))
@@ -79,23 +81,23 @@ class Sampler:
 
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
         # self.link_sphere_offsets = np.zeros((len(link_sphere_offsets), 4, 4))
-        self.joint_config_uncertainty = tf.constant([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], shape=(7, 1), dtype=default_float()) * 10
+        self.joint_config_uncertainty = tf.constant([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], shape=(7, 1),
+                                                    dtype=default_float()) * 10
         # for index, offset in enumerate(link_sphere_offsets):
         #     mat = set_base(offset)
         #     self.link_sphere_offsets[index] = mat
 
         # self.link_sphere_offsets = tf.convert_to_tensor(self.link_sphere_offsets, dtype=default_float())
-        self.one = tf.ones((23, 1), dtype=default_float())
 
     @tf.custom_gradient
-    def check_gradients(self, input):
+    def check_gradients(self, x):
         def grad(upstream):
-            one_string = tf.strings.format("{}\n", (upstream), summarize=-1)
-            tf.io.write_file("matrices.txt", one_string)
+            upstream_string = tf.strings.format("{}\n", upstream, summarize=-1)
+            tf.io.write_file("matrices.txt", upstream_string)
             # tf.print("upstream translation dim:", upstream.shape)
             return upstream
 
-        return input, grad
+        return x, grad
 
     @tf.function
     def _compute_fk(self, joint_config):
@@ -146,7 +148,7 @@ class Sampler:
 
         fk_pos = self._compute_fk(joint_config)
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
-        sphere_positions = fk_pos @ self.sphere_offsets # hardcoded for now
+        sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
         return tf.squeeze(sphere_positions[:, :3, 3])
 
     @tf.function
@@ -155,7 +157,6 @@ class Sampler:
         needs the use of autograph.
 
         Args:
-            matrices ([tf.tensor]): D + 1 (from base) x 4 x 4
             joint_config ([tf.tensor]): D x 1
             joint_config_uncertainty ([tf.tensor]): D x 1
         returns:
@@ -174,8 +175,8 @@ class Sampler:
             z = xyz_positions[2]
         # print(tape.gradient(xyz_positions, joint_config))
         gradients = tf.stack([tape.gradient(x, joint_config),
-        tape.gradient(y, joint_config),
-        tape.gradient(z, joint_config)])
+                              tape.gradient(y, joint_config),
+                              tape.gradient(z, joint_config)])
 
         position_uncertainties = gradients * joint_config_uncertainty[None, ...]
         position_uncertainties = tf.squeeze(position_uncertainties ** 2)

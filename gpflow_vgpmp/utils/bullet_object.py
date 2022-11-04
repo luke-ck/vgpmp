@@ -28,8 +28,8 @@ class Object:
     def __init__(self, name: str = None, path: str = None, position: List = None, orientation: List = None):
         """
         Args:
-            name(str): name of the object being loaded. This can be used to load objects from the pybullet library. Currently
-                       it is used to distinguish between the plane and everything else.
+            name(str): name of the object being loaded. This can be used to load objects from the pybullet library.
+            Currently it is used to distinguish between the plane and everything else.
             path(str): path to the URDF being loaded. None if loading from pybullet lib
             position(List): len 3 array if given.
             orientation(List): len 3 or 4 depending on whether the orientation was given in Euler angles or quaternion.
@@ -55,7 +55,7 @@ class Object:
                 elif name == "table":
                     object_path = os.path.join(pybullet_data_path, "table/table.urdf")
 
-            except:
+            except FileNotFoundError:
                 print(f"No path for {name} found")
                 pass
         else:

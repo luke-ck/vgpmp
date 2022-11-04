@@ -55,11 +55,6 @@ class Robot:
         self.joint_link_offsets = None
         self.curr_config = None
 
-        # Initiate choosen robot
-        """
-        TODO: should make it possible to change between different gripper/arm combinations when urdf files are available.
-        """
-
     def initialise(self, start_config, active_joints, sphere_links, initial_config_names, initial_config_pose,
                    initial_config_joints, benchmark: bool):
         self.set_active_joints(active_joints)
@@ -73,12 +68,10 @@ class Robot:
         self.set_joint_names()
         self.init_mapping_links_to_spheres()
         self.enable_collision_active_links(0)
-        time.sleep(3)
-        print(start_config)
+        time.sleep(1)
         self.set_curr_config(start_config)
-        print(self.curr_config)
         self.init_base_pose()
-        time.sleep(3)
+        time.sleep(1)
         self.set_joint_link_frame_offset()
 
     def enable_collision_active_links(self, mask: int = 0):
@@ -229,8 +222,8 @@ class Robot:
 
     def set_joint_motor_control(self, position, kp=0.1, kv=0.3):
         dof = len(self.joint_idx)
-        maxVel = 2
-        maxForce = 80
+        maxVel = 0.5
+        maxForce = 70
 
         for i, idx in enumerate(self.joint_idx):
             p.setJointMotorControl2(self.robot_model,

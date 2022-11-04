@@ -6,7 +6,7 @@ from subprocess import call
 import numpy as np
 import tensorflow as tf
 
-__all__ = ('sdf_utils')
+__all__ = 'sdf_utils'
 
 
 def timing(f):
@@ -159,16 +159,13 @@ class SignedDensityField(object):
             [self.nx - 1, self.ny - 1, self.nz - 1], dtype=tf.float64)
 
     def dump(self, pkl_file):
-        data = {}
-        data["data"] = self.data
-        data["origin"] = self.origin
-        data["delta"] = self.delta
+        data = {"data": self.data, "origin": self.origin, "delta": self.delta}
         pickle.dump(data, open(pkl_file, "wb"), protocol=2)
 
     def visualize(self, max_dist=0.1):
         try:
             from mayavi import mlab
-        except:
+        except ImportError:
             print("mayavi is not installed!")
 
         figure = mlab.figure("Signed Density Field")
@@ -219,13 +216,13 @@ class SignedDensityField(object):
         return cls(data["data"], data["origin"], data["delta"])
 
     @tf.custom_gradient
-    def check_gradients(self, input):
+    def check_gradients_sdf(self, x):
 
         def grad(upstream):
             tf.print(upstream[3:])
             return upstream
 
-        return input, grad
+        return x, grad
 
 
 if __name__ == "__main__":
@@ -254,14 +251,16 @@ if __name__ == "__main__":
     elif filename.endswith(".pkl"):
         sdf = SignedDensityField.from_pkl(filename)
 
-    print(
-        "sdf info:",
-        "delta: ", sdf.delta, "\n",
-        "shape: ", sdf.data.shape, "\n",
-        "origin: ", sdf.origin, "\n",
-        "cells with signed distance > 0.01: ", (sdf.data > 0.01).sum(), "\n",
-        "total volume: ", sdf.delta * np.array(sdf.data.shape),
-    )
+    if sdf is not None:
+        print(
+            "sdf info:",
+            "delta: ", sdf.delta, "\n",
+            "shape: ", sdf.data.shape, "\n",
+            "origin: ", sdf.origin, "\n",
+            "cells with signed distance > 0.01: ", (sdf.data > 0.01).sum(), "\n",
+            "total volume: ", sdf.delta * np.array(sdf.data.shape),
+        )
+
     if args.v:
         sdf.visualize()
     if args.export:

@@ -8,7 +8,7 @@ from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 from gpflow_vgpmp.utils.simulation import Simulation
 
 # ---------------Exports
-__all__ = ('simulator')
+__all__ = 'simulator'
 
 
 class RobotSimulator:

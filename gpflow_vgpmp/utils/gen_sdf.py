@@ -10,10 +10,10 @@ PADDING = 20
 
 __all__ = "gen_sdf"
 
-path_sdfgen = ""
+path_sdfgen = "/home/lucasck/vtk/VTK-9.1.0/build/SDFGen/build/bin/SDFGen"
 
 
-def generate_sdf(path_to_sdfgen, obj_filename, delta, padding, dim):
+def generate_sdf(path_to_sdfgen, obj_filename, delta, padding):
     """ Converts mesh to an sdf object """
 
     # create the SDF using binary tools, avoid overwrite
@@ -43,8 +43,8 @@ def generate_sdf(path_to_sdfgen, obj_filename, delta, padding, dim):
     return
 
 
-def do_job_convert_obj_to_sdf(input):
-    x, dim, extra_padding = input
+def do_job_convert_obj_to_sdf(obj_id_dim_padding):
+    x, dim, extra_padding = obj_id_dim_padding
     file = os.path.join(prefix, str(file_list_all[x]), surfix)
 
     extent_file = file.replace(".obj", ".extent.txt")[:-1]
@@ -56,11 +56,11 @@ def do_job_convert_obj_to_sdf(input):
     dim = max(min(dim * scale, 100), 32)
     delta = np.max(extent) / dim
     padding = extra_padding  #
-    dim = dim + extra_padding * 2
-    generate_sdf(path_sdfgen, file, delta, padding, dim)
+    # dim = dim + extra_padding * 2
+    generate_sdf(path_sdfgen, file, delta, padding)
 
 
-def gen_sdf(random_paths=None, dim=32):  # modify dim
+def gen_sdf(random_paths=None, dimension=32):  # modify dimension
     global prefix, surfix, file_list_all
     surfix = "model_normalized.obj"
 
@@ -74,8 +74,7 @@ def gen_sdf(random_paths=None, dim=32):  # modify dim
     param_list = [
         list(a)
         for a in zip(
-            range(object_numbers), [dim] *
-                                   object_numbers, [padding] * object_numbers
+            range(object_numbers), [dimension] * object_numbers, [padding] * object_numbers
         )
     ]
     pool.map(do_job_convert_obj_to_sdf, param_list)  # 32, 40

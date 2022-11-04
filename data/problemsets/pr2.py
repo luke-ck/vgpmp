@@ -1,8 +1,10 @@
 import sys
+from abc import ABC
+
 from problemset import AbstractProblemset
 
 
-class Problemset(AbstractProblemset):
+class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def active_joints(problemset):
@@ -116,7 +118,8 @@ class Problemset(AbstractProblemset):
                     'r_shoulder_pan_joint', 'r_shoulder_lift_joint', 'r_upper_arm_roll_joint', 'r_elbow_flex_joint',
                     'r_forearm_roll_joint', 'r_wrist_flex_joint', 'r_wrist_roll_joint', 'r_gripper_motor_slider_joint',
                     'r_gripper_motor_screw_joint', 'r_gripper_l_finger_joint', 'r_gripper_l_finger_tip_joint',
-                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint', 'l_shoulder_pan_joint',
+                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint',
+                    'l_shoulder_pan_joint',
                     'l_shoulder_lift_joint', 'l_upper_arm_roll_joint', 'l_elbow_flex_joint', 'l_forearm_roll_joint',
                     'l_wrist_flex_joint', 'l_wrist_roll_joint', 'l_gripper_motor_slider_joint',
                     'l_gripper_motor_screw_joint',
@@ -134,7 +137,8 @@ class Problemset(AbstractProblemset):
                     'r_shoulder_pan_joint', 'r_shoulder_lift_joint', 'r_upper_arm_roll_joint', 'r_elbow_flex_joint',
                     'r_forearm_roll_joint', 'r_wrist_flex_joint', 'r_wrist_roll_joint', 'r_gripper_motor_slider_joint',
                     'r_gripper_motor_screw_joint', 'r_gripper_l_finger_joint', 'r_gripper_l_finger_tip_joint',
-                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint', 'l_shoulder_pan_joint',
+                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint',
+                    'l_shoulder_pan_joint',
                     'l_shoulder_lift_joint', 'l_upper_arm_roll_joint', 'l_elbow_flex_joint', 'l_forearm_roll_joint',
                     'l_wrist_flex_joint', 'l_wrist_roll_joint', 'l_gripper_motor_slider_joint',
                     'l_gripper_motor_screw_joint',
@@ -151,7 +155,8 @@ class Problemset(AbstractProblemset):
                     'r_shoulder_pan_joint', 'r_shoulder_lift_joint', 'r_upper_arm_roll_joint', 'r_elbow_flex_joint',
                     'r_forearm_roll_joint', 'r_wrist_flex_joint', 'r_wrist_roll_joint', 'r_gripper_motor_slider_joint',
                     'r_gripper_motor_screw_joint', 'r_gripper_l_finger_joint', 'r_gripper_l_finger_tip_joint',
-                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint', 'l_shoulder_pan_joint',
+                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint',
+                    'l_shoulder_pan_joint',
                     'l_shoulder_lift_joint', 'l_upper_arm_roll_joint', 'l_elbow_flex_joint', 'l_forearm_roll_joint',
                     'l_wrist_flex_joint', 'l_wrist_roll_joint', 'l_gripper_motor_slider_joint',
                     'l_gripper_motor_screw_joint',
@@ -168,7 +173,8 @@ class Problemset(AbstractProblemset):
                     'r_shoulder_pan_joint', 'r_shoulder_lift_joint', 'r_upper_arm_roll_joint', 'r_elbow_flex_joint',
                     'r_forearm_roll_joint', 'r_wrist_flex_joint', 'r_wrist_roll_joint', 'r_gripper_motor_slider_joint',
                     'r_gripper_motor_screw_joint', 'r_gripper_l_finger_joint', 'r_gripper_l_finger_tip_joint',
-                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint', 'l_shoulder_pan_joint',
+                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint',
+                    'l_shoulder_pan_joint',
                     'l_shoulder_lift_joint', 'l_upper_arm_roll_joint', 'l_elbow_flex_joint', 'l_forearm_roll_joint',
                     'l_wrist_flex_joint', 'l_wrist_roll_joint', 'l_gripper_motor_slider_joint',
                     'l_gripper_motor_screw_joint',
@@ -185,7 +191,8 @@ class Problemset(AbstractProblemset):
                     'r_shoulder_pan_joint', 'r_shoulder_lift_joint', 'r_upper_arm_roll_joint', 'r_elbow_flex_joint',
                     'r_forearm_roll_joint', 'r_wrist_flex_joint', 'r_wrist_roll_joint', 'r_gripper_motor_slider_joint',
                     'r_gripper_motor_screw_joint', 'r_gripper_l_finger_joint', 'r_gripper_l_finger_tip_joint',
-                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint', 'l_shoulder_pan_joint',
+                    'r_gripper_r_finger_joint', 'r_gripper_r_finger_tip_joint', 'r_gripper_joint',
+                    'l_shoulder_pan_joint',
                     'l_shoulder_lift_joint', 'l_upper_arm_roll_joint', 'l_elbow_flex_joint', 'l_forearm_roll_joint',
                     'l_wrist_flex_joint', 'l_wrist_roll_joint', 'l_gripper_motor_slider_joint',
                     'l_gripper_motor_screw_joint',
@@ -199,7 +206,7 @@ class Problemset(AbstractProblemset):
     def states(problemset):
         if problemset == 'countertop':
             n_states = 9
-            states = [0 for i in range(n_states)]
+            states = [list() for _ in range(n_states)]
             states[0] = [-0.8452, 0.0813, -1.8312, -
             1.555, 2.6911, -0.8326, 2.068]
             states[1] = [-0.4134, -0.238, -3.6504, -
@@ -221,7 +228,7 @@ class Problemset(AbstractProblemset):
             return n_states, states
         if problemset == 'bookshelves':
             n_states = 10
-            states = [0 for i in range(n_states)]
+            states = [list() for _ in range(n_states)]
             states[0] = [-0.5653, -0.1941, -1.2602, -
             0.7896, -2.3227, -0.3919, -2.5173]
             states[1] = [-0.1361, -0.1915, -1.2602, -
@@ -245,7 +252,7 @@ class Problemset(AbstractProblemset):
             return n_states, states
         if problemset == 'industrial':
             n_states = 12
-            states = [0 for i in range(n_states)]
+            states = [list() for _ in range(n_states)]
             states[0] = [0.4522, -0.0688, 0.4516, -
             1.3564, 2.6366, -1.2885, 2.7515]
             states[1] = [0.5645, -0.2949, -0.8384, -
@@ -273,7 +280,7 @@ class Problemset(AbstractProblemset):
             return n_states, states
         if problemset == 'industrial2':
             n_states = 10
-            states = [0 for i in range(n_states)]
+            states = [list() for _ in range(n_states)]
             states[0] = [-0.2762, 0.894, -0.4462, -
             1.6105, 2.328, -1.0881, -2.3999]
             states[1] = [-0.571, -0.3534, -1.7684, -
@@ -297,7 +304,7 @@ class Problemset(AbstractProblemset):
             return n_states, states
         if problemset == 'tunnel':
             n_states = 4
-            states = [0 for i in range(n_states)]
+            states = [list() for _ in range(n_states)]
             states[0] = [-0.3728, 1.0259, -0.9876, -
             1.2082, 2.0677, -0.563, -1.6563]
             states[1] = [0.2993, 0.1747, -1.7835, -
@@ -310,8 +317,8 @@ class Problemset(AbstractProblemset):
         if problemset == 'lab':
             starts = 4
             ends = 6
-            start = [[0 for i in range(7)] for x in range(starts)]
-            end = [[0 for i in range(7)] for x in range(ends)]
+            start = [list() for _ in range(starts)]
+            end = [list() for _ in range(ends)]
             start[0] = [1.580, 1.100, 0.000, 1.700, 0.000, -1.240, 1.570]
             start[1] = [-0.605, -1.710, 1.640, 1.290, 1.200, -0.106, 2.000]
             start[2] = [1.650, 1.400, 0.000, 0.900, 0.000, -0.800, 1.570]

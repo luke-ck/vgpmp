@@ -6,7 +6,7 @@ import tensorflow as tf
 from gpflow.base import Parameter
 from gpflow.base import default_float
 from tensorflow_probability import bijectors as tfb
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation as rot
 
 
 # <---------------- utilities ----------------->
@@ -63,7 +63,7 @@ def set_vec(translation) -> np.array:
 
 
 def quat_to_rotmat(quat: List) -> np.array:
-    transform = R.from_quat(quat)
+    transform = rot.from_quat(quat)
     return transform.as_matrix()
 
 

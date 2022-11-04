@@ -1,17 +1,14 @@
 import argparse
+import itertools as it
+import yaml
 
 parser = argparse.ArgumentParser()
 parser.add_argument("infile", type=argparse.FileType("r"))
 parser.add_argument("outfile", type=argparse.FileType("w"))
 args = parser.parse_args()
 
-import itertools as it
-import yaml
-
 input_info = yaml.load(args.infile)
-problemset_info = {}
-problemset_info["scene"] = input_info["env_file"]
-problemset_info["robot_name"] = input_info["robot_name"]
+problemset_info = {"scene": input_info["env_file"], "robot_name": input_info["robot_name"]}
 ACTIVE_JOINTS = problemset_info["active_joints"] = input_info["active_joints"]
 ACTIVE_AFFINE = problemset_info["active_affine"] = input_info["active_affine"]
 JOINT_NAMES = problemset_info["joint_names"] = input_info["joint_names"]
@@ -45,7 +42,7 @@ def gen_problem(goal_states, start_states):
 
 
 def generate_problemset():
-    iter = 0
+    iterator = 0
     prob_info = {}
     scene = problemset_info["scene"].split('.')[0]
     prob_info["queries"] = {}
@@ -53,10 +50,10 @@ def generate_problemset():
         start_states = dict(zip(ACTIVE_JOINTS, *start.values()))
         goal_states = dict(name='joint_constraint')
         goal_states.update(dict(zip(ACTIVE_JOINTS, *goal.values())))
-        prob_info["queries"]["pose" + str(iter)] = {}
-        prob_info["queries"]["pose" + str(iter)]["start"] = start_states
-        prob_info["queries"]["pose" + str(iter)]["goal"] = goal_states
-        iter += 1
+        prob_info["queries"]["pose" + str(iterator)] = {}
+        prob_info["queries"]["pose" + str(iterator)]["start"] = start_states
+        prob_info["queries"]["pose" + str(iterator)]["goal"] = goal_states
+        iterator += 1
     Dumper = yaml.SafeDumper
     Dumper.ignore_aliases = lambda self, data: True
     # yaml.dump(STATES, args.outfile, Dumper= Dumper)

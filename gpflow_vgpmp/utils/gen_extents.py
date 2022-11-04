@@ -69,9 +69,9 @@ def gen_normal_xyz(path, pt_num=3000):
     np.savetxt(xyz_file, xyz, fmt="%f")
 
 
-def chunks(l, n):
-    for i in range(0, len(l), n):
-        yield l[i: i + n]
+def chunks(arr, n):
+    for i in range(0, len(arr), n):
+        yield arr[i: i + n]
 
 
 def generate_extents_points(random_paths=None):
@@ -86,7 +86,7 @@ def generate_extents_points(random_paths=None):
     pl = []
     if USE_SUBPROCESS:
         for i, path in tqdm(enumerate(obj_paths)):
-            p = Process(target=gen_normal_xyz, args=[path])
+            p = Process(target=gen_normal_xyz, args=path)
             pl.append(p)
         for i in chunks(pl, numberOfThreads):
             for p in i:
