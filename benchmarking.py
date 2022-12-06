@@ -43,33 +43,43 @@ if __name__ == '__main__':
     # end_joints = np.array([-0.25374755,  0.64612583, -0.76724315, -0.90762323, -0.68691582,  1.96506413, -0.61479132], dtype=np.float64)
 
     # Industrial
-    start_joints = np.array([-1.38294485, 0.61212638, -1.31441932, -0.22121811, 1.1110808, 1.38602424,
-                             0.81529816], dtype=np.float64)
-    end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
-                           2.8963512], dtype=np.float64)
+    # start_joints = np.array([-1.38294485, 0.61212638, -1.31441932, -0.22121811, 1.1110808, 1.38602424,
+    #                          0.81529816], dtype=np.float64)
+    start_joints = np.array([-1.16439096, 0.65851989, -1.24320806, -0.14266402, 1.18478857, 1.56439271,
+                             1.50726637], dtype=np.float64)
+    #  end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
+    #                         2.8963512], dtype=np.float64)
+    end_joints = np.array([[0.10218915, 0.67604317, -0.39735951, -0.3600791, -1.42869601, 2.84581188,
+                            -1.26557614]], dtype=np.float64)
     sphere_links = robot_params["spheres_over_links"]
 
     robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_pose,
                      initial_config_joints, 0)
     print(robot.compute_joint_positions(end_joints.reshape(7, -1))[0][-1])
     dof = robot.dof
+
     X = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1, 30)], dtype=np.float64))
+        [np.full(7, i) for i in np.linspace(0, 1, 50)], dtype=np.float64))
     y = tf.concat([start_joints.reshape((1, dof)), end_joints.reshape((1, dof))], axis=0)
+    print(y)
+
     Xnew = tf.convert_to_tensor(np.array(
         [np.full(7, i) for i in np.linspace(0, 1, 20)], dtype=np.float64))
     #
     # # < ----------------- parameters --------------->
 
-    _, start_pos = robot.compute_joint_positions(start_joints.reshape(7, -1))
-    _, end_pos = robot.compute_joint_positions(end_joints.reshape(7, -1))
+    start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(7, -1))
+    end_pos, end_mat = robot.compute_joint_positions(end_joints.reshape(7, -1))
 
+    print("Start pos: ", start_pos)
+    print("End pos: ", end_pos)
+    # < ----------------- VGPMP --------------->
     problems = 10000
-    q_mu_pos = interpolate(start_pos[-1], end_pos[-1], n=planner_params["num_inducing"])  # [:, :3, :]
+    q_mu_pos = interpolate(start_mat[-1], end_mat[-1], n=planner_params["num_inducing"])  # [:, :3, :]
     # Maximum iterations allowed in a search
 
     q_mu_approx = [[] for _ in range(planner_params["num_inducing"])]
-    prev = np.squeeze(start_pos[-1, :3, 3])
+    prev = np.squeeze(start_mat[-1, :3, 3])
     # rtb_solvers = get_ik_solvers()
     # for i, pose in enumerate(q_mu_pos):
     #     for idx, solver in enumerate(rtb_solvers):
@@ -115,20 +125,21 @@ if __name__ == '__main__':
                                num_latent_gps=dof,
                                parameters=params.robot,
                                q_mu=None,
+                               # whiten=False,
                                )
 
     # planner.likelihood.variance.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(0.0005),
     #                                                              gpflow.utilities.to_default_float(0.005))
 
-    set_trainable(planner.alpha, True)
-    set_trainable(planner.kernel.kernels, True)
-    set_trainable(planner.inducing_variable, True)
-    for kern in planner.kernel.kernels:
-        set_trainable(kern.variance, False)
+    set_trainable(planner.alpha, False)
+    # set_trainable(planner.kernel.kernels, True)
+    set_trainable(planner.kernel.kernel.variance, False)
+    set_trainable(planner.kernel.kernel.lengthscales, True)
+    set_trainable(planner.inducing_variable, False)
+    # for kern in planner.kernel.kernels:
+    #     set_trainable(kern.variance, False)
 
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
-    Xnew = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1, 60)], dtype=np.float64))
     joint_configs, joint_pos_uncertainty = planner.sample_from_posterior(Xnew)
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
@@ -197,4 +208,10 @@ if __name__ == '__main__':
     EE.append(link_pos)
     EE = np.array(EE)  # .reshape((12, 3))
     print(EE, EE.shape)
+    print(f" alpha {planner.alpha}")
+    print(f" lengthscale {planner.kernel.kernel.lengthscales}")
+    print(f" variance {planner.kernel.kernel.variance}")
+    time.sleep(5)
+    print("joint configs", joint_configs)
+    print("y", y)
     robot.move_to_ee_config(joint_configs)
