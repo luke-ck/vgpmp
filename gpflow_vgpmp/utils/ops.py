@@ -22,16 +22,16 @@ def initialize_Z(num_latent_gps, num_inducing):
     Z = tf.convert_to_tensor(np.array(
         [np.full(num_latent_gps, i) for i in np.linspace(0.1, 0.9, num_inducing)], dtype=np.float64))
 
-    Z = bounded_Z(low=0.1 - 1e-2, high=0.9 + 1e-2, Z=Z)
+    Z = bounded_Z(low=0.1 - 5e-2, high=0.9 + 5e-2, Z=Z)
     return Z
 
 
-def bounded_lengthscale(low, high, lengthscale):
-    """Make lengthscale tfp Parameter with optimization bounds."""
+def bounded_param(low, high, param):
+    """Make a bounded tfp Parameter with optimization bounds."""
     affine = tfb.Shift(shift=tf.cast(low, tf.float64))(tfb.Scale(scale=tf.cast(high - low, tf.float64)))
     sigmoid = tfb.Sigmoid()
     logistic = tfb.Chain([affine, sigmoid])
-    parameter = Parameter(lengthscale, transform=logistic, dtype=tf.float64)
+    parameter = Parameter(param, transform=logistic, dtype=tf.float64)
     return parameter
 
 

@@ -121,18 +121,18 @@ class SignedDensityField(object):
                      dx1 - dx2
              ) / (2 * self.delta)
 
-        # dx = tf.where(dx == 0, tf.cast(0.1, dtype=tf.float64), dx)
+        dx = tf.where(dx == 0, tf.cast(0.1, dtype=tf.float64), dx)
 
         dy = (
                      dy1 - dy2
              ) / (2 * self.delta)
-        # dy = tf.where(dy == 0, tf.cast(0.1, dtype=tf.float64), dy)
+        dy = tf.where(dy == 0, tf.cast(0.1, dtype=tf.float64), dy)
 
         dz = (
                      dz1 - dz2
              ) / (2 * self.delta)
 
-        # dz = tf.where(dz == 0, tf.cast(0.1, dtype=tf.float64), dz)
+        dz = tf.where(dz == 0, tf.cast(0.1, dtype=tf.float64), dz)
         return tf.stack([dx, dy, dz], axis=-1)
 
     def trim(self, dim, center=True):

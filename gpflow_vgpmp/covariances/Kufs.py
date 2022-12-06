@@ -7,4 +7,4 @@ from ..inducing_variables.inducing_variables import VariableInducingPoints
 
 @Kuf.register(VariableInducingPoints, Kernel, TensorLike)
 def Kuf_kernel_variableinducingpoints(inducing_variable: VariableInducingPoints, kernel: Kernel, Xnew):
-    return kernel(inducing_variable.Zy, Xnew)  # k([u, y].T, f)
+    return kernel(inducing_variable.Z, Xnew)  # k([u, y].T, f)

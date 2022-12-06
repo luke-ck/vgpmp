@@ -22,7 +22,7 @@ class InducingPointsBase(InducingVariables, ABC):
 
     @property
     def Z(self):
-        return tf.concat([self.ny, self.ny, self._Z], axis=0)
+        return self.Zy
 
     @property
     def Zy(self):

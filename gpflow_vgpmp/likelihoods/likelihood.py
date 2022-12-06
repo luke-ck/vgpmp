@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from gpflow.base import Parameter
 from gpflow.config import default_float
-from gpflow.likelihoods import GaussianMC
+from gpflow.likelihoods import GaussianMC, Gaussian
 from gpflow.utilities import positive
 from gpflow_vgpmp.utils.miscellaneous import decay_sigma
 from tensorflow_probability import bijectors as tfb
@@ -13,21 +13,22 @@ __all__ = "likelihood"
 TWOPI = np.log(2 * np.pi)
 
 
-class VariationalMonteCarloLikelihood(GaussianMC, ABC):
+class VariationalMonteCarloLikelihood(Gaussian, ABC):
     r"""
     Main class for computing likelihood. Interfaces with pybullet and the signed distance field.
     """
 
-    def __init__(self, sigma_obs, num_latent_gps, num_spheres, sampler, sdf, radius, offset, joint_constraints,
+    def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
                  velocity_constraints,
                  DEFAULT_VARIANCE_LOWER_BOUND=1e-4, **kwargs):
         super().__init__(**kwargs)
 
         self.sampler = sampler
         self.sdf = sdf
-        sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
+        # sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
+        sigma_obs_joints = tf.broadcast_to(sigma_obs, [8, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
-        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
+        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=True)
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
         self.joint_constraints = tf.constant(joint_constraints, shape=(len(joint_constraints) // 2, 2),
@@ -135,7 +136,7 @@ class VariationalMonteCarloLikelihood(GaussianMC, ABC):
     @tf.function
     def _hinge_loss(self, data, epsilon=0.05):
         r"""
-            Penalise configurations where arm is too close to objects with negative cost -d + \epsilon, otherwise
+            Penalise configurations where arm is too close to objects with negative cost -d + \epsilon
         Args:
             data ([tf.Tensor]): [N x P x 3]
             epsilon (float, optional): Safety distance. Defaults to 0.5.

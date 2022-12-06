@@ -242,7 +242,7 @@ class Robot:
         """
         cur_pos = np.array(self.get_curr_config())
         delta = next_pos - cur_pos
-        eps = 0.1
+        eps = 0.05
         success = 1
         iteration = 0
         while np.max(np.abs(delta)) > eps:
