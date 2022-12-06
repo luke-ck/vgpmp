@@ -47,10 +47,10 @@ if __name__ == '__main__':
     #                          0.81529816], dtype=np.float64)
     start_joints = np.array([-1.16439096, 0.65851989, -1.24320806, -0.14266402, 1.18478857, 1.56439271,
                              1.50726637], dtype=np.float64)
-    #  end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
-    #                         2.8963512], dtype=np.float64)
-    end_joints = np.array([[0.10218915, 0.67604317, -0.39735951, -0.3600791, -1.42869601, 2.84581188,
-                            -1.26557614]], dtype=np.float64)
+    end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
+                            2.8963512], dtype=np.float64)
+    # end_joints = np.array([[0.10218915, 0.67604317, -0.39735951, -0.3600791, -1.42869601, 2.84581188,
+    #                         -1.26557614]], dtype=np.float64)
     sphere_links = robot_params["spheres_over_links"]
 
     robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_pose,
@@ -59,12 +59,12 @@ if __name__ == '__main__':
     dof = robot.dof
 
     X = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1, 50)], dtype=np.float64))
+        [np.full(7, i) for i in np.linspace(0, 1, 70)], dtype=np.float64))
     y = tf.concat([start_joints.reshape((1, dof)), end_joints.reshape((1, dof))], axis=0)
     print(y)
 
     Xnew = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1, 20)], dtype=np.float64))
+        [np.full(7, i) for i in np.linspace(0, 1, 50)], dtype=np.float64))
     #
     # # < ----------------- parameters --------------->
 
@@ -73,37 +73,6 @@ if __name__ == '__main__':
 
     print("Start pos: ", start_pos)
     print("End pos: ", end_pos)
-    # < ----------------- VGPMP --------------->
-    problems = 10000
-    q_mu_pos = interpolate(start_mat[-1], end_mat[-1], n=planner_params["num_inducing"])  # [:, :3, :]
-    # Maximum iterations allowed in a search
-
-    q_mu_approx = [[] for _ in range(planner_params["num_inducing"])]
-    prev = np.squeeze(start_mat[-1, :3, 3])
-    # rtb_solvers = get_ik_solvers()
-    # for i, pose in enumerate(q_mu_pos):
-    #     for idx, solver in enumerate(rtb_solvers):
-    #
-    #         q_mu_approx[i].append(solver.solve(pose)[0])
-    # chosen_q_mu = []
-    # for i, j in enumerate(q_mu_approx):
-    #     max_ = np.inf
-    #     index = 0
-    #     for idx, solved in enumerate(j):
-    #         ground_truth = q_mu_pos[i, :3, 3]
-    #         trial_pose = robot.compute_joint_positions(solved.reshape(7, -1))[0][-1]
-    #         error = np.sum(np.absolute(ground_truth - trial_pose))
-    #         # print(trial_pose)
-    #         if error < max_:
-    #             index = idx
-    #             max_ = error
-    #         # print("Desired position {} has the IK {} solver pos as {}".format(i+1, idx+1, robot.compute_joint_positions(solved.reshape(7, -1))[0][-1]))
-    #         # print("Ground truth is ", q_mu_pos[i, :3, 3])
-    #     chosen_q_mu.append(j[index])
-    #     print(max_)
-    #     # robot.set_curr_config(j)
-    #     # time.sleep(5)
-    # chosen_q_mu = np.array(chosen_q_mu)
 
     num_data, num_output_dims = y.shape
     planner = VGPMP.initialize(num_data=num_data,
@@ -140,7 +109,7 @@ if __name__ == '__main__':
     #     set_trainable(kern.variance, False)
 
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
-    joint_configs, joint_pos_uncertainty = planner.sample_from_posterior(Xnew)
+    joint_configs, samples = planner.sample_from_posterior(Xnew)
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
     robot.set_joint_position(start_joints)
@@ -148,59 +117,30 @@ if __name__ == '__main__':
     EE = [link_pos[-1]]
     prev = link_pos[-1]
 
-    for joint_config, unc in zip(joint_configs, joint_pos_uncertainty):
+    for joint_config in joint_configs:
         link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (7, 1)))
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-        # The following commented lines are for uncertainty, uncomment if you want to see it
-
-        # x = link_pos.copy()
-        # x_up = x.copy() + np.array([unc[0], 0, 0])
-        # x_down = x.copy() - np.array([unc[0], 0, 0])
-        # p.addUserDebugLine(x_up, x_down, lineColorRGB=[1, 0, 0],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
-        # y = link_pos.copy()
-        # y_up = y.copy() + np.array([0, unc[1], 0])
-        # y_down = y.copy() - np.array([0, unc[1], 0])
-        # p.addUserDebugLine(y_up, y_down, lineColorRGB=[0, 1, 0],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
-        # z = link_pos.copy()
-        # z_up = z.copy() + np.array([0, 0, unc[2]])
-        # z_down = z.copy() - np.array([0, 0, unc[2]])
-
-        # p.addUserDebugLine(z_up, z_down, lineColorRGB=[0, 0, 1],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
-        # rx, ry, rz = unc[0], unc[1], unc[2]
-        # prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
-        # prev_yy = [rx * cos[0], 0, rz * sin[0]] + link_pos
-        # prev_zz = [0, ry * cos[0], rz * sin[0]] + link_pos
-        # for i in range(1, len(t)):
-        #     xx = [rx * cos[i], ry * sin[i], 0] + link_pos
-        #     yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
-        #     zz = [0, ry * cos[i], rz * sin[i]] + link_pos
-        #     p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-        #     p.addUserDebugLine(prev_yy, yy, lineColorRGB=[1, 0, 0],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-        #     p.addUserDebugLine(prev_zz, zz, lineColorRGB=[1, 0, 0],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-        #     prev_xx = xx
-        #     prev_yy = yy
-        #     prev_zz = zz
-
-        # p.addUserDebugLine(x_up, x_down, lineColorRGB=[1, 0, 0],
-        #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
         time.sleep(0.1)
         prev = link_pos
         EE.append(link_pos)
+
+    for sample in samples:
+        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (7, 1)))
+        prev = link_pos[-1]
+
+        for joint_config in sample:
+            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (7, 1)))
+            link_pos = np.array(link_pos[-1])
+            p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+            prev = link_pos
     link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (7, 1)))
     link_pos = np.array(link_pos[-1])
     p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
