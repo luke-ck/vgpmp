@@ -59,12 +59,12 @@ if __name__ == '__main__':
     dof = robot.dof
 
     X = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1, 70)], dtype=np.float64))
+        [np.full(7, i) for i in np.linspace(0, 1 * 100, 100)], dtype=np.float64))
     y = tf.concat([start_joints.reshape((1, dof)), end_joints.reshape((1, dof))], axis=0)
     print(y)
 
     Xnew = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1, 50)], dtype=np.float64))
+        [np.full(7, i) for i in np.linspace(0, 1 * 100, 100)], dtype=np.float64))
     #
     # # < ----------------- parameters --------------->
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
                                num_latent_gps=dof,
                                parameters=params.robot,
                                q_mu=None,
-                               # whiten=False,
+                               whiten=False,
                                )
 
     # planner.likelihood.variance.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(0.0005),

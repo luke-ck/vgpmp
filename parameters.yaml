@@ -55,7 +55,7 @@
       ]
 
 - scene:
-    object_position:   [-0.1, 0, -0.2] # [ 0.62, -0.15, 0.85 ] [ 0.55, -0.0, 0.75]
+    object_position: [-0.1, 0, -0.2] #   [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] 
     object_path: "/data/scenes/industrial/industrial.urdf"
     problemset: "industrial"
     sdf_path: "data/scenes/industrial/industrial_vgpmp.sdf"
@@ -64,10 +64,10 @@
     sigma_obs: 0.005
     num_inducing: 10
     num_spheres: 37 # should be dependent on robot
-    learning_rate: 0.11
+    learning_rate: 0.1
     alpha: 1.75
     num_steps: 150
-    lengthscale: 1
+    lengthscale: 90
 
 - simulation:
     #Choose object (Bottle, cube_small.urdf, cube_no_rotation.urdf, r2d2.urdf, sphere2.urdf,teddy_vhacd.urdf,teddy_vhacd.urdf) or other standard objects from pybullet

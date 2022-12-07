@@ -107,7 +107,7 @@ class VGPMP(PathwiseSVGP, ABC):
             #     kern.variance = Parameter(0.95, transform=positive(0.1), trainable=False)
             #     kernels.append(kern)
             kernel = Matern52(lengthscales=lengthscale, variance=0.15)
-            kernel.lengthscales = bounded_param(0.9, 2, kernel.lengthscales)
+            kernel.lengthscales = bounded_param(2, 2 * 100, kernel.lengthscales)
             # kernel.variance = bounded_param(0.1, 0.5, kernel.variance)
         kernel = SharedIndependent(kernel, output_dim=num_latent_gps)
 
@@ -140,17 +140,13 @@ class VGPMP(PathwiseSVGP, ABC):
 
     @property
     def q_mu(self):
-        Z = self.inducing_variable
-        K = Kuu(Z, self.kernel, jitter=default_jitter())  # [M, M]
-        Linv = tf.linalg.inv(tf.linalg.cholesky(K))
-        # if self.__q_mu is None:
-            # self.__q_mu = tf.concat([self.query_states, self._q_mu]
-        return Linv @ tf.concat([self.query_states, self._q_mu], axis=0)
-        # return tf.concat([self.query_states, self._q_mu], axis=0)
-
+        return tf.concat([self.query_states, self._q_mu], axis=0)
+        
     @property
     def q_sqrt(self):
-        return tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
+        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        L = tf.linalg.cholesky(K)
+        return L[None, ...] @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
                1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
 
     def _init_variational_parameters(
@@ -198,6 +194,19 @@ class VGPMP(PathwiseSVGP, ABC):
             ]
         )
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
+
+    def prior_kl(self):
+        n = len(self.inducing_variable.inducing_variable.ny)
+        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        L = tf.linalg.cholesky(K)
+
+        # Subtract prior mean from q_mu, then whiten
+        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
+        q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
+        # tf.print(q_mu - p_mu, p_mu)
+        whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
+        print(whitened_diff, self._q_sqrt)
+        return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     @tf.function
     def elbo(self, data: tf.Tensor) -> tf.Tensor:
