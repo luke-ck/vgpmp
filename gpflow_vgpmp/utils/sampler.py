@@ -129,6 +129,15 @@ class Sampler:
 
         return out[-1, :3, 3]
 
+    @tf.custom_gradient
+    def check_gradients(self, x):
+
+        def grad(upstream):
+            tf.print(upstream, summarize=-1)
+            return upstream
+
+        return x, grad
+
     @tf.function
     def _fk_cost(self, joint_config):
         r""" Computes the cost for a given config. It is advised to
@@ -145,7 +154,7 @@ class Sampler:
         """
 
         # <------------- Computing Forward Kinematics ------------>
-
+        # joint_config = self.check_gradients(joint_config)
         fk_pos = self._compute_fk(joint_config)
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
         sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
