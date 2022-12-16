@@ -56,11 +56,11 @@ class Simulation:
 
     def load_params(self, params):
         """ Load and extract data from parameter file """
-
-        robot_params, scene_params, planner_params, sim_params, graphic_params = params
+        robot_params, scene_params, planner_params, trainable_params, sim_params, graphic_params = params
         self.scene_params = scene_params["scene"]
         self.robot_params = robot_params["robot"]
         self.planner_params = planner_params["planner"]
+        self.trainable_params = trainable_params["trainable_parameters"]
         self.sim_params = sim_params["simulation"]
         self.graphic_params = graphic_params["graphics"]
 
@@ -69,6 +69,7 @@ class Simulation:
         params["scene"] = self.scene_params
         params["robot"] = self.robot_params
         params["planner"] = self.planner_params
+        params["trainable_params"] = self.trainable_params
         params["simulation"] = self.sim_params
         params["graphics"] = self.graphic_params
         params = Bunch(params)

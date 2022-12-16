@@ -5,7 +5,6 @@ from gpflow.base import Parameter
 from gpflow.config import default_float
 from gpflow.likelihoods import GaussianMC, Gaussian
 from gpflow.utilities import positive
-from gpflow_vgpmp.utils.miscellaneous import decay_sigma
 from gpflow_vgpmp.utils.ops import bounded_param
 from tensorflow_probability import bijectors as tfb
 
@@ -20,7 +19,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
     """
 
     def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
-                 velocity_constraints,
+                 velocity_constraints, train_sigma,
                  DEFAULT_VARIANCE_LOWER_BOUND=1e-14, **kwargs):
         super().__init__(**kwargs)
 
@@ -29,7 +28,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         # sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
         sigma_obs_joints = tf.broadcast_to(sigma_obs, [8, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
-        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=False)
+        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=train_sigma)
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
         self.joint_constraints = tf.constant(joint_constraints, shape=(len(joint_constraints) // 2, 2),
@@ -44,6 +43,11 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             low=self.velocity_constraints[:, 1],
             high=self.velocity_constraints[:, 0]
         )
+
+    def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
+        func = tf.range(num_latent_gps + 1)
+        return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
+                        fn_output_signature=default_float())
 
     @tf.function
     def log_prob(self, F):

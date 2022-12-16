@@ -14,8 +14,7 @@ from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
 from gpflow_vgpmp.inducing_variables.inducing_variables import VariableInducingPoints
 from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
-from gpflow_vgpmp.utils.miscellaneous import timing
-from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param
+from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param, timing
 from gpflow_vgpmp.utils.sampler import Sampler
 from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
 
@@ -77,6 +76,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    kernels: List[Kernel] = None,
                    num_latent_gps: int = None,
                    parameters=None,
+                   train_sigma=False,
                    **kwargs):
 
         if parameters is None:
@@ -116,8 +116,8 @@ class VGPMP(PathwiseSVGP, ABC):
 
         sampler = Sampler(robot, parameters)
         likelihood = VariationalMonteCarloLikelihood(sigma_obs, num_spheres, sampler, sdf, rs, offset,
-                                                     joint_constraints,
-                                                     velocity_constraints)
+                                                     joint_constraints, velocity_constraints, 
+                                                     train_sigma)
 
         return cls(kernel=kernel,
                    likelihood=likelihood,
@@ -272,9 +272,8 @@ class VGPMP(PathwiseSVGP, ABC):
 
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
         mu = self.likelihood.joint_sigmoid(mu)
-        with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
+        with self.temporary_paths(num_samples=100, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
-        # print(self.num_bases)
         samples = self.likelihood.joint_sigmoid(f)
         return mu, samples[self.get_best_sample(samples)], samples[:7]
 
@@ -283,4 +282,5 @@ class VGPMP(PathwiseSVGP, ABC):
 
     def get_best_sample(self, samples):
         cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
+        tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
         return tf.math.argmax(cost)

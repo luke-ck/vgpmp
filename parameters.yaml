@@ -31,8 +31,7 @@
       ]
     pi: [ 0., 0., 0., 0., 0., 0., 0. ]
     twist: [ 0., 0., 0., 0., 0., 0., 0. ]
-    time_spacing: 20
-    max_time: 30
+    dof: 7
     joint_constraints:
       [ # Values in radians
         2.8973, -2.8973,  # r_shoulder_pan_joint
@@ -55,19 +54,31 @@
       ]
 
 - scene:
-    object_position: [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] [-0.2, 0, -0.2] #   
-    object_path: "/data/scenes/bookshelves/bookshelves_table_mesh.urdf"
-    problemset: "bookshelves"
-    sdf_path: "data/scenes/bookshelves/bookshelves_table_center-acd_vgpmp.sdf"
+    object_position:  [-0.2, 0, -0.2] #  [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75]  
+    object_path: "/data/scenes/industrial/industrial.urdf"
+    problemset: "industrial"
+    sdf_path: "data/scenes/industrial/industrial_vgpmp.sdf"
+
 - planner:
     num_samples: 7
-    sigma_obs: 0.003
+    sigma_obs: 0.004
     num_inducing: 6
     num_spheres: 37 # should be dependent on robot
     learning_rate: 0.09
     alpha: 10
     num_steps: 130
     lengthscale: 100
+    time_spacing_X: 70
+    time_spacing_Xnew: 100
+
+- trainable_parameters:
+    q_mu: True
+    q_sqrt: True
+    lengthscales: True
+    kernel_variance: False
+    sigma_obs: False
+    inducing_variable: False
+    alpha: False
 
 - simulation:
     #Choose object (Bottle, cube_small.urdf, cube_no_rotation.urdf, r2d2.urdf, sphere2.urdf,teddy_vhacd.urdf,teddy_vhacd.urdf) or other standard objects from pybullet

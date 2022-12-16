@@ -256,12 +256,12 @@ class Robot:
                 print(cur_pos)
                 print(f"delta at iter {iteration} is {np.max(np.abs(delta))}")
             iteration += 1
-            if iteration > 10000:
+            if iteration > 2000:
                 success = 0
                 break
         return success
 
-    def move_to_ee_config(self, joint_config):
+    def move_to_ee_config(self, joint_config, end_config):
         r"""
             Args:
             joint_config(np.array): (len(joint_config), len(self.joint_idx))
@@ -274,7 +274,9 @@ class Robot:
             success = self.move_to_next_config(next_pos)
             if not success:
                 print(f"Next state was not reachable")
+                self.set_joint_motor_control(end_config, 3, 0)
                 break
+        return success
 
     def get_sphere_id(self) -> Tuple[defaultdict, int]:
         r"""
