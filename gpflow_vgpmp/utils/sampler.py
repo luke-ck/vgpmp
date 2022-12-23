@@ -54,15 +54,12 @@ class Sampler:
     r"""
         This class is the interface that enables communication
         between tensorflow and pybullet. Cost for samples generated
-        in the Monte Carlo routine is computed here, using custom
-        gradients, to be able to call pybullet inside the computation
-        graph.
+        in the Monte Carlo routine is computed here.
 
     """
 
     def __init__(self, robot, parameters):
         self.robot = robot
-        link_offsets = self.robot.joint_link_offsets
         sphere_offsets = self.robot.sphere_offsets
 
         self.DH = tf.constant(parameters["dh_parameters"], shape=(self.robot.dof, 3), dtype=default_float())
@@ -70,8 +67,6 @@ class Sampler:
         self.arm_base = tf.expand_dims(tf.constant(self.robot.base_pose), axis=0)
         self.spheres_to_links = np.array(self.robot.sphere_link_interval)
         self.num_spheres = self.robot.num_spheres
-        # link_offsets = np.repeat(link_offsets, repeats=self.num_spheres, axis=0)
-        # link_sphere_offsets = link_offsets + sphere_offsets
 
         self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
 

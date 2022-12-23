@@ -3,6 +3,8 @@ import os
 import sys
 import time
 from contextlib import contextmanager
+from typing import List, Tuple
+
 from sympy import lambdify, symbols, init_printing, Matrix, eye, sin, cos, pi
 from gpflow.config import default_float
 import numpy as np
@@ -118,7 +120,7 @@ def print_state(query_states, right_arm, robot) -> None:
     print("arm base as computed by pybullet: ", right_arm.base_pose_cart)
 
 
-def create_problems(problemset, robot_name):
+def create_problems(problemset: str, robot_name: str) -> Tuple[List[List], List[str], List[float]]:
     r"""
     Open the problemsets
     """
@@ -131,10 +133,8 @@ def create_problems(problemset, robot_name):
     print('And a total of %d problems in the %s problemset' %
           (len(benchmark), problemset))
     names = Problemset.joint_names(problemset)
-    pose = Problemset.default_base_pose(problemset)
-    joint_values = Problemset.default_joint_values(problemset)
-    active_joints = Problemset.active_joints(problemset)
-    return states, names, pose, joint_values, active_joints
+    pose = Problemset.default_pose(problemset)
+    return states, names, pose
 
 
 def set_scene(robot, active_joints, initial_config_joints, initial_config_names, initial_config_pose):
@@ -339,8 +339,11 @@ def import_problemsets(robot_name):
     if robot_name == "franka":
         from franka import Problemset
         return Problemset
-    elif robot_name == "pr2":
-        from pr2 import Problemset
+    elif robot_name == "ur10":
+        from ur10 import Problemset
+        return Problemset
+    elif robot_name == "wam":
+        from wam import Problemset
         return Problemset
     else:
         print("Robot not available. Check params file and try again... The simulator will now exit.")
