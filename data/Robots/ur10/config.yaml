@@ -1,0 +1,41 @@
+radius: [0.15, 0.13, 0.085, 0.085, 0.085, 0.085, 0.1, 0.1, 0.07, 0.07, 0.07, 0.07, 0.07, 0.07, 0.08, 0.08, 0.05]
+spheres_over_links:
+      [
+          "shoulder_link",
+          "upper_arm_link",
+           "forearm_link",
+           "wrist_1_link",
+           "wrist_2_link",
+           "wrist_3_link",
+      ]
+active_joints:
+      [
+         "shoulder_pan_joint",
+         "shoulder_lift_joint",
+         "elbow_joint",
+         "wrist_1_joint",
+         "wrist_2_joint",
+         "wrist_3_joint"
+
+      ]
+basename: "base_link"
+wrist_test: "ee_link"
+joint_limits:
+        [
+                6.28319, -6.28319,  # shoulder_pan_joint
+                6.28319, -6.28319,  # shoulder_lift_joint
+                6.28319, -6.28319,  # elbow_joint
+                6.28319, -6.28319,  # wrist_1_joint
+                6.28319, -6.28319,  # wrist_2_joint
+                6.28319, -6.28319  # wrist_3_joint
+        ]
+dh_parameters: # d, a, alpha
+  [
+    0.1273, 0.0, 1.5708,  # shoulder_pan_joint
+    0.0, -0.612, 0.0,  # shoulder_lift_joint
+    0.0, -0.5723, 0.0,  # elbow_joint
+    0.163941, 0.0, 1.5708,  # wrist_1_joint
+    0.1157, 0.0, -1.5708,  # wrist_2_joint
+    0.0922, 0.0, 0.0  # wrist_3_joint
+   ]
+twist: [ 0., 0., 0., 0., 0., 0., 0. ]

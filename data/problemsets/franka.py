@@ -5,31 +5,20 @@ from problemset import AbstractProblemset
 
 
 class Problemset(AbstractProblemset, ABC):
+    def __init__(self):
+        super().__init__()
+        self.joint_limits = [
+                             2.8973, -2.8973,  # r_shoulder_pan_joint
+                             1.7628, -1.7628,  # r_shoulder_lift_joint
+                             2.8973, -2.8973,  # r_upper_arm_joint
+                             -0.0698, -3.0718,  # r_elbow_flex_joint
+                             2.8973, -2.8973,  # r_forearm_roll_joint
+                             3.7525, -0.0175,  # r_wrist_flex_joint
+                             2.8973, -2.8973  # r_wrist_roll_joint
+                             ]
 
     @staticmethod
-    def active_joints(problemset):
-        if problemset == 'bookshelves':
-            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
-                    'panda_joint5', 'panda_joint6', 'panda_joint7']
-        if problemset == 'industrial':
-            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
-                    'panda_joint5', 'panda_joint6', 'panda_joint7']
-        else:
-            print("Unknown problem set")
-            sys.exit()
-
-    @staticmethod
-    def default_base_pose(problemset):
-        if problemset == 'bookshelves':
-            return [0] * 7
-        if problemset == 'industrial':
-            return [0] * 7
-        else:
-            print("Unknown problem set")
-            sys.exit()
-
-    @staticmethod
-    def default_joint_values(problemset):
+    def default_pose(problemset):
         if problemset == 'bookshelves':
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         if problemset == 'industrial':
@@ -96,3 +85,6 @@ class Problemset(AbstractProblemset, ABC):
         else:
             print("Unknown problem set")
             sys.exit()
+
+    def get_joint_limits(self):
+        return self.joint_limits

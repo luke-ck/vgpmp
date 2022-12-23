@@ -1,21 +1,17 @@
 import abc
 from typing import List, Tuple
-import sys
+
 __all__ = "problemset"
 
 
 class AbstractProblemset(object, metaclass=abc.ABCMeta):
 
     @staticmethod
-    def active_joints(problemset: str) -> List[str]:
-        raise NotImplementedError
-
-    @staticmethod
-    def default_base_pose(problemset: str) -> List[float]:
-        raise NotImplementedError
-
-    @staticmethod
-    def default_joint_values(problemset: str) -> List[float]:
+    def default_pose(problemset: str) -> List[float]:
+        """
+        Returns the default pose for the given problemset environment.
+        The base pose refers to the entire robot, not just the DOF.
+        """
         raise NotImplementedError
 
     @staticmethod
@@ -24,5 +20,8 @@ class AbstractProblemset(object, metaclass=abc.ABCMeta):
 
     @staticmethod
     def joint_names(problemset: str) -> List[str]:
+        """
+        The joint names for all joints in the robot
+        """
         raise NotImplementedError
 
