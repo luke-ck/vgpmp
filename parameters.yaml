@@ -1,7 +1,7 @@
 - robot:
     #Choose robot (pr2, franka)
     robot_name: "franka"
-    robot_start_pos: [ 0, 0, 0 ]
+    robot_start_pos: [ 0, 0, 0.25 ]
     robot_start_orientation_euler: [ 0, 0, 0 ]
     basename: "panda_link0"
     wrist_test: "panda_hand"
@@ -54,10 +54,10 @@
       ]
 
 - scene:
-    object_position:  [-0.2, 0, -0.2] #  [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75]  
-    object_path: "/data/scenes/industrial/industrial.urdf"
-    problemset: "industrial"
-    sdf_path: "data/scenes/industrial/industrial_vgpmp.sdf"
+    object_position:  [ 0.42, 0.25, 0.85 ] # [ 0.55, -0.0, 0.75]  [-0.2, 0, -0.2] #  
+    object_path: "/data/scenes/bookshelves/bookshelves_table_mesh_gpmp.urdf"
+    problemset: "bookshelves"
+    sdf_path: "data/scenes/bookshelves/bookshelves_table_gpmp.sdf"
 
 - planner:
     num_samples: 7

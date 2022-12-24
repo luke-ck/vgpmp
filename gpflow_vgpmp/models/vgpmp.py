@@ -3,6 +3,7 @@ from abc import ABC
 from typing import Callable, List, Optional
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 from gpflow import kullback_leiblers, default_jitter
 from gpflow.base import Parameter, TensorLike
 from gpflow.config import default_float
@@ -275,7 +276,9 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=100, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        return mu, samples[self.get_best_sample(samples)], samples[:7]
+        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1))[0][-1] for time in sample] for sample in samples])
+        uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
+        return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 
     def initialize_optimizer(self, learning_rate):
         return tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)

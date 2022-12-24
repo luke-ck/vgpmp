@@ -152,7 +152,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     disable_param_opt(planner, trainable_params)
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
-    sample_mean, best_sample, samples = planner.sample_from_posterior(Xnew)
+    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew)
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
     robot.set_joint_position(start_joints)
@@ -167,21 +167,38 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
         prev = link_pos
 
-    # link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
-    # prev = link_pos[-1]
+    # PLOT THE MEAN OF THE SAMPLES
+    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
+    prev = link_pos[-1]
 
-    # for joint_config in sample_mean:
-    #     link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
-    #     link_pos = np.array(link_pos[-1])
-    #     p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-    #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    t = np.linspace(0, 2 * np.pi, 50)
+    cos = np.cos(t)
+    sin = np.sin(t)
+    for joint_config, unc in zip(sample_mean, uncertainties):
+        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
+        link_pos = np.array(link_pos[-1])
+        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+        prev = link_pos
+        rx, ry, rz = unc[0], unc[1], unc[2]
+        prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
+        prev_yy = [rx * cos[0], 0, rz * sin[0]] + link_pos
+        prev_zz = [0, ry * cos[0], rz * sin[0]] + link_pos
+        for i in range(1, len(t)):
+            xx = [rx * cos[i], ry * sin[i], 0] + link_pos
+            yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
+            zz = [0, ry * cos[i], rz * sin[i]] + link_pos
+            p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            prev_xx = xx
+            prev_yy = yy
+            prev_zz = zz
 
-    #     p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
-    #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
-    #     # time.sleep(0.05)
-    #     prev = link_pos
-
+    # PLOT THE SAMPLES
     # for sample in samples:
     #     link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
     #     prev = link_pos[-1]
@@ -193,6 +210,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     #         prev = link_pos
+
+    # PLOT THE UNCERATINTY
     link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)))
     link_pos = np.array(link_pos[-1])
     p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],

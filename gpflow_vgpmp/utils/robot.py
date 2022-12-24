@@ -104,6 +104,7 @@ class Robot:
     def init_base_pose(self):
         base_pose = self.get_base_pos()
         self.base_pose = base_pose
+        print(f"self.base_pose: {self.base_pose}")
 
     def set_active_link_idx(self):
         for link in self.active_links:
@@ -252,9 +253,9 @@ class Robot:
             cur_pos = np.array(self.get_curr_config())
 
             delta = next_pos - cur_pos
-            if iteration % 100 == 0:
-                print(cur_pos)
-                print(f"delta at iter {iteration} is {np.max(np.abs(delta))}")
+            # if iteration % 100 == 0:
+                # print(cur_pos)
+                # print(f"delta at iter {iteration} is {np.max(np.abs(delta))}")
             iteration += 1
             if iteration > 2000:
                 success = 0
@@ -270,7 +271,7 @@ class Robot:
         success = 1
 
         for idx, next_pos in enumerate(joint_config):
-            print(f"Current goal joint state to be reached has index {idx}")
+            # print(f"Current goal joint state to be reached has index {idx}")
             success = self.move_to_next_config(next_pos)
             if not success:
                 print(f"Next state was not reachable")
