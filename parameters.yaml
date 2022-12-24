@@ -1,64 +1,13 @@
 - robot:
-    #Choose robot (pr2, franka)
-    robot_name: "franka"
+    #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
+    robot_name: "wam"
     robot_start_pos: [ 0, 0, 0 ]
     robot_start_orientation_euler: [ 0, 0, 0 ]
-    basename: "panda_link0"
-    wrist_test: "panda_hand"
-    spheres_over_links:
-      [
-        "panda_link1",
-        "panda_link2",
-        "panda_link3",
-        "panda_link4",
-        "panda_link5",
-        "panda_link6",
-        "panda_link7",
-      ]
-    path: "data/Robots/franka/franka_spheres.urdf"
-    radius: [0.09, 0.11, 0.08, 0.06, 0.08, 0.08, 0.06, 0.08, 0.06, 0.06, 0.065, 0.065, 0.06,
-             0.0625, 0.065, 0.065, 0.055, 0.055, 0.04, 0.04, 0.04, 0.05, 0.07, 0.06, 0.06,
-             0.055, 0.055, 0.045, 0.015, 0.015, 0.0175, 0.015, 0.015, 0.0175, 0.06, 0.05, 0.06]
-    dh_parameters: # d, a, alpha
-      [
-        0.333,  0,       0,  # 1
-        0,      0,      -1.5708,  # 2
-        0.316,  0,       1.5708,  # 3
-        0,      0.0825,  1.5708,  # 4
-        0.384, -0.0825, -1.5708,  # 5
-        0,      0,       1.5708,  # 6
-        0,      0.088,   1.5708  # 7
-      ]
-    pi: [ 0., 0., 0., 0., 0., 0., 0. ]
-    twist: [ 0., 0., 0., 0., 0., 0., 0. ]
-    time_spacing: 20
-    max_time: 30
-    joint_constraints:
-      [ # Values in radians
-        2.8973, -2.8973,  # r_shoulder_pan_joint
-        1.7628, -1.7628,  # r_shoulder_lift_joint
-        2.8973, -2.8973,  # r_upper_arm_joint
-       -0.0698, -3.0718,  # r_elbow_flex_joint
-        2.8973, -2.8973,  # r_forearm_roll_joint
-        3.7525, -0.0175,  # r_wrist_flex_joint
-        2.8973, -2.8973  # r_wrist_roll_joint
-      ]
-    velocity_constraints:
-      [ # Values in radians / s
-        2.088, -2.088,  # r_shoulder_pan_joint
-        2.082, -2.082,  # r_shoulder_lift_joint
-        3.27, -3.27,  # r_upper_arm_joint
-        3.3, -3.3,  # r_elbow_flex_joint
-        3.6, -3.6,  # r_forearm_roll_joint
-        3.078, -3.078,  # r_wrist_flex_joint
-        3.6, -3.6  # r_wrist_roll_joint
-      ]
-
 - scene:
-    object_position: [-0.1, 0, -0.2] #   [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] 
-    object_path: "/data/scenes/industrial/industrial.urdf"
-    problemset: "industrial"
-    sdf_path: "data/scenes/industrial/industrial_vgpmp.sdf"
+    object_position: [ 0.62, -0.15, 0.85 ] # [-0.2, 0, -0.2] #    # [ 0.55, -0.0, 0.75]
+    object_name: "bookshelves_table_mesh.urdf"
+    problemset: "bookshelves"
+    sdf_name: "bookshelves_table_center-acdd_vgpmp.sdf"
 - planner:
     num_samples: 15
     sigma_obs: 0.005
@@ -68,16 +17,6 @@
     alpha: 1.75
     num_steps: 150
     lengthscale: 90
-
-- simulation:
-    #Choose object (Bottle, cube_small.urdf, cube_no_rotation.urdf, r2d2.urdf, sphere2.urdf,teddy_vhacd.urdf,teddy_vhacd.urdf) or other standard objects from pybullet
-    timestep: 0.1
-    object_name: r2d2.urdf
-    object_mass: 0.1
-    object_inertial_frame_position: None
-    object_orientation: None
-
-
 - graphics:
     visuals: True
     quality: high
