@@ -20,6 +20,7 @@ active_joints:
       ]
 basename: "base_link"
 wrist_test: "ee_link"
+path: "ur10.urdf"
 joint_limits:
         [
                 6.28319, -6.28319,  # shoulder_pan_joint
@@ -38,4 +39,4 @@ dh_parameters: # d, a, alpha
     0.1157, 0.0, -1.5708,  # wrist_2_joint
     0.0922, 0.0, 0.0  # wrist_3_joint
    ]
-twist: [ 0., 0., 0., 0., 0., 0., 0. ]
+twist: [ 0., 0., 0., 0., 0., 0.]
