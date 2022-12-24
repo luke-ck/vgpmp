@@ -1,0 +1,46 @@
+radius: [0.09, 0.11, 0.08, 0.06, 0.08, 0.08, 0.06, 0.08, 0.06, 0.06, 0.065, 0.065, 0.06,
+         0.0625, 0.065, 0.065, 0.055, 0.055, 0.04, 0.04, 0.04, 0.05, 0.07, 0.06, 0.06,
+         0.055, 0.055, 0.045, 0.015, 0.015, 0.0175, 0.015, 0.015, 0.0175, 0.06, 0.05, 0.06]
+spheres_over_links:
+  [
+      "panda_link1",
+      "panda_link2",
+       "panda_link3",
+       "panda_link4",
+       "panda_link5",
+       "panda_link6",
+  ]
+active_joints:
+  [
+     "panda_joint1",
+     "panda_joint2",
+     "panda_joint3",
+     "panda_joint4",
+     "panda_joint5",
+     "panda_joint6"
+  ]
+basename: "panda_link0"
+wrist_test: "panda_hand"
+path: "franka_spheres.urdf"
+joint_limits:
+  [ # Values in radians
+    2.8973, -2.8973,  # r_shoulder_pan_joint
+    1.7628, -1.7628,  # r_shoulder_lift_joint
+    2.8973, -2.8973,  # r_upper_arm_joint
+   -0.0698, -3.0718,  # r_elbow_flex_joint
+    2.8973, -2.8973,  # r_forearm_roll_joint
+    3.7525, -0.0175,  # r_wrist_flex_joint
+    2.8973, -2.8973  # r_wrist_roll_joint
+  ]
+
+dh_parameters: # d, a, alpha
+  [
+    0.333,  0,       0,  # 1
+    0,      0,      -1.5708,  # 2
+    0.316,  0,       1.5708,  # 3
+    0,      0.0825,  1.5708,  # 4
+    0.384, -0.0825, -1.5708,  # 5
+    0,      0,       1.5708,  # 6
+    0,      0.088,   1.5708  # 7
+  ]
+twist: [ 0., 0., 0., 0., 0., 0., 0. ]
