@@ -509,3 +509,7 @@ def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
     func = tf.range(num_latent_gps + 1)
     return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
                      fn_output_signature=default_float())
+
+
+def get_root_package_path():
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

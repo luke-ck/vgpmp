@@ -22,7 +22,7 @@ class RobotSimulator:
                             position=self.sim.scene_params["object_position"])
         # self.table = Object(name="table", position=[-0.65, 0.9, 0])
         # self.scene = Object(name="scene",
-        #                     path=self.sim.scene_params["object_path"],
+        #                     path=self.sim.scene_params["object_name"],
         #                     position=[100, 100, 100])
 
     def get_simulation_params(self) -> Bunch:

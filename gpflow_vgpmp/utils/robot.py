@@ -41,7 +41,7 @@ class Robot:
         self.active_link_idx = []
         self.rs = params['radius']
         self.link_names = params["spheres_over_links"]
-        self.urdf_path = params["path"]
+        self.urdf_path = params["urdf_path"]
         self.base = params["basename"]
         self.wrist_test = params["wrist_test"]
         self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
@@ -49,11 +49,11 @@ class Robot:
         self.active_links = None
         with suppress_stdout():
             self.robot_model = p.loadURDF(
-                self.urdf_path,
-                self.start_pos,
-                self.start_orientation,
-                useFixedBase=1
-            )
+                    self.urdf_path,
+                    self.start_pos,
+                    self.start_orientation,
+                    useFixedBase=1
+                )
         self.link_idx = self.get_link_idx()
         assert self.link_idx is not None
         assert self.link_idx[self.base] is not None, "Base link not found. Check config file"

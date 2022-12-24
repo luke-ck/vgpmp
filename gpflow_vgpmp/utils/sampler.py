@@ -63,7 +63,7 @@ class Sampler:
         sphere_offsets = self.robot.sphere_offsets
 
         self.DH = tf.constant(parameters["dh_parameters"], shape=(self.robot.dof, 3), dtype=default_float())
-        self.pi = tf.reshape(tf.constant(parameters["pi"], dtype=default_float()), (self.robot.dof, 1))
+        self.twist = tf.reshape(tf.constant(parameters["twist"], dtype=default_float()), (self.robot.dof, 1))
         self.arm_base = tf.expand_dims(tf.constant(self.robot.base_pose), axis=0)
         self.spheres_to_links = np.array(self.robot.sphere_link_interval)
         self.num_spheres = self.robot.num_spheres
@@ -96,7 +96,7 @@ class Sampler:
 
     @tf.function
     def _compute_fk(self, joint_config):
-        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
+        DH = tf.concat([joint_config + self.twist, self.DH], axis=-1)
 
         transform_matrices = tf.map_fn(
             lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
@@ -111,7 +111,7 @@ class Sampler:
 
     @tf.function
     def _compute_fk_ee_pos(self, joint_config):
-        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
+        DH = tf.concat([joint_config + self.twist, self.DH], axis=-1)
 
         transform_matrices = tf.map_fn(
             lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
