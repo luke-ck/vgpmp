@@ -26,7 +26,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         self.sampler = sampler
         self.sdf = sdf
         # sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
-        sigma_obs_joints = tf.broadcast_to(sigma_obs, [8, 1])
+        sigma_obs_joints = tf.broadcast_to(sigma_obs, [5, 1])
+        print(self.sampler.num_spheres)
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
         self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=False)
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))

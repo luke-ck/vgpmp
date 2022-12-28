@@ -1,22 +1,22 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "wam"
+    robot_name: "ur10"
     robot_start_pos: [ 0, 0, 0 ]
-    robot_start_orientation_euler: [ 0, 0, 0 ]
+    robot_start_orientation_euler: [ 0, 0, 0]
 - scene:
     object_position: [ 0.62, -0.15, 0.85 ] # [-0.2, 0, -0.2] #    # [ 0.55, -0.0, 0.75]
     object_name: "bookshelves_table_mesh.urdf"
     problemset: "bookshelves"
-    sdf_name: "bookshelves_table_center-acdd_vgpmp.sdf"
+    sdf_name: "bookshelves_table_center-acd_vgpmp.sdf"
 - planner:
-    num_samples: 15
-    sigma_obs: 0.005
-    num_inducing: 10
-    num_spheres: 37 # should be dependent on robot
-    learning_rate: 0.1
-    alpha: 1.75
-    num_steps: 150
-    lengthscale: 90
+    num_samples: 7
+    sigma_obs: 0.0004
+    num_inducing: 6
+    num_spheres: 17 # should be dependent on robot
+    learning_rate: 0.09
+    alpha: 10
+    num_steps: 130
+    lengthscale: 100
 - graphics:
     visuals: True
     quality: high

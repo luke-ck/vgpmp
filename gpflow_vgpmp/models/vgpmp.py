@@ -239,7 +239,7 @@ class VGPMP(PathwiseSVGP, ABC):
         # else:
         #     scale = tf.cast(1.0, kl.dtype)
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0) # log_prob produces S x N
-        tf.print("likelihood_obs", likelihood_obs)
+        tf.print("likelihood_obs", likelihood_obs, summarize=-1)
         tf.print("kl", kl)
         # tf.print("scale", scale)
         return tf.reduce_sum(likelihood_obs) * self.alpha - kl

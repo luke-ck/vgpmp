@@ -114,12 +114,14 @@ class Robot:
         # TODO: check if link indexes for spheres coincide with joint indexes
 
         cumsum = 0
+        print(self.sphere_link_idx)
         for k, v in self.sphere_link_idx.items():
             # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
             # link
             self.sphere_link_interval.append([cumsum, len(v) + cumsum])
             self.num_spheres.append(len(v))
             cumsum += len(v)
+        print(self.num_spheres)
 
     def init_base_pose(self):
         base_pose = self.get_base_pos()
@@ -154,6 +156,7 @@ class Robot:
             assert config.shape[0] == 1
             config = np.squeeze(config)
         self.curr_config = config
+        print(self.curr_config)
         self.set_joint_position(self.curr_config)
         p.stepSimulation()
 
@@ -330,19 +333,25 @@ class Robot:
             ], dtype=np.object).astype(np.float64)
 
     def forward_kinematics(self, thetas) -> np.array:
+
         T00 = self.base_pose
+        # print(f"T00 is {T00}")
+        # T00 = np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).reshape(4, 4)
+        # print(f"thetas are {thetas}")
         angles = thetas + self.twist
-        transform_matrices = np.zeros((7, 4, 4))
+        transform_matrices = np.zeros((5, 4, 4))
         DH_mat = np.concatenate([angles, self.DH], axis=-1)
         for idx, params in enumerate(DH_mat):
-            transform_matrix = get_transform_matrix_craig(params[0], params[1], params[2], params[3])
+            transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
             transform_matrices[idx] = transform_matrix
 
-        homogenous_transforms = np.zeros((8, 4, 4), dtype=np.float64)
+        homogenous_transforms = np.zeros((6, 4, 4), dtype=np.float64)
         homogenous_transforms[0] = T00
         for i in range(len(transform_matrices)):
             homogenous_transforms[i + 1] = np.array(
                 homogenous_transforms[i] @ transform_matrices[i]).reshape(4, 4)
+        # print(f"transform_matrices is {transform_matrices}")
+        # print(f"homogenous_transforms is {homogenous_transforms}")
         return homogenous_transforms
 
     def compute_joint_positions(self, joint_config) -> np.array:

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     robot = env.robot
     scene = env.scene
     sdf = env.sdf
-    queries, initial_config_names, initial_config_pose, initial_config_joints, active_joints = create_problems(
+    queries, initial_config_names, initial_config_joints = create_problems(
         scene_params["problemset"], robot_name=robot_params["robot_name"])
     query_index = 5
 
@@ -36,8 +36,16 @@ if __name__ == '__main__':
     # start_joints = np.array([ 2.89, 0.50844082,  2.73965633, -1.98486023,  1.79541297,  1.66740883, 1.46448257], dtype=np.float64)
     # end_joints = np.array([ 0.01263066, -0.43801201,  1.67350792, -1.3127274,  -0.11203733,  2.51337125, -1.744899  ], dtype=np.float64)
     # start_joints = np.array([-1.48461325,  1.75057515,  2.55503336, -2.0396316,  -0.80634439,  2.58855503, 2.76517176], dtype=np.float64)
-    # start_joints = np.array([0] * 7, dtype=np.float64)
-
+    # UR10 bookshelf
+    end_joints = np.array([0] * 5, dtype=np.float64)
+    start_joints = np.array([-0.35618354, -1.77651833,  0.9880922,  -0.85325163, -0.03043322], dtype=np.float64)
+    end_joints = np.array([ 2.42731989, -1.25568957,  0.87181485,  1.28655867, -0.02901058], dtype=np.float64)
+    # start_joints = np.array([0] * 6, dtype=np.float64)
+    # start_joints[0] += -1.578
+    # start_joints[1] += -1.578
+    # start_joints[4] += 1.57
+    # start_joints = np.array([ 1.50067128, -1.46216107,  1.21678899, -0.56045067, -0.080963], dtype=np.float64)
+    # start_joints = np.array([ 5.270894, 3.316126, 1.029744, 3.473205, 2.095395, 1.570796], dtype=np.float64)
     # Tight env
     # start_joints = np.array([ 0.98692418,  0.33437095, -0.65302636, -1.5013953,  -1.36486178,  2.687824, -0.62724724], dtype=np.float64)
     # end_joints = np.array([-0.25374755,  0.64612583, -0.76724315, -0.90762323, -0.68691582,  1.96506413, -0.61479132], dtype=np.float64)
@@ -45,35 +53,49 @@ if __name__ == '__main__':
     # Industrial
     # start_joints = np.array([-1.38294485, 0.61212638, -1.31441932, -0.22121811, 1.1110808, 1.38602424,
     #                          0.81529816], dtype=np.float64)
-    start_joints = np.array([-1.16439096, 0.65851989, -1.24320806, -0.14266402, 1.18478857, 1.56439271,
-                             1.50726637], dtype=np.float64)
-    end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
-                            2.8963512], dtype=np.float64)
+    
+    # WAM bookshelf
+#     start_joints = np.array([-0.97839584, -0.95478563, -1.71455321, -0.72250273,  0.73866224, -1.45325318,
+#    1.86320012], dtype=np.float64)
+#     end_joints = np.array([ 0.31102202,  0.27474167 ,-0.52924463,  1.7638356 ,  1.1333487 , -1.5,
+#    2.95], dtype=np.float64)
     # end_joints = np.array([[0.10218915, 0.67604317, -0.39735951, -0.3600791, -1.42869601, 2.84581188,
     #                         -1.26557614]], dtype=np.float64)
     sphere_links = robot_params["spheres_over_links"]
-
-    robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_pose,
-                     initial_config_joints, 0)
-    print(robot.compute_joint_positions(end_joints.reshape(7, -1))[0][-1])
+    active_joints = robot_params["active_joints"]
+    robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_joints, 0)
+    # print(robot.compute_joint_positions(end_joints.reshape(6, -1))[0][-1])
     dof = robot.dof
-
+    # env.loop()
     X = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1 * 100, 100)], dtype=np.float64))
+        [np.full(5, i) for i in np.linspace(0, 1 * 100, 70)], dtype=np.float64))
     y = tf.concat([start_joints.reshape((1, dof)), end_joints.reshape((1, dof))], axis=0)
     print(y)
 
     Xnew = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1 * 100, 100)], dtype=np.float64))
+        [np.full(5, i) for i in np.linspace(0, 1 * 100, 100)], dtype=np.float64))
     #
     # # < ----------------- parameters --------------->
 
-    start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(7, -1))
-    end_pos, end_mat = robot.compute_joint_positions(end_joints.reshape(7, -1))
-
+    start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(5, -1))
+    end_pos, end_mat = robot.compute_joint_positions(end_joints.reshape(5, -1))
+    
     print("Start pos: ", start_pos)
     print("End pos: ", end_pos)
 
+    # print(base_pos)
+    # base_pos[0] += -1.5
+
+
+    for pos in start_pos:
+        # link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (6, 1)))
+        # link_pos = np.array(link_pos[-1])
+        aux_pos = np.array(pos).copy()
+        aux_pos[2] += 0.1
+        p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+    
     num_data, num_output_dims = y.shape
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
@@ -85,8 +107,8 @@ if __name__ == '__main__':
                                learning_rate=planner_params["learning_rate"],
                                lengthscale=planner_params["lengthscale"],
                                offset=scene_params["object_position"],
-                               joint_constraints=robot_params["joint_constraints"],
-                               velocity_constraints=robot_params["velocity_constraints"],
+                               joint_constraints=robot_params["joint_limits"],
+                               velocity_constraints=robot_params["velocity_limits"],
                                rs=robot.rs,
                                query_states=y,
                                sdf=sdf,
@@ -99,6 +121,28 @@ if __name__ == '__main__':
 
     # planner.likelihood.variance.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(0.0005),
     #                                                              gpflow.utilities.to_default_float(0.005))
+
+    start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(5, -1))
+    print(start_pos)
+    for i, pos in enumerate(start_pos):
+        # link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (6, 1)))
+        # link_pos = np.array(link_pos[-1])
+        aux_pos = np.array(pos).copy()
+        aux_pos[2] += 0.15
+        aux_pos[0] += 0.15
+        aux_pos[1] += 0.15
+        if i > 0 and i < 7:
+            p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+        else:
+            p.addUserDebugLine(pos, aux_pos, lineColorRGB=[1, 0, 0],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+    # base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+
+    # p.resetBasePositionAndOrientation(robot.robot_model, (-0.5, 0, 0), base_rot)
+
+    # env.loop()
 
     set_trainable(planner.alpha, False)
     # set_trainable(planner.kernel.kernels, True)
@@ -113,17 +157,14 @@ if __name__ == '__main__':
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
     robot.set_joint_position(start_joints)
-    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (7, 1)))
+    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (5, 1)))
     EE = [link_pos[-1]]
     prev = link_pos[-1]
 
     for joint_config in joint_configs:
-        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (7, 1)))
+        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (5, 1)))
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
-        p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
         time.sleep(0.1)
@@ -131,17 +172,17 @@ if __name__ == '__main__':
         EE.append(link_pos)
 
     for sample in samples:
-        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (7, 1)))
+        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (5, 1)))
         prev = link_pos[-1]
 
         for joint_config in sample:
-            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (7, 1)))
+            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (5, 1)))
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
                             lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
             prev = link_pos
-    link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (7, 1)))
+    link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (5, 1)))
     link_pos = np.array(link_pos[-1])
     p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)

@@ -108,7 +108,7 @@
       </geometry>
     </collision>
     <visual name="ball_0">
-      <origin xyz="0.0 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.0 -0.05 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.13"/>
       </geometry>
@@ -143,9 +143,9 @@
       <material name="Black"/>
     </visual>
     <visual name="ball_5">
-      <origin xyz="0.0 -0.05 0.6" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.0 -0.05 0.612" rpy="0.0 -0.0 0.0"/>
       <geometry>
-        <sphere radius="0.1"/>
+        <sphere radius="0.13"/>
       </geometry>
       <material name="Black"/>
     </visual>
@@ -216,6 +216,13 @@
       </geometry>
       <material name="White"/>
     </visual>
+    <visual name="ball_6">
+      <origin xyz="0.0 -0.0 0.5723" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="White"/>
+    </visual>
     <inertial>
       <mass value="3.87"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.28615"/>
@@ -241,13 +248,7 @@
         <mesh filename="package://meshes/ur10/collision/Wrist1.dae"/>
       </geometry>
     </collision>
-    <visual name="ball_0">
-      <origin xyz="0.0 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.07"/>
-      </geometry>
-      <material name="Black"/>
-    </visual>
+    
     <inertial>
       <mass value="1.96"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -313,7 +314,7 @@
       <material name="Blue"/>
     </visual>
     <visual name="ball_1">
-      <origin xyz="0.0 0.08 0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.0 0.0922 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.05"/>
       </geometry>

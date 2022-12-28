@@ -67,11 +67,14 @@ class Sampler:
         self.arm_base = tf.expand_dims(tf.constant(self.robot.base_pose), axis=0)
         self.spheres_to_links = np.array(self.robot.sphere_link_interval)
         self.num_spheres = self.robot.num_spheres
-
+        print(f"num_spheres: {self.num_spheres}")
         self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
 
         for index, offset in enumerate(sphere_offsets):
-            mat = set_base(offset)
+            if index > 0 and index < 7:
+                mat = set_base((offset[2], offset[0], offset[1] + 0.163941 + 0.05))
+            else:
+                mat = set_base((offset[2], offset[0], offset[1]))
             self.sphere_offsets[index] = mat
 
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
@@ -99,7 +102,7 @@ class Sampler:
         DH = tf.concat([joint_config + self.twist, self.DH], axis=-1)
 
         transform_matrices = tf.map_fn(
-            lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+            lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
             parallel_iterations=4)
 
         homogeneous_transforms = tf.concat(
@@ -114,7 +117,7 @@ class Sampler:
         DH = tf.concat([joint_config + self.twist, self.DH], axis=-1)
 
         transform_matrices = tf.map_fn(
-            lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+            lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
             parallel_iterations=4)
 
         homogeneous_transforms = tf.concat(
@@ -141,7 +144,7 @@ class Sampler:
 
         # <------------- Computing Forward Kinematics ------------>
 
-        fk_pos = self._compute_fk(joint_config)
+        fk_pos = self._compute_fk(joint_config)[1:]
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
         sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
         return tf.squeeze(sphere_positions[:, :3, 3])
