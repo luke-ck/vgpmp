@@ -69,12 +69,18 @@ class Sampler:
         self.num_spheres = self.robot.num_spheres
         print(f"num_spheres: {self.num_spheres}")
         self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
-
+        self.num_spheres[0] += 1
+        self.num_spheres[1] -= 1
         for index, offset in enumerate(sphere_offsets):
-            if index > 0 and index < 7:
-                mat = set_base((offset[2], offset[0], offset[1] + 0.163941 + 0.05))
+            if index < 8:
+                mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
+            elif index == 8:
+                mat = set_base((offset[0], -offset[1], offset[2]))
+            elif index > 8 and index <= 12:
+                mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
             else:
-                mat = set_base((offset[2], offset[0], offset[1]))
+                mat = set_base((offset[0], -offset[1], offset[2]))
+            
             self.sphere_offsets[index] = mat
 
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
@@ -144,7 +150,8 @@ class Sampler:
 
         # <------------- Computing Forward Kinematics ------------>
 
-        fk_pos = self._compute_fk(joint_config)[1:]
+        fk_pos = self._compute_fk(joint_config)
+        fk_pos = tf.concat([tf.expand_dims(fk_pos[3], axis=0), fk_pos[5:]], axis=0)
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
         sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
         return tf.squeeze(sphere_positions[:, :3, 3])

@@ -42,20 +42,6 @@
         <mesh filename="package://sw_meshes/base_link_fine.stl"/>
       </geometry>
     </visual>
-    <visual name="ball_0">
-      <origin xyz="-0.145 -0.0 0.09" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.18"/>
-      </geometry>
-      <material name="Red"/>
-    </visual>
-    <visual name="ball_1">
-      <origin xyz="0.0 -0.0 0.09" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.17"/>
-      </geometry>
-      <material name="Red"/>
-    </visual>
     <collision>
       <geometry>
         <mesh filename="package://sw_meshes/base_link_convex.dae"/>
@@ -88,13 +74,6 @@
         <mesh filename="package://sw_meshes/shoulder_link_fine.stl"/>
       </geometry>
     </visual>
-    <visual name="ball_0">
-      <origin xyz="0.0 -0.0 -0.1" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.2"/>
-      </geometry>
-      <material name="Red"/>
-    </visual>
     <collision>
       <geometry>
         <mesh filename="package://sw_meshes/shoulder_link_convex_decomposition.dae"/>
@@ -122,71 +101,58 @@
         <mesh filename="package://sw_meshes/shoulder_pitch_link_fine.stl"/>
       </geometry>
     </visual>
-    <visual name="ball_0">
-      <origin xyz="0.0 -0.03 -0.1" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.12"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <visual name="ball_1">
-      <origin xyz="0.0 -0.03 0.1" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.12"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
+    
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.1 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.1 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.15 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.15 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.2 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.2 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.25 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.25 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.30 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.30 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.35 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.35 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.4 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.4 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_2">
-      <origin xyz="-0.02 -0.45 -0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.0 -0.45 -0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
@@ -229,55 +195,6 @@
         <mesh filename="package://sw_meshes/upper_arm_link_fine.stl"/>
       </geometry>
     </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.15" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.2" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.25" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.30" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.35" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.4" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
-    <visual name="ball_2">
-      <origin xyz="0.02 0.0 0.45" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.055"/>
-      </geometry>
-      <material name="G"/>
-    </visual>
     <collision>
       <geometry>
         <mesh filename="package://sw_meshes/upper_arm_link_convex_decomposition.dae"/>
@@ -311,34 +228,40 @@
       </geometry>
     </visual>
     <visual name="ball_0">
-      <origin xyz="-0.02 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.00 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.09"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_0">
-      <origin xyz="-0.05 -0.1 0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.045 -0.1 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.0575"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_0">
-      <origin xyz="-0.05 -0.15 0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.045 -0.15 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.0575"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_0">
-      <origin xyz="-0.05 -0.2 0.0" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.045 -0.2 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.055"/>
       </geometry>
       <material name="Blue"/>
     </visual>
-
+    <visual name="ball_0">
+      <origin xyz="-0.045 -0.25 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.055"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
     <collision>
       <geometry>
         <mesh filename="package://sw_meshes/elbow_link_convex.dae"/>
@@ -387,13 +310,7 @@
         <mesh filename="package://sw_meshes/wrist_yaw_link_fine.stl"/>
       </geometry>
     </visual>
-    <visual name="ball_0">
-      <origin xyz="0.0 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.08"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
+    
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
@@ -430,7 +347,7 @@
     <visual name="ball_0">
       <origin xyz="0.0 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
       <geometry>
-        <sphere radius="0.08"/>
+        <sphere radius="0.0575"/>
       </geometry>
       <material name="Blue"/>
     </visual>
@@ -468,6 +385,7 @@
         <mesh filename="package://sw_meshes/wrist_palm_link_fine.stl"/>
       </geometry>
     </visual>
+    
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
@@ -485,5 +403,13 @@
       <mass value="0.000001"/>
       <inertia ixx="0.0000001" ixy="0.0" ixz="0.0" iyy="0.0000001" iyz="0.0" izz="0.0000001"/>
     </inertial>
+
+    <visual name="ball_0">
+      <origin xyz="0.0 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.0575"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
   </link>
 </robot>

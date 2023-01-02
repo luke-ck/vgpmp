@@ -39,8 +39,8 @@ def get_base(rotation, translation) -> np.array:
     r00, r01, r02, r10, r11, r12, r20, r21, r22 = rotation
     px, py, pz = translation
     T = np.array([
-        [-r00, r01, r02, px],
-        [r10, -r11, r12, py],
+        [r00, r01, r02, px],
+        [r10, r11, r12, py],
         [r20, r21, r22, pz],
         [0, 0, 0, 1]
     ], dtype=np.float64)
