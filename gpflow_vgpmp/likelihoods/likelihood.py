@@ -19,14 +19,14 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
     """
 
     def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
-                 velocity_constraints, train_sigma,
+                 velocity_constraints, train_sigma, no_frames_for_spheres,
                  DEFAULT_VARIANCE_LOWER_BOUND=1e-14, **kwargs):
         super().__init__(**kwargs)
 
         self.sampler = sampler
         self.sdf = sdf
         # sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
-        sigma_obs_joints = tf.broadcast_to(sigma_obs, [8, 1])
+        sigma_obs_joints = tf.broadcast_to(sigma_obs, [no_frames_for_spheres, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
         self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=train_sigma)
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))

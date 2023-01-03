@@ -66,10 +66,8 @@ def create_problems(problemset, robot_name):
     print('And a total of %d problems in the %s problemset' %
           (len(benchmark), problemset))
     names = Problemset.joint_names(problemset)
-    pose = Problemset.default_base_pose(problemset)
-    joint_values = Problemset.default_joint_values(problemset)
-    active_joints = Problemset.active_joints(problemset)
-    return states, names, pose, joint_values, active_joints
+    pose = Problemset.default_pose(problemset)
+    return states, names, pose
 
 
 def set_scene(robot, active_joints, initial_config_joints, initial_config_names, initial_config_pose):
@@ -114,6 +112,8 @@ def training_loop(model, data, num_steps, optimizer):
 def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_joints, end_joints, scale=100, end_time=1):
     X = tf.convert_to_tensor(np.array(
         [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_X)], dtype=np.float64))
+
+    print(start_joints)
     y = tf.concat([start_joints.reshape((1, degree_of_freedom)), end_joints.reshape((1, degree_of_freedom))], axis=0)
     Xnew = tf.convert_to_tensor(np.array(
         [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_Xnew)], dtype=np.float64))
@@ -129,7 +129,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     num_data, num_output_dims = y.shape
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
-                               num_spheres=planner_params["num_spheres"],
+                               num_spheres=robot_params["num_spheres"],
                                num_inducing=planner_params["num_inducing"],
                                num_samples=planner_params["num_samples"],
                                sigma_obs=planner_params["sigma_obs"],
@@ -137,8 +137,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                learning_rate=planner_params["learning_rate"],
                                lengthscale=planner_params["lengthscale"],
                                offset=scene_params["object_position"],
-                               joint_constraints=robot_params["joint_constraints"],
-                               velocity_constraints=robot_params["velocity_constraints"],
+                               joint_constraints=robot_params["joint_limits"],
+                               velocity_constraints=robot_params["velocity_limits"],
                                rs=robot.rs,
                                query_states=y,
                                sdf=sdf,
@@ -146,9 +146,34 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                num_latent_gps=dof,
                                parameters=robot_params,
                                train_sigma=trainable_params["sigma_obs"],
+                               no_frames_for_spheres=robot_params["no_frames_for_spheres"],
+                               robot_name=robot_params["robot_name"],
                                q_mu=None,
-                               whiten=False,
+                               whiten=False
                                )
+
+    # DEBUGING CODE FOR VISUALIZING THE SPHERES
+
+    # start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(dof, -1))
+    # for i, pos in enumerate(start_pos):
+    #     # link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (6, 1)))
+    #     # link_pos = np.array(link_pos[-1])
+    #     aux_pos = np.array(pos).copy()
+    #     aux_pos[2] += 0.15
+    #     aux_pos[0] += 0.15
+    #     aux_pos[1] += 0.15
+    #     if i > 0 and i < 7:
+    #         p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
+    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    #     else:
+    #         p.addUserDebugLine(pos, aux_pos, lineColorRGB=[1, 0, 0],
+    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+    # base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+
+    # p.resetBasePositionAndOrientation(robot.robot_model, (-0.5, 0, 0), base_rot)
+
+    # env.loop()
 
     disable_param_opt(planner, trainable_params)
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
@@ -156,11 +181,11 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
     robot.set_joint_position(start_joints)
-    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
+    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
     prev = link_pos[-1]
 
     for joint_config in best_sample:
-        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
+        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
@@ -168,58 +193,60 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         prev = link_pos
 
     # PLOT THE MEAN OF THE SAMPLES
-    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
+    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
     prev = link_pos[-1]
 
     t = np.linspace(0, 2 * np.pi, 50)
     cos = np.cos(t)
     sin = np.sin(t)
-    for joint_config, unc in zip(sample_mean, uncertainties):
-        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
-        link_pos = np.array(link_pos[-1])
-        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-        prev = link_pos
-        rx, ry, rz = unc[0], unc[1], unc[2]
-        prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
-        prev_yy = [rx * cos[0], 0, rz * sin[0]] + link_pos
-        prev_zz = [0, ry * cos[0], rz * sin[0]] + link_pos
-        for i in range(1, len(t)):
-            xx = [rx * cos[i], ry * sin[i], 0] + link_pos
-            yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
-            zz = [0, ry * cos[i], rz * sin[i]] + link_pos
-            p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
-                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-            p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
-                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-            p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
-                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-            prev_xx = xx
-            prev_yy = yy
-            prev_zz = zz
+    # for joint_config, unc in zip(sample_mean, uncertainties):
+    #     link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
+    #     link_pos = np.array(link_pos[-1])
+    #     p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+    #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    #     prev = link_pos
+    #     rx, ry, rz = unc[0], unc[1], unc[2]
+    #     prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
+    #     prev_yy = [rx * cos[0], 0, rz * sin[0]] + link_pos
+    #     prev_zz = [0, ry * cos[0], rz * sin[0]] + link_pos
+    #     for i in range(1, len(t)):
+    #         xx = [rx * cos[i], ry * sin[i], 0] + link_pos
+    #         yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
+    #         zz = [0, ry * cos[i], rz * sin[i]] + link_pos
+    #         p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
+    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    #         p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
+    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    #         p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
+    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    #         prev_xx = xx
+    #         prev_yy = yy
+    #         prev_zz = zz
+
+    # link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)), robot_params["craig_dh_convention"])
+    # link_pos = np.array(link_pos[-1])
+    # p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+    #                    lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     # PLOT THE SAMPLES
     # for sample in samples:
-    #     link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
+    #     link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
     #     prev = link_pos[-1]
 
     #     for joint_config in sample:
-    #         link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
+    #         link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
     #         link_pos = np.array(link_pos[-1])
     #         p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
     #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     #         prev = link_pos
 
-    # PLOT THE UNCERATINTY
-    link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)))
-    link_pos = np.array(link_pos[-1])
-    p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                       lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    
     print(f" alpha {planner.alpha}")
     for kern in planner.kernel.kernels:
         print(f" lengthscale {kern.lengthscales}")
         print(f" variance {kern.variance}")
+    print(best_sample, y[1])
     res = robot.move_to_ee_config(best_sample, y[1])
     return res
 
@@ -266,7 +293,15 @@ def import_problemsets(robot_name):
     elif robot_name == "pr2":
         from pr2 import Problemset
         return Problemset
+    elif robot_name == "ur10":
+        from ur10 import Problemset
+        return Problemset
+    elif robot_name == "wam":
+        from wam import Problemset
+        return Problemset
     else:
         print("Robot not available. Check params file and try again... The simulator will now exit.")
         sys.exit(-1)
 
+def get_root_package_path():
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -1,0 +1,61 @@
+radius: [0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.09, 0.0575, 0.0575, 0.0575, 0.0575, 0.0575, 0.0575]
+num_spheres: 15 # should be dependent on robot
+spheres_over_links:
+      [
+          "wam/base_link",
+          "wam/shoulder_yaw_link",
+          "wam/shoulder_pitch_link",
+          "wam/upper_arm_link",
+          "wam/forearm_link",
+          "wam/wrist_yaw_link",
+          "wam/wrist_pitch_link"
+      ]
+active_joints:
+      [
+         "wam/base_yaw_joint",
+         "wam/shoulder_pitch_joint",
+         "wam/shoulder_yaw_joint",
+         "wam/elbow_pitch_joint",
+         "wam/wrist_yaw_joint",
+         "wam/wrist_pitch_joint",
+         "wam/palm_yaw_joint"
+      ]
+basename: "wam/base_link"
+wrist_test: "wam/wrist_pitch_link"
+path: "wam.urdf"
+joint_limits:
+        [
+                2.6, -2.6,  # base_yaw_joint
+                2.0, -2.0,  # shoulder_pitch_joint
+                2.8, -2.8,  # shoulder_yaw_joint
+                3.1, -0.9,  # elbow_pitch_joint
+                1.24, -4.76,  # wrist_yaw_joint
+                1.6, -1.6,  # wrist_pitch_joint
+                3.0, -3.0  # palm_yaw_joint
+        ]
+velocity_limits: # placeholder
+        [
+                2.6, -2.6,  # base_yaw_joint
+                2.0, -2.0,  # shoulder_pitch_joint
+                2.8, -2.8,  # shoulder_yaw_joint
+                3.1, -0.9,  # elbow_pitch_joint
+                1.24, -4.76,  # wrist_yaw_joint
+                1.6, -1.6,  # wrist_pitch_joint
+                3.0, -3.0  # palm_yaw_joint
+        ]
+
+dh_parameters: # d, a, alpha
+  [
+    0.0, 0.0, -1.5708,  # base_yaw_joint
+    0.0, 0.0, 1.5708,  # shoulder_pitch_joint
+    0.55, 0.045, -1.5708,  # shoulder_yaw_joint
+    0.0, -0.045, 1.5708,  # elbow_pitch_joint
+    0.3, 0.0, -1.5708,  # wrist_yaw_joint
+    0.0, 0.0, 1.5708,  # wrist_pitch_joint
+    0.06, 0.0, 0.0  # palm_yaw_joint
+   ]
+twist: [ 0., 0., 0., 0., 0., 0., 0. ]
+dof: 7
+craig_dh_convention: False
+no_frames_for_spheres: 4
+fk_slice: [3, 5, 6, 7]

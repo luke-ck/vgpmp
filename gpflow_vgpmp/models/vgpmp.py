@@ -78,6 +78,8 @@ class VGPMP(PathwiseSVGP, ABC):
                    num_latent_gps: int = None,
                    parameters=None,
                    train_sigma=False,
+                   no_frames_for_spheres=7,
+                   robot_name="franka",
                    **kwargs):
 
         if parameters is None:
@@ -103,9 +105,9 @@ class VGPMP(PathwiseSVGP, ABC):
         if kernels is None:
             kernels = []
             for i in range(num_latent_gps):
-                kern = Matern52(lengthscales=100)
-                kern.lengthscales = bounded_param(80, 200, kern.lengthscales)
-                kern.variance = Parameter(0.15 - i * 0.02, transform=positive(0.0001), trainable=False)
+                kern = Matern52(lengthscales=lengthscale)
+                kern.lengthscales = bounded_param(2, 20000, kern.lengthscales)
+                kern.variance = Parameter(0.15, transform=positive(0.0001), trainable=False)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
@@ -114,11 +116,10 @@ class VGPMP(PathwiseSVGP, ABC):
 
         # Original inducing points
         _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
-
-        sampler = Sampler(robot, parameters)
+        sampler = Sampler(robot, parameters, robot_name)
         likelihood = VariationalMonteCarloLikelihood(sigma_obs, num_spheres, sampler, sdf, rs, offset,
                                                      joint_constraints, velocity_constraints, 
-                                                     train_sigma)
+                                                     train_sigma, no_frames_for_spheres)
 
         return cls(kernel=kernel,
                    likelihood=likelihood,
@@ -202,13 +203,10 @@ class VGPMP(PathwiseSVGP, ABC):
         L = tf.linalg.cholesky(K)
 
         # Subtract prior mean from q_mu, then whiten
-        # print("shapes", K[..., :n], L[..., :n, :n], tf.transpose(self.query_states)[..., None])
         p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(self.query_states)[..., None])
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
 
-        # print("means", p_mu, q_mu)
         whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[n:, ...]
-        # print(self._q_sqrt)
         return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     @tf.function
@@ -276,7 +274,7 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=100, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1))[0][-1] for time in sample] for sample in samples])
+        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1), self.likelihood.sampler.craig_dh_convention)[0][-1] for time in sample] for sample in samples])
         uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
         return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 

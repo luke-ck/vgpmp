@@ -12,10 +12,12 @@ __all__ = 'robot'
 # <---------------- robot class ----------------->
 class Robot:
     """
-    Input: Dict{arm:"name", gripper:"name", robot_start_pos:[x,y,z], robot_start_orientation_euler:[x,y,z]}
-
-    Creates a robot object based on wanted robot.
-    Possible to move robot arm as wanted
+    Container class for the robot model which is rendered in the simulator.
+    The class contains convenience methods for setting and getting the robot state,
+    as well as methods for computing the forward kinematics. Joint state configs can be
+    get, set, as well as followed. FK here is used mostly for debugging purposes. For the
+    implementation used during optimization check the sampler.
+    Currently we only support the URDF format for the robot model.
     """
 
     def __init__(self, params):
@@ -39,28 +41,41 @@ class Robot:
         self.active_link_idx = []
         self.rs = params['radius']
         self.link_names = params["spheres_over_links"]
-        self.urdf_path = params["path"]
+        self.urdf_path = params["urdf_path"]
         self.base = params["basename"]
         self.wrist_test = params["wrist_test"]
         self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
         self.num_spheres = []
         self.active_links = None
-        # with suppress_stdout():
-        self.robot_model = p.loadURDF(
-            self.urdf_path, self.start_pos, self.start_orientation, useFixedBase=1)
+        with suppress_stdout():
+            self.robot_model = p.loadURDF(
+                    self.urdf_path,
+                    self.start_pos,
+                    self.start_orientation,
+                    useFixedBase=1
+                )
         self.link_idx = self.get_link_idx()
+        assert self.link_idx is not None
+        assert self.link_idx[self.base] is not None, "Base link not found. Check config file"
+        assert self.link_idx[self.wrist_test] is not None, "Wrist link not found. Check config file"
         self.base_idx = self.link_idx[self.base]
         self.wrist_idx = self.link_idx[self.wrist_test]
         self.neutral_config = None
         self.joint_link_offsets = None
         self.curr_config = None
 
-    def initialise(self, start_config, active_joints, sphere_links, initial_config_names, initial_config_pose,
-                   initial_config_joints, benchmark: bool):
+    def initialise(self,
+                   start_config,
+                   active_joints,
+                   sphere_links,
+                   initial_config_names,
+                   initial_config_joints,
+                   benchmark: bool
+                   ):
         self.set_active_joints(active_joints)
-        # print(active_joints)
+
         if benchmark:
-            self.set_scene(initial_config_names, initial_config_joints, initial_config_pose)
+            self.set_scene(initial_config_names, initial_config_joints)
         self.set_active_links(sphere_links)
         self.set_active_link_idx()
 
@@ -68,8 +83,9 @@ class Robot:
         self.set_joint_names()
         self.init_mapping_links_to_spheres()
         self.enable_collision_active_links(0)
-        time.sleep(1)
-        self.set_curr_config(start_config)
+        time.sleep(1)  # wait for the robot to settle
+        if start_config is not None:
+            self.set_curr_config(start_config)
         self.init_base_pose()
         time.sleep(1)
         self.set_joint_link_frame_offset()
@@ -90,31 +106,34 @@ class Robot:
             p.setCollisionFilterGroupMask(self.robot_model, idx, group, mask)
 
     def init_mapping_links_to_spheres(self):
+        """
+        This function maps the links to the spheres. It is used when computing forward kinematics
+        """
         self.sphere_link_idx, total_spheres = self.get_sphere_id()
         assert total_spheres == len(self.rs)
         # TODO: check if link indexes for spheres coincide with joint indexes
 
         cumsum = 0
         for k, v in self.sphere_link_idx.items():
-            # for each link fitted with spheres build an interval denoting which spheres indexes correspond to that link
+            # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
+            # link
             self.sphere_link_interval.append([cumsum, len(v) + cumsum])
             self.num_spheres.append(len(v))
             cumsum += len(v)
+        print(self.num_spheres)
 
     def init_base_pose(self):
         base_pose = self.get_base_pos()
         self.base_pose = base_pose
-        print(f"self.base_pose: {self.base_pose}")
 
     def set_active_link_idx(self):
         for link in self.active_links:
             self.active_link_idx.append(self.link_idx[link])
 
-    def set_scene(self, initial_config_names, initial_config_joints, initial_config_pose):
+    def set_scene(self, initial_config_names, default_pose):
         assert initial_config_names != []
-        assert initial_config_joints != []
-        assert initial_config_pose != []
-        for (name, val) in zip(initial_config_names, initial_config_joints):
+        assert default_pose != []
+        for (name, val) in zip(initial_config_names, default_pose):
             idx = self.get_joint_idx_from_name(name)
             assert idx != -1
             self.set_joint_config(idx, val)
@@ -136,6 +155,7 @@ class Robot:
             assert config.shape[0] == 1
             config = np.squeeze(config)
         self.curr_config = config
+        print(self.curr_config)
         self.set_joint_position(self.curr_config)
         p.stepSimulation()
 
@@ -144,11 +164,12 @@ class Robot:
         for i in self.active_joints:
             idx = self.get_joint_idx_from_name(i)
             if idx == -1:
-                print(f"Could not find the corresponding index for joint name {i}. There is a mismatch between naming"
+                print(f"Could not find the corresponding index for joint name {i}. There is a mismatch between naming "
                       f"given in the parameter file and actual robot joints. This can give rise to unexpected "
                       f"behaviour, so please edit the parameter file such that this message doesn't appear.")
                 sys.exit(-1)
             self.joint_idx.append(idx)
+        
         self.dof = len(self.joint_idx)
         self.set_joints_to_links()
 
@@ -207,7 +228,6 @@ class Robot:
 
     def set_joint_position(self, joint_config: Union[List[float], np.array]):
         r"""Set joint angles to active joints (overrides physics engine)
-
         Args:
             joint_config (array): joint angles to be set
         """
@@ -266,7 +286,6 @@ class Robot:
         r"""
             Args:
             joint_config(np.array): (len(joint_config), len(self.joint_idx))
-
         """
         success = 1
 
@@ -313,13 +332,17 @@ class Robot:
                 for _coord in p.getLinkStates(self.robot_model, idx, computeForwardKinematics=True)
             ], dtype=np.object).astype(np.float64)
 
-    def forward_kinematics(self, thetas) -> np.array:
+    def forward_kinematics(self, thetas, craig) -> np.array:
+
         T00 = self.base_pose
         angles = thetas + self.twist
         transform_matrices = np.zeros((7, 4, 4))
         DH_mat = np.concatenate([angles, self.DH], axis=-1)
         for idx, params in enumerate(DH_mat):
-            transform_matrix = get_transform_matrix_craig(params[0], params[1], params[2], params[3])
+            if craig:
+                transform_matrix = get_transform_matrix_craig(params[0], params[1], params[2], params[3])
+            else:
+                transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
             transform_matrices[idx] = transform_matrix
 
         homogenous_transforms = np.zeros((8, 4, 4), dtype=np.float64)
@@ -329,8 +352,8 @@ class Robot:
                 homogenous_transforms[i] @ transform_matrices[i]).reshape(4, 4)
         return homogenous_transforms
 
-    def compute_joint_positions(self, joint_config) -> np.array:
-        pos_aux = self.forward_kinematics(joint_config)
+    def compute_joint_positions(self, joint_config, craig) -> np.array:
+        pos_aux = self.forward_kinematics(joint_config, craig)
         pos = pos_aux[1:, :3, 3]
         return pos, pos_aux
 
@@ -350,10 +373,8 @@ class Robot:
     def get_sphere_transform(self, joints):
         # Union[np.array, TensorLike]
         r""" compute the sphere translational transform from joint world frame positions in cartesian coordinates
-
         Args:
             joints (array): joint cartesian coordinates
-
         Returns:
             [np.array]: sphere cartesian coordinates
         """
@@ -370,7 +391,6 @@ class Robot:
             and velocities will be 0). Usually after this we query the link
             (links are attached to joints x) states and compute forward kinematics
             implicitly.
-
             Args:
                 joint_config([np.array]):  [len(joint_idx) x 1]
         """

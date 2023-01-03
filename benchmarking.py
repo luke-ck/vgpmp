@@ -1,7 +1,5 @@
 import gpflow
 import numpy as np
-from gpflow import set_trainable
-from gpflow_vgpmp.models.vgpmp import VGPMP
 from gpflow_vgpmp.utils.miscellaneous import *
 from gpflow_vgpmp.utils.simulator import RobotSimulator
 
@@ -19,11 +17,12 @@ if __name__ == '__main__':
     scene_params = params.scene
     trainable_params = params.trainable_params
     num_steps = planner_params["num_steps"]
+    sphere_links = robot_params["spheres_over_links"]
+    active_joints = robot_params["active_joints"]
     robot = env.robot
     scene = env.scene
     sdf = env.sdf
-    print(robot_params)
-    queries, initial_config_names, initial_config_pose, initial_config_joints, active_joints = create_problems(
+    queries, initial_config_names, initial_config_joints = create_problems(
         scene_params["problemset"], robot_name=robot_params["robot_name"])
 
     # Problemsets
@@ -52,13 +51,30 @@ if __name__ == '__main__':
     
 
     sphere_links = robot_params["spheres_over_links"]
-    start_joints = np.array([0] * 7, dtype=np.float64)
-    robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_pose,
-                        initial_config_joints, 0)
+    start_joints = np.array(queries[0], dtype=np.float64)
+    robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_joints, 0)
+    
+    #DEBUGING CODE FOR VISUALIZING JOINTS
+
+    # start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(robot.dof, -1), False)
+
+    # for pos in start_pos:
+    #     aux_pos = np.array(pos).copy()
+    #     aux_pos[2] += 0.1
+    #     p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
+    #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     # env.loop()
+
     total_solved = 0
-    query_indices = [(22, 23)]
-    # env.loop()
+    query_indices = [(1, 2)]
+    if robot_params["robot_name"] == "wam":
+        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
+
+    elif robot_params["robot_name"] == "ur10":
+        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+        p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
+    
     for i, j in query_indices:
         start_joints = np.array(queries[i], dtype=np.float64) # 11, 18
         end_joints = np.array(queries[j], dtype=np.float64)
