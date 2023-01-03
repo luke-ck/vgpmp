@@ -74,8 +74,6 @@ class Sampler:
         for index, offset in enumerate(sphere_offsets):
             if index < 8:
                 mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
-            elif index == 8:
-                mat = set_base((offset[0], -offset[1], offset[2]))
             elif index > 8 and index <= 12:
                 mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
             else:
@@ -84,14 +82,8 @@ class Sampler:
             self.sphere_offsets[index] = mat
 
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
-        # self.link_sphere_offsets = np.zeros((len(link_sphere_offsets), 4, 4))
         self.joint_config_uncertainty = tf.constant([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], shape=(7, 1),
                                                     dtype=default_float()) * 10
-        # for index, offset in enumerate(link_sphere_offsets):
-        #     mat = set_base(offset)
-        #     self.link_sphere_offsets[index] = mat
-
-        # self.link_sphere_offsets = tf.convert_to_tensor(self.link_sphere_offsets, dtype=default_float())
 
     @tf.custom_gradient
     def check_gradients(self, x):

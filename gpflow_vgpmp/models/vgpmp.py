@@ -108,7 +108,7 @@ class VGPMP(PathwiseSVGP, ABC):
             #     kern.variance = Parameter(0.95, transform=positive(0.1), trainable=False)
             #     kernels.append(kern)
             kernel = Matern52(lengthscales=lengthscale, variance=0.15)
-            kernel.lengthscales = bounded_param(2, 2 * 100, kernel.lengthscales)
+            kernel.lengthscales = bounded_param(2, 2 * 10000, kernel.lengthscales)
             # kernel.variance = bounded_param(0.1, 0.5, kernel.variance)
         kernel = SharedIndependent(kernel, output_dim=num_latent_gps)
 
