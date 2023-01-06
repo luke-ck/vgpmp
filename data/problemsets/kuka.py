@@ -31,10 +31,11 @@ class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def joint_names(problemset):
-        return ["wam/base_yaw_joint",
-         "wam/shoulder_pitch_joint",
-         "wam/shoulder_yaw_joint",
-         "wam/elbow_pitch_joint",
-         "wam/wrist_yaw_joint",
-         "wam/wrist_pitch_joint",
-         "wam/palm_yaw_joint"]
+        return [
+         "kuka_arm_joint_0",
+         "kuka_arm_joint_1",
+         "kuka_arm_joint_2",
+         "kuka_arm_joint_3",
+         "kuka_arm_joint_4",
+         "kuka_arm_joint_5"
+      ]

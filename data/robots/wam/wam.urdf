@@ -56,10 +56,6 @@
     <limit effort="60" lower="-2.6" upper="2.6" velocity="2.0"/>
     <dynamics damping="1.9800000000000002" friction="0"/>
   </joint>
-  <gazebo reference="wam/base_yaw_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/shoulder_yaw_link">
     <inertial>
       <origin xyz="-.00443422 -.00066489 -0.1289039 "/>
@@ -88,10 +84,6 @@
     <limit effort="60" lower="-1.985" upper="1.985" velocity="2.0"/>
     <dynamics damping="0.55" friction="0"/>
   </joint>
-  <gazebo reference="wam/shoulder_pitch_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/shoulder_pitch_link">
     <visual>
       <material name="WAMGrey">
@@ -177,10 +169,6 @@
     <limit effort="45" lower="-2.8" upper="2.8" velocity="2.0"/>
     <dynamics damping="1.6500000000000001" friction="0"/>
   </joint>
-  <gazebo reference="wam/shoulder_yaw_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/upper_arm_link">
     <inertial>
       <origin xyz="0.00683258580000000 0.000033090000000 0.392492300000000"/>
@@ -209,10 +197,6 @@
     <limit effort="30" lower="-0.9" upper="3.141592653589793" velocity="2.00"/>
     <dynamics damping="0.8800000000000001" friction="0"/>
   </joint>
-  <gazebo reference="wam/elbow_pitch_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/forearm_link">
     <inertial>
       <mass value="0.50016804"/>
@@ -291,10 +275,6 @@
     <limit effort="10" lower="-4.55" upper="1.25" velocity="2.0"/>
     <dynamics damping="0.55" friction="0"/>
   </joint>
-  <gazebo reference="wam/wrist_yaw_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/wrist_yaw_link">
     <inertial>
       <origin xyz="0.00008921 0.00435824 -0.00511217 "/>
@@ -326,10 +306,6 @@
     <limit effort="10" lower="-1.5707" upper="1.5707" velocity="2.00"/>
     <dynamics damping="0.11000000000000001" friction="0"/>
   </joint>
-  <gazebo reference="wam/wrist_pitch_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/wrist_pitch_link">
     <inertial>
       <origin xyz="-0.00012262 -0.02468336 -0.01703194 " rpy="0 0 0"/>
@@ -366,10 +342,6 @@
     <!-- 2.95 is a limit taken in from 3 due to safety and differences between arms. -->
     <dynamics damping="0.11000000000000001" friction="0"/>
   </joint>
-  <gazebo reference="wam/palm_yaw_joint">
-    <provideFeedback>true</provideFeedback>
-    <implicitSpringDamper>true</implicitSpringDamper>
-  </gazebo>
   <link name="wam/wrist_palm_link">
     <inertial>
       <origin xyz="0.0 0.0 0.055" rpy="0 0 0"/>
@@ -411,5 +383,374 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 -0.0 0.05" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.0575"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.07 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.11 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.0 0.15 0.1" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+
+    <visual name="ball_0">
+      <origin xyz="-0.025 -0.07 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="-0.025 -0.11 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="-0.025 -0.15 0.1" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+
+    <visual name="ball_0">
+      <origin xyz="0.025 -0.07 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.025 -0.11 0.08" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <visual name="ball_0">
+      <origin xyz="0.025 -0.15 0.1" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.024"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+  </link>
+  <!-- BHand -->
+  <joint name="wam/bhand/bhand_base_joint" type="fixed">
+    <parent link="wam/wrist_palm_link"/>
+    <child link="wam/bhand/bhand_palm_link"/>
+    <origin xyz="0 0 0.06" rpy="0 0 0"/>
+  </joint>
+  <link name="wam/bhand/bhand_palm_link">
+    <inertial>
+      <origin xyz="-5.1098e-005 0.0050433 0.036671"/>
+      <mass value="0.50573"/>
+      <inertia ixx="3.8374e-005" ixy="-5.604e-008" ixz="-4.2034e-005" iyy="0.00022405" iyz="1.3283e-007" izz="0.00020045"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_palm_fine.stl"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_palm_link_convex_decomposition.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/bhand_palm_surface_joint" type="fixed">
+    <parent link="wam/bhand/bhand_palm_link"/>
+    <child link="wam/bhand/bhand_palm_surface_link"/>
+    <origin xyz="0 0 0.08" rpy="0 0 0"/>
+    <limit effort="5" lower="0" upper="3.141592653589793" velocity="5.0"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/bhand_palm_surface_link">
+    <inertial>
+      <mass value="0.000001"/>
+      <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="wam/bhand/bhand_grasp_joint" type="fixed">
+    <parent link="wam/bhand/bhand_palm_link"/>
+    <child link="wam/bhand/bhand_grasp_link"/>
+    <origin xyz="0 0 0.12" rpy="0 0 0"/>
+    <limit effort="5" lower="0" upper="3.141592653589793" velocity="5.0"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/bhand_grasp_link">
+    <inertial>
+      <mass value="0.000001"/>
+      <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="wam/bhand/finger_1/prox_joint" type="revolute">
+    <parent link="wam/bhand/bhand_palm_link"/>
+    <child link="wam/bhand/finger_1/prox_link"/>
+    <origin xyz="-0.025 0.0 0.0415" rpy="0 0 -1.5707963267948966"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="5" lower="0" upper="3.141592653589793" velocity="5.0"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_1/prox_link">
+    <inertial>
+      <origin xyz="0.023133 0.00078642 0.00052792"/>
+      <mass value="0.14109"/>
+      <inertia ixx="4.872e-006" ixy="1.7103e-006" ixz="3.4041e-008" iyy="7.6588e-005" iyz="2.3133e-008" izz="7.7733e-005"/>
+    </inertial>
+    <visual>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_prox_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_prox_link_convex_decomposition.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_1/med_joint" type="revolute">
+    <parent link="wam/bhand/finger_1/prox_link"/>
+    <child link="wam/bhand/finger_1/med_link"/>
+    <origin xyz="0.05 0.0 0.03390" rpy="1.5707963267948966 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="2.443460952792061" velocity="5.00"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_1/med_link">
+    <inertial>
+      <origin xyz="0.023133 0.00078642 0.00052792"/>
+      <mass value="0.062139"/>
+      <inertia ixx="4.872e-006" ixy="1.7103e-006" ixz="3.4041e-008" iyy="7.6588e-005" iyz="2.3133e-008" izz="7.7733e-005"/>
+    </inertial>
+    <visual>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_med_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_med_link_convex.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_1/dist_joint" type="revolute">
+    <parent link="wam/bhand/finger_1/med_link"/>
+    <child link="wam/bhand/finger_1/dist_link"/>
+    <origin xyz="0.06994 0.003 0.0" rpy="0 0 0.7853981633974483"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="0.8377580409572781" velocity="5.00"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_1/dist_link">
+    <inertial>
+      <origin xyz="0.022825 0.0010491 0.0004203" rpy="0 0 0"/>
+      <mass value="0.041377"/>
+      <inertia ixx="3.1582e-006" ixy="1.4308e-006" ixz="1.0106e-007" iyy="3.8376e-005" iyz="0" izz="3.7275e-005"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 -0.7853981633974483"/>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_dist_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 -0.7853981633974483"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_dist_link_convex.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_1/tip_joint" type="fixed">
+    <parent link="wam/bhand/finger_1/dist_link"/>
+    <child link="wam/bhand/finger_1/tip_link"/>
+    <origin xyz="0.05 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+  <link name="wam/bhand/finger_1/tip_link">
+    <inertial>
+      <mass value="1E-6"/>
+      <inertia ixx="1E-6" ixy="0" ixz="0" iyy="1E-6" iyz="0" izz="1E-6"/>
+    </inertial>
+  </link>
+  <joint name="wam/bhand/finger_2/prox_joint" type="revolute">
+    <parent link="wam/bhand/bhand_palm_link"/>
+    <child link="wam/bhand/finger_2/prox_link"/>
+    <origin xyz="0.025 0.0 0.0415" rpy="0 0 -1.5707963267948966"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="3.141592653589793" velocity="5.0"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_2/prox_link">
+    <inertial>
+      <origin xyz="0.023133 0.00078642 0.00052792"/>
+      <mass value="0.14109"/>
+      <inertia ixx="4.872e-006" ixy="1.7103e-006" ixz="3.4041e-008" iyy="7.6588e-005" iyz="2.3133e-008" izz="7.7733e-005"/>
+    </inertial>
+    <visual>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_prox_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_prox_link_convex_decomposition.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_2/med_joint" type="revolute">
+    <parent link="wam/bhand/finger_2/prox_link"/>
+    <child link="wam/bhand/finger_2/med_link"/>
+    <origin xyz="0.05 0.0 0.03390" rpy="1.5707963267948966 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="2.443460952792061" velocity="5.00"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_2/med_link">
+    <inertial>
+      <origin xyz="0.023133 0.00078642 0.00052792"/>
+      <mass value="0.062139"/>
+      <inertia ixx="4.872e-006" ixy="1.7103e-006" ixz="3.4041e-008" iyy="7.6588e-005" iyz="2.3133e-008" izz="7.7733e-005"/>
+    </inertial>
+    <visual>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_med_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_med_link_convex.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_2/dist_joint" type="revolute">
+    <parent link="wam/bhand/finger_2/med_link"/>
+    <child link="wam/bhand/finger_2/dist_link"/>
+    <origin xyz="0.06994 0.003 0.0" rpy="0 0 0.7853981633974483"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="0.8377580409572781" velocity="5.00"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_2/dist_link">
+    <inertial>
+      <origin xyz="0.022825 0.0010491 0.0004203" rpy="0 0 0"/>
+      <mass value="0.041377"/>
+      <inertia ixx="3.1582e-006" ixy="1.4308e-006" ixz="1.0106e-007" iyy="3.8376e-005" iyz="0" izz="3.7275e-005"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 -0.7853981633974483"/>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_dist_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 -0.7853981633974483"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_dist_link_convex.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_2/tip_joint" type="fixed">
+    <parent link="wam/bhand/finger_2/dist_link"/>
+    <child link="wam/bhand/finger_2/tip_link"/>
+    <origin xyz="0.05 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+  <link name="wam/bhand/finger_2/tip_link">
+    <inertial>
+      <mass value="1E-6"/>
+      <inertia ixx="1E-6" ixy="0" ixz="0" iyy="1E-6" iyz="0" izz="1E-6"/>
+    </inertial>
+  </link>
+  <joint name="wam/bhand/finger_3/med_joint" type="revolute">
+    <parent link="wam/bhand/bhand_palm_link"/>
+    <child link="wam/bhand/finger_3/med_link"/>
+    <origin xyz="0 0.05 0.0754" rpy="1.5707963267948966 0 1.5707963267948966"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="2.443460952792061" velocity="5.00"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_3/med_link">
+    <inertial>
+      <origin xyz="0.023133 0.00078642 0.00052792"/>
+      <mass value="0.062139"/>
+      <inertia ixx="4.872e-006" ixy="1.7103e-006" ixz="3.4041e-008" iyy="7.6588e-005" iyz="2.3133e-008" izz="7.7733e-005"/>
+    </inertial>
+    <visual>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_med_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_med_link_convex.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_3/dist_joint" type="revolute">
+    <parent link="wam/bhand/finger_3/med_link"/>
+    <child link="wam/bhand/finger_3/dist_link"/>
+    <origin xyz="0.06994 0.003 0.0" rpy="0 0 0.7853981633974483"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5" lower="0" upper="0.8377580409572781" velocity="5.00"/>
+    <dynamics damping="0.11000000000000001" friction="0"/>
+  </joint>
+  <link name="wam/bhand/finger_3/dist_link">
+    <inertial>
+      <origin xyz="0.022825 0.0010491 0.0004203" rpy="0 0 0"/>
+      <mass value="0.041377"/>
+      <inertia ixx="3.1582e-006" ixy="1.4308e-006" ixz="1.0106e-007" iyy="3.8376e-005" iyz="0" izz="3.7275e-005"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 -0.7853981633974483"/>
+      <material name="WAMGrey"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_dist_link_fine.stl"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 -0.7853981633974483"/>
+      <geometry>
+        <mesh filename="package://sw_meshes/bhand/bhand_finger_dist_link_convex.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wam/bhand/finger_3/tip_joint" type="fixed">
+    <parent link="wam/bhand/finger_3/dist_link"/>
+    <child link="wam/bhand/finger_3/tip_link"/>
+    <origin xyz="0.05 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+  <link name="wam/bhand/finger_3/tip_link">
+    <inertial>
+      <mass value="1E-6"/>
+      <inertia ixx="1E-6" ixy="0" ixz="0" iyy="1E-6" iyz="0" izz="1E-6"/>
+    </inertial>
   </link>
 </robot>

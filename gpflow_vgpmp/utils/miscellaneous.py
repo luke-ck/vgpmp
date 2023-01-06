@@ -159,10 +159,10 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     #     # link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (6, 1)))
     #     # link_pos = np.array(link_pos[-1])
     #     aux_pos = np.array(pos).copy()
-    #     aux_pos[2] += 0.15
-    #     aux_pos[0] += 0.15
-    #     aux_pos[1] += 0.15
-    #     if i > 0 and i < 7:
+    #     aux_pos[2] += 0.05
+    #     aux_pos[0] += 0.05
+    #     aux_pos[1] += 0.05
+    #     if i > 14:
     #         p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
     #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     #     else:
@@ -171,7 +171,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     # base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
 
-    # p.resetBasePositionAndOrientation(robot.robot_model, (-0.5, 0, 0), base_rot)
+    # p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], base_pos[2]), base_rot)
 
     # env.loop()
 
@@ -298,6 +298,9 @@ def import_problemsets(robot_name):
         return Problemset
     elif robot_name == "wam":
         from wam import Problemset
+        return Problemset
+    elif robot_name == "kuka":
+        from kuka import Problemset
         return Problemset
     else:
         print("Robot not available. Check params file and try again... The simulator will now exit.")

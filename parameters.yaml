@@ -1,7 +1,7 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "wam"
-    robot_start_pos: [0, 0, 1.0292] # for wam try 0, 0, 1.0292 for exact comparison with gpmp2 repo
+    robot_name: "kuka"
+    robot_start_pos: [0, 0, 0] # for wam try 0, 0, 1.0292 for exact comparison with gpmp2 repo
     robot_start_orientation_euler: [0, 0, 0] # for ur10 make sure to give this -3.1415, -3.1415, 0
 - scene:
     object_position: [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] #  [-0.2, 0, -0.2] #    # [ 0.55, -0.0, 0.75]

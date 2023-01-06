@@ -54,7 +54,7 @@ if __name__ == '__main__':
     start_joints = np.array(queries[0], dtype=np.float64)
     robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_joints, 0)
     
-    #DEBUGING CODE FOR VISUALIZING JOINTS
+    # DEBUGING CODE FOR VISUALIZING JOINTS
 
     # start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(robot.dof, -1), False)
 
@@ -63,6 +63,7 @@ if __name__ == '__main__':
     #     aux_pos[2] += 0.1
     #     p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
     #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    
     # env.loop()
 
     total_solved = 0

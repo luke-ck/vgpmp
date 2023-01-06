@@ -31,7 +31,6 @@ class RobotSimulator:
     def loop(self, planner=None):
         while True:
             ceva = input()
-            print(ceva)
 
             if input() == "exit":
                 sys.exit()

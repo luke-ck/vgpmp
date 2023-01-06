@@ -84,6 +84,9 @@ class Sampler:
                     mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
                 elif index > 8 and index <= 12:
                     mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
+                elif index > 14:
+                    print(offset)
+                    mat = set_base((offset[0], offset[1], offset[2]))
                 else:
                     mat = set_base((offset[0], -offset[1], offset[2]))
 
