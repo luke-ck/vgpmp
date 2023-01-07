@@ -120,7 +120,7 @@ def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_jo
     return X, y, Xnew
 
 
-def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params, trainable_params):
+def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params, trainable_params, graphics_params):
     grid_spacing_X = planner_params["time_spacing_X"]
     grid_spacing_Xnew = planner_params["time_spacing_Xnew"]
     dof = robot_params["dof"]
@@ -154,26 +154,50 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
-    # start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(dof, -1))
-    # for i, pos in enumerate(start_pos):
-    #     # link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (6, 1)))
-    #     # link_pos = np.array(link_pos[-1])
-    #     aux_pos = np.array(pos).copy()
-    #     aux_pos[2] += 0.05
-    #     aux_pos[0] += 0.05
-    #     aux_pos[1] += 0.05
-    #     if i > 14:
-    #         p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
-    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-    #     else:
-    #         p.addUserDebugLine(pos, aux_pos, lineColorRGB=[1, 0, 0],
-    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    # This part of the code is used to visualize the spheres in the scene
+    # and behaves differently depending on the robot due to how its respective 
+    # urdf file is structured. To have a complete tensorflow implementation, we are
+    # transforming the relative positions of the spheres to absolute positions in the
+    # world frame using the FK matrices. This is done in the sampler.py file at initialization
+    # of the Sampler class and in its _fk_cost function. To introduce other robots, 
+    # you need to follow the same file structure as data/robots/ and data/problemsets.
+    # The main parts of interest are the config file and the urdf file. The config file
+    # will have the joint limits, the number of spheres, the number of frames of reference
+    # with respect to which the spheres are defined, the number of degrees of freedom of the
+    # robot, and which frames of reference are needed to obtain the world frame position. 
+    # The urdf file will contain the definition of the robot, the frames of reference
+    # and relative sphere placement.
 
-    # base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+    # For visualization, similar to the joint positions debugging code, 
+    # the location of the spheres is identified by a red line from the sphere world position 
+    # to +0.05 in each cartesian direction. The sphere locations that you 
+    # are currently debugging are colored green. 
+    # To make them fit, you have to change their offset in the
+    # initialization of the Sampler class in sampler.py.
+    # Finally, make sure that the radius of the spheres is correctly defined and ordered in the config file.
 
-    # p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], base_pos[2]), base_rot)
+    if graphics_params["debug_sphere_positions"]:
+        start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(dof, -1))
+        
+        for i, pos in enumerate(start_pos):
+            aux_pos = np.array(pos).copy()
+            aux_pos[0] += 0.1
+            aux_pos[1] += 0.1
+            aux_pos[2] += 0.1
+            # if i >= 17 and i < 20:
+            #     p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
+            #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            # else:
+            p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
+                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-    # env.loop()
+        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+
+        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0]-0.5, base_pos[1], base_pos[2]), base_rot)
+
+        env.loop()
+
+    # ENDING DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     disable_param_opt(planner, trainable_params)
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)

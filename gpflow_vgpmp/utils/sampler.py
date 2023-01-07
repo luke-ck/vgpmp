@@ -78,14 +78,12 @@ class Sampler:
             self.num_spheres[1] -= 1
 
         for index, offset in enumerate(sphere_offsets):
-
             if robot_name == "wam":
                 if index < 8:
                     mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
                 elif index > 8 and index <= 12:
                     mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
                 elif index > 14:
-                    print(offset)
                     mat = set_base((offset[0], offset[1], offset[2]))
                 else:
                     mat = set_base((offset[0], -offset[1], offset[2]))
@@ -96,6 +94,21 @@ class Sampler:
                 else:
                     mat = set_base((offset[2], offset[0], offset[1]))
 
+            elif robot_name == "kuka":
+                if index > 1 and index < 5:
+                    mat = set_base((offset[0], -offset[2] + 0.18, offset[1]))
+                elif index >= 5 and index < 8:
+                    mat = set_base((offset[0], offset[2], offset[1]))
+                elif index >= 8 and index < 11:
+                    mat = set_base((offset[0], offset[2] - 0.18, -offset[1]))
+                elif index >= 11 and index < 15:
+                    mat = set_base((offset[0], -offset[2], offset[1]))
+                elif index >= 15 and index < 17:
+                    mat = set_base((offset[0], offset[2] + 0.1, offset[1] - 0.06))
+                elif index >= 17 and index < 20:
+                    mat = set_base((offset[0], offset[2] - 0.07, offset[1]))
+                else:
+                    mat = set_base((offset[0], offset[1], offset[2]))
             else:
                 mat = set_base(offset)
             self.sphere_offsets[index] = mat

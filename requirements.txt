@@ -8,7 +8,7 @@ pytest >= 6.1.2
 pyyaml >= 5.3.1
 pyglm == 0.4.8b1
 scipy == 1.9.1
-tensorflow == 2.10.0
+tensorflow == 2.10.1
 tensorflow-probability == 0.15.0
 setuptools>=47.1.0
 ipython>=7.31.1

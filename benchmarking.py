@@ -16,6 +16,7 @@ if __name__ == '__main__':
     robot_params = params.robot
     scene_params = params.scene
     trainable_params = params.trainable_params
+    graphics_params = params.graphics
     num_steps = planner_params["num_steps"]
     sphere_links = robot_params["spheres_over_links"]
     active_joints = robot_params["active_joints"]
@@ -49,25 +50,42 @@ if __name__ == '__main__':
     # end_joints = np.array([[0.10218915, 0.67604317, -0.39735951, -0.3600791, -1.42869601, 2.84581188,
     #                         -1.26557614]], dtype=np.float64)
     
-
     sphere_links = robot_params["spheres_over_links"]
     start_joints = np.array(queries[0], dtype=np.float64)
     robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_joints, 0)
-    
+
     # DEBUGING CODE FOR VISUALIZING JOINTS
 
-    # start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(robot.dof, -1), False)
+    # This part of the code takes the start_joints confuguration that is above
+    # and visualizes the joint positions by drawing a blue line from the joint position to 
+    # +0.15 in the z direction. Change this to a lower value if you want to see the joint positions better.
+    # If you are debugging the sphere positions also, make sure to match this with the
+    # same joint configuration that is in the first tuple of the query_indices list.
+    # The first element of the first tuple is the joint configuration that you visualize.
 
-    # for pos in start_pos:
-    #     aux_pos = np.array(pos).copy()
-    #     aux_pos[2] += 0.1
-    #     p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
-    #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    if graphics_params["debug_joint_positions"]:
+        start_pos, start_mat = robot.compute_joint_positions(start_joints.reshape(robot.dof, -1), robot_params["craig_dh_convention"])
+
+        for pos in start_pos:
+            aux_pos = np.array(pos).copy()
+            aux_pos[2] += 0.05
+            p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     
-    # env.loop()
+    if graphics_params["debug_joint_positions"] and not graphics_params["debug_sphere_positions"]:
+        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
 
+        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0]-0.5, base_pos[1], base_pos[2]), base_rot)
+        env.loop() # The .loop() function is needed to visualize the joint positions.
+                   # It is an infinite while loop that is broken when you press the "q" key.
+                   # It can also give you the current joint configuration of the robot when you
+                   # press the "a" key.
+                   # If you are also debugging the sphere positions, you can skip this.
+
+    # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
+    # env.loop()
     total_solved = 0
-    query_indices = [(1, 2)]
+    query_indices = [(7, 5)]
     if robot_params["robot_name"] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
@@ -82,7 +100,7 @@ if __name__ == '__main__':
         robot.set_curr_config(start_joints)    
         solved = solve_planning_problem(env=env, robot=robot, sdf=sdf, start_joints=start_joints, end_joints=end_joints,
                             robot_params=robot_params, planner_params=planner_params, scene_params=scene_params, 
-                            trainable_params=trainable_params)
+                            trainable_params=trainable_params, graphics_params=graphics_params)
         total_solved += solved
 
     print(f"Planner solved {total_solved} / {len(query_indices)} problems")

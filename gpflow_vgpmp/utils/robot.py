@@ -110,7 +110,7 @@ class Robot:
         This function maps the links to the spheres. It is used when computing forward kinematics
         """
         self.sphere_link_idx, total_spheres = self.get_sphere_id()
-        # assert total_spheres == len(self.rs)
+        assert total_spheres == len(self.rs)
         # TODO: check if link indexes for spheres coincide with joint indexes
 
         cumsum = 0
