@@ -19,7 +19,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
     """
 
     def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
-                 velocity_constraints, train_sigma, no_frames_for_spheres,
+                 velocity_constraints, train_sigma, no_frames_for_spheres, epsilon,
                  DEFAULT_VARIANCE_LOWER_BOUND=1e-14, **kwargs):
         super().__init__(**kwargs)
 
@@ -44,6 +44,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             high=self.velocity_constraints[:, 0]
         )
         self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
+        self.epsilon = tf.constant(epsilon, dtype=default_float())
     def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
         func = tf.range(num_latent_gps + 1)
         return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
@@ -129,7 +130,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         )
 
     @tf.function
-    def _hinge_loss(self, data, epsilon=0.05):
+    def _hinge_loss(self, data):
         r"""
             Penalise configurations where arm is too close to objects with negative cost -d + \epsilon
         Args:
@@ -140,10 +141,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             [tf.Tensor]: [N x P]
         """
         d = self._signed_distance_grad(data)
-        epsilon = tf.cast(epsilon, dtype=default_float())
-        loss1 = tf.where(d <= epsilon, - d + epsilon, 0.0)
+        loss1 = tf.where(d <= self.epsilon, - d + self.epsilon, 0.0)
         return loss1
-        # return self.smoothed_hinge_loss(d, epsilon)
+        # return self.smoothed_hinge_loss(d, self.epsilon)
 
     @tf.function
     def smoothed_hinge_loss(self, data, epsilon):

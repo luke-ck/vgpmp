@@ -85,16 +85,16 @@ if __name__ == '__main__':
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
     
     total_solved = 0
-    query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16), 
-                     (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3), 
-                     (3, 9), (9, 4), (4, 13), (13, 8)]
-                     # (13, 12) fails # index 4
-                     # (8, 16) fails # index 7
-                     # (9, 5) fails # index 9
-                     # (12, 6) fails # index 12
-                     # (6, 7) fails # index 13
-                     # (7, 14) fails # index 14
-                     # (9, 4) fails # index 18
+    query_indices = [(7, 5)] # [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16), 
+                     # (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3), 
+                     # (3, 9), (9, 4), (4, 13), (13, 8)]
+                     # (13, 12)   fails # index 4
+                     # (8, 16)    fails # index 7
+                     # (9, 5)     fails # index 9
+                     # (12, 6)    fails # index 12
+                     # (6, 7)     fails # index 13
+                     # (7, 14)    fails # index 14
+                     # (9, 4)     fails # index 18
 
     if robot_params["robot_name"] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
     # env.loop()
-    for i, j in query_indices[7:8]:
+    for i, j in query_indices:
         start_joints = np.array(queries[i], dtype=np.float64)
         end_joints = np.array(queries[j], dtype=np.float64)
         robot.set_curr_config(start_joints)

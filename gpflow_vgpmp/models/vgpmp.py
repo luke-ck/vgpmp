@@ -80,6 +80,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    train_sigma=False,
                    no_frames_for_spheres=7,
                    robot_name="franka",
+                   epsilon=0.05,
                    **kwargs):
 
         if parameters is None:
@@ -119,7 +120,7 @@ class VGPMP(PathwiseSVGP, ABC):
         sampler = Sampler(robot, parameters, robot_name)
         likelihood = VariationalMonteCarloLikelihood(sigma_obs, num_spheres, sampler, sdf, rs, offset,
                                                      joint_constraints, velocity_constraints, 
-                                                     train_sigma, no_frames_for_spheres)
+                                                     train_sigma, no_frames_for_spheres, epsilon)
 
         return cls(kernel=kernel,
                    likelihood=likelihood,
@@ -240,8 +241,8 @@ class VGPMP(PathwiseSVGP, ABC):
         # else:
         #     scale = tf.cast(1.0, kl.dtype)
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0) # log_prob produces S x N
-        tf.print("likelihood_obs", likelihood_obs, summarize=-1)
-        tf.print("kl", kl)
+        # tf.print("likelihood_obs", likelihood_obs, summarize=-1)
+        # tf.print("kl", kl)
         # tf.print("scale", scale)
         return tf.reduce_sum(likelihood_obs) * self.alpha - kl
 

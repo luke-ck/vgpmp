@@ -148,6 +148,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                train_sigma=trainable_params["sigma_obs"],
                                no_frames_for_spheres=robot_params["no_frames_for_spheres"],
                                robot_name=robot_params["robot_name"],
+                               epsilon=planner_params["epsilon"],
                                q_mu=None,
                                whiten=False
                                )
@@ -193,7 +194,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
 
-        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0]-0.5, base_pos[1], base_pos[2]), base_rot)
+        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], base_pos[2]), base_rot)
 
         env.loop()
 
@@ -205,72 +206,83 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
     robot.set_joint_position(start_joints)
-    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
-    prev = link_pos[-1]
+    
+    if graphics_params["visualize_best_sample"]:
+        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
+        prev = link_pos[-1]
 
-    for joint_config in best_sample:
-        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
+        for joint_config in best_sample:
+            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
+            link_pos = np.array(link_pos[-1])
+            p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+            prev = link_pos
+
+        link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)), robot_params["craig_dh_convention"])
         link_pos = np.array(link_pos[-1])
-        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-        prev = link_pos
+    # PLOT THE MEAN OF THE SAMPLES AND THE UNCERTAINTY in the path of the robot END EFFECTOR
+    if graphics_params["visualize_ee_path_uncertainty"]:
+        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
+        prev = link_pos[-1]
 
-    # PLOT THE MEAN OF THE SAMPLES
-    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
-    prev = link_pos[-1]
+        t = np.linspace(0, 2 * np.pi, 50)
+        cos = np.cos(t)
+        sin = np.sin(t)
+        for joint_config, unc in zip(sample_mean, uncertainties):
+            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
+            link_pos = np.array(link_pos[-1])
+            p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            prev = link_pos
+            rx, ry, rz = unc[0], unc[1], unc[2]
+            prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
+            prev_yy = [rx * cos[0], 0, rz * sin[0]] + link_pos
+            prev_zz = [0, ry * cos[0], rz * sin[0]] + link_pos
+            for i in range(1, len(t)):
+                xx = [rx * cos[i], ry * sin[i], 0] + link_pos
+                yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
+                zz = [0, ry * cos[i], rz * sin[i]] + link_pos
+                p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
+                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
+                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
+                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                prev_xx = xx
+                prev_yy = yy
+                prev_zz = zz
 
-    t = np.linspace(0, 2 * np.pi, 50)
-    cos = np.cos(t)
-    sin = np.sin(t)
-    # for joint_config, unc in zip(sample_mean, uncertainties):
-    #     link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
-    #     link_pos = np.array(link_pos[-1])
-    #     p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-    #                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-    #     prev = link_pos
-    #     rx, ry, rz = unc[0], unc[1], unc[2]
-    #     prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
-    #     prev_yy = [rx * cos[0], 0, rz * sin[0]] + link_pos
-    #     prev_zz = [0, ry * cos[0], rz * sin[0]] + link_pos
-    #     for i in range(1, len(t)):
-    #         xx = [rx * cos[i], ry * sin[i], 0] + link_pos
-    #         yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
-    #         zz = [0, ry * cos[i], rz * sin[i]] + link_pos
-    #         p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
-    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-    #         p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
-    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-    #         p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
-    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-    #         prev_xx = xx
-    #         prev_yy = yy
-    #         prev_zz = zz
-
-    # link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)), robot_params["craig_dh_convention"])
-    # link_pos = np.array(link_pos[-1])
-    # p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-    #                    lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+        link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)), robot_params["craig_dh_convention"])
+        link_pos = np.array(link_pos[-1])
+        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+                        lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     # PLOT THE SAMPLES
-    # for sample in samples:
-    #     link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
-    #     prev = link_pos[-1]
+    if graphics_params["visualize_drawn_samples"]:
+        for sample in samples:
+            link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)), robot_params["craig_dh_convention"])
+            prev = link_pos[-1]
 
-    #     for joint_config in sample:
-    #         link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
-    #         link_pos = np.array(link_pos[-1])
-    #         p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
-    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            for joint_config in sample:
+                link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)), robot_params["craig_dh_convention"])
+                link_pos = np.array(link_pos[-1])
+                p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
+                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-    #         prev = link_pos
-
+                prev = link_pos
+            link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)), robot_params["craig_dh_convention"])
+            link_pos = np.array(link_pos[-1])
+            p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     
     print(f" alpha {planner.alpha}")
     for kern in planner.kernel.kernels:
         print(f" lengthscale {kern.lengthscales}")
         print(f" variance {kern.variance}")
-    print(best_sample, y[1])
     res = robot.move_to_ee_config(best_sample, y[1])
     return res
 
