@@ -83,9 +83,19 @@ if __name__ == '__main__':
                    # If you are also debugging the sphere positions, you can skip this.
 
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
-    # env.loop()
+    
     total_solved = 0
-    query_indices = [(7, 5)]
+    query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16), 
+                     (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3), 
+                     (3, 9), (9, 4), (4, 13), (13, 8)]
+                     # (13, 12) fails # index 4
+                     # (8, 16) fails # index 7
+                     # (9, 5) fails # index 9
+                     # (12, 6) fails # index 12
+                     # (6, 7) fails # index 13
+                     # (7, 14) fails # index 14
+                     # (9, 4) fails # index 18
+
     if robot_params["robot_name"] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
@@ -93,11 +103,11 @@ if __name__ == '__main__':
     elif robot_params["robot_name"] == "ur10":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
-    
-    for i, j in query_indices:
-        start_joints = np.array(queries[i], dtype=np.float64) # 11, 18
+    # env.loop()
+    for i, j in query_indices[7:8]:
+        start_joints = np.array(queries[i], dtype=np.float64)
         end_joints = np.array(queries[j], dtype=np.float64)
-        robot.set_curr_config(start_joints)    
+        robot.set_curr_config(start_joints)
         solved = solve_planning_problem(env=env, robot=robot, sdf=sdf, start_joints=start_joints, end_joints=end_joints,
                             robot_params=robot_params, planner_params=planner_params, scene_params=scene_params, 
                             trainable_params=trainable_params, graphics_params=graphics_params)
