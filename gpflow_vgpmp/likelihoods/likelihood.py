@@ -6,6 +6,7 @@ from gpflow.config import default_float
 from gpflow.likelihoods import GaussianMC, Gaussian
 from gpflow.utilities import positive
 from gpflow_vgpmp.utils.miscellaneous import decay_sigma
+from gpflow_vgpmp.utils.ops import bounded_param
 from tensorflow_probability import bijectors as tfb
 
 __all__ = "likelihood"
@@ -82,12 +83,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             [tf.Tensor]: [S x N]
         """
         # tf.print(L)
-        func = tf.range(f.shape[0])
-        cost = tf.map_fn(  # this evaluates each [N x P x 3] of the S samples
-            lambda i: self._hinge_loss(f[i]),
-            func, fn_output_signature=default_float(), parallel_iterations=8,
-        )
-
+        # func = tf.range(f.shape[0])
+        cost = self._hinge_loss(f) #tf.clip_by_value(self._hinge_loss(f), clip_value_min=0, clip_value_max=0.75)
+        # print(cost)
         S, N, P = cost.shape
         delta = tf.expand_dims(cost, -1)
         var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) / self.variance
@@ -121,17 +119,6 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             self.sampler.sampleConfigs(f[i], sample_dim),
             func, fn_output_signature=(default_float())
         )
-
-    @tf.custom_gradient
-    def papirus_loss(self, data, epsilon=0.05):
-        epsilon = tf.cast(epsilon, dtype=default_float())
-        out = tf.where(data <= epsilon, - data + epsilon, 0.0)
-
-        def grad(upstream):
-            upstream = tf.where(data == epsilon, tf.cast(-0.5, dtype=default_float()), upstream)
-            return upstream, tf.cast(0., dtype=default_float())
-
-        return out, grad
 
     @tf.function
     def _hinge_loss(self, data, epsilon=0.05):

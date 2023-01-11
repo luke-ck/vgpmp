@@ -28,8 +28,8 @@ if __name__ == '__main__':
     query_index = 5
 
     # Problemsets
-    # start_joints = np.array(queries[6], dtype=np.float64)
-    # end_joints = np.array(queries[4], dtype=np.float64)
+    start_joints = np.array(queries[11], dtype=np.float64)
+    end_joints = np.array(queries[14], dtype=np.float64)
 
     # Bookshelves + table
     # start_joints = np.array([-0.08271578, -0.05581101, -0.06679014, -0.51343344, -0.05400771,  2.15320285, -1.60573894], dtype=np.float64)
@@ -45,10 +45,10 @@ if __name__ == '__main__':
     # Industrial
     # start_joints = np.array([-1.38294485, 0.61212638, -1.31441932, -0.22121811, 1.1110808, 1.38602424,
     #                          0.81529816], dtype=np.float64)
-    start_joints = np.array([-1.16439096, 0.65851989, -1.24320806, -0.14266402, 1.18478857, 1.56439271,
-                             1.50726637], dtype=np.float64)
-    end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
-                            2.8963512], dtype=np.float64)
+    # start_joints = np.array([-1.16439096, 0.65851989, -1.24320806, -0.14266402, 1.18478857, 1.56439271,
+    #                          1.50726637], dtype=np.float64)
+    # end_joints = np.array([-0.51877685, 0.38124115, 0.7164529, -1.1444525, -0.15082004, 1.8269117,
+    #                         2.8963512], dtype=np.float64)
     # end_joints = np.array([[0.10218915, 0.67604317, -0.39735951, -0.3600791, -1.42869601, 2.84581188,
     #                         -1.26557614]], dtype=np.float64)
     sphere_links = robot_params["spheres_over_links"]
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     dof = robot.dof
 
     X = tf.convert_to_tensor(np.array(
-        [np.full(7, i) for i in np.linspace(0, 1 * 100, 100)], dtype=np.float64))
+        [np.full(7, i) for i in np.linspace(0, 1 * 100, 70)], dtype=np.float64))
     y = tf.concat([start_joints.reshape((1, dof)), end_joints.reshape((1, dof))], axis=0)
     print(y)
 
@@ -99,17 +99,21 @@ if __name__ == '__main__':
 
     # planner.likelihood.variance.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(0.0005),
     #                                                              gpflow.utilities.to_default_float(0.005))
-
-    set_trainable(planner.alpha, False)
+    planner.alpha.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(10),
+                                                                 gpflow.utilities.to_default_float(0.2))
+    set_trainable(planner.alpha, True)
     # set_trainable(planner.kernel.kernels, True)
-    set_trainable(planner.kernel.kernel.variance, False)
-    set_trainable(planner.kernel.kernel.lengthscales, True)
+    # set_trainable(planner.kernel.kernel.variance, False)
+    # set_trainable(planner.kernel.kernel.lengthscales, True)
     set_trainable(planner.inducing_variable, False)
-    # for kern in planner.kernel.kernels:
-    #     set_trainable(kern.variance, False)
+    # set_trainable(planner._q_mu, False)
+    # set_trainable(planner._q_sqrt, False)
+    for kern in planner.kernel.kernels:
+        set_trainable(kern.variance, False)
+        set_trainable(kern.lengthscales, True)
 
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
-    joint_configs, samples = planner.sample_from_posterior(Xnew)
+    sample_mean, best_sample, samples = planner.sample_from_posterior(Xnew)
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
     robot.set_joint_position(start_joints)
@@ -117,7 +121,20 @@ if __name__ == '__main__':
     EE = [link_pos[-1]]
     prev = link_pos[-1]
 
-    for joint_config in joint_configs:
+    for joint_config in best_sample:
+        link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (7, 1)))
+        link_pos = np.array(link_pos[-1])
+        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+        time.sleep(0.1)
+        prev = link_pos
+        EE.append(link_pos)
+
+    link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (7, 1)))
+    prev = link_pos[-1]
+
+    for joint_config in sample_mean:
         link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (7, 1)))
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
@@ -126,9 +143,8 @@ if __name__ == '__main__':
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-        time.sleep(0.1)
+        time.sleep(0.05)
         prev = link_pos
-        EE.append(link_pos)
 
     for sample in samples:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (7, 1)))
@@ -149,9 +165,10 @@ if __name__ == '__main__':
     EE = np.array(EE)  # .reshape((12, 3))
     print(EE, EE.shape)
     print(f" alpha {planner.alpha}")
-    print(f" lengthscale {planner.kernel.kernel.lengthscales}")
-    print(f" variance {planner.kernel.kernel.variance}")
+    for kern in planner.kernel.kernels:
+        print(f" lengthscale {kern.lengthscales}")
+        print(f" variance {kern.variance}")
     time.sleep(5)
-    print("joint configs", joint_configs)
+    print("joint configs", best_sample)
     print("y", y)
-    robot.move_to_ee_config(joint_configs)
+    robot.move_to_ee_config(best_sample)

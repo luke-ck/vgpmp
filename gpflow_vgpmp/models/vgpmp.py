@@ -17,7 +17,7 @@ from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
 from gpflow_vgpmp.utils.miscellaneous import timing
 from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param
 from gpflow_vgpmp.utils.sampler import Sampler
-from gpflow_vgpmp.covariances.Kuus import Kuu
+from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
 
 # <------ Exports
 __all__ = "vgpmp"
@@ -100,16 +100,16 @@ class VGPMP(PathwiseSVGP, ABC):
         Z = initialize_Z(num_latent_gps, num_inducing)
 
         if kernels is None:
-            # kernels = []
-            # for i in range(num_latent_gps):
-            #     kern = SquaredExponential(lengthscales=lengthscale - i * 0.05)
-            #     kern.lengthscales = bounded_param(0.2, 0.95, kern.lengthscales)
-            #     kern.variance = Parameter(0.95, transform=positive(0.1), trainable=False)
-            #     kernels.append(kern)
-            kernel = Matern52(lengthscales=lengthscale, variance=0.15)
-            kernel.lengthscales = bounded_param(2, 2 * 100, kernel.lengthscales)
+            kernels = []
+            for i in range(num_latent_gps):
+                kern = Matern52(lengthscales=100)
+                kern.lengthscales = bounded_param(80, 200, kern.lengthscales)
+                kern.variance = Parameter(0.15 - i * 0.02, transform=positive(0.0001), trainable=False)
+                kernels.append(kern)
+            # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
+            # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
             # kernel.variance = bounded_param(0.1, 0.5, kernel.variance)
-        kernel = SharedIndependent(kernel, output_dim=num_latent_gps)
+        kernel = SeparateIndependent(kernels)
 
         # Original inducing points
         _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
@@ -142,9 +142,10 @@ class VGPMP(PathwiseSVGP, ABC):
         """
         Manually whiten covariance matrix
         """
-        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        # K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter()) # sharedIndependent
+        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
-        return L[None, ...] @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
+        return L @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
                1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
 
     def _init_variational_parameters(
@@ -199,15 +200,17 @@ class VGPMP(PathwiseSVGP, ABC):
         Shift the mean of the variational posterior to the mean of the prior.
         """
         n = len(self.inducing_variable.inducing_variable.ny)
-        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
 
         # Subtract prior mean from q_mu, then whiten
-        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
+        # print("shapes", K[..., :n], L[..., :n, :n], tf.transpose(self.query_states)[..., None])
+        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(self.query_states)[..., None])
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
-        # tf.print(q_mu - p_mu, p_mu)
-        whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
-        print(whitened_diff, self._q_sqrt)
+
+        # print("means", p_mu, q_mu)
+        whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[n:, ...]
+        # print(self._q_sqrt)
         return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     @tf.function
@@ -241,7 +244,7 @@ class VGPMP(PathwiseSVGP, ABC):
         # else:
         #     scale = tf.cast(1.0, kl.dtype)
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0) # log_prob produces S x N
-        tf.print("likelihood_obs", likelihood_obs)
+        tf.print("likelihood_obs", likelihood_obs, summarize=-1)
         tf.print("kl", kl)
         # tf.print("scale", scale)
         return tf.reduce_sum(likelihood_obs) * self.alpha - kl
@@ -272,11 +275,15 @@ class VGPMP(PathwiseSVGP, ABC):
 
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
         mu = self.likelihood.joint_sigmoid(mu)
-        with self.temporary_paths(num_samples=7, num_bases=self.num_bases):
+        with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         # print(self.num_bases)
         samples = self.likelihood.joint_sigmoid(f)
-        return mu, samples
+        return mu, samples[self.get_best_sample(samples)], samples[:7]
 
     def initialize_optimizer(self, learning_rate):
         return tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)
+
+    def get_best_sample(self, samples):
+        cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
+        return tf.math.argmax(cost)

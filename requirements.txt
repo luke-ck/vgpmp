@@ -16,5 +16,3 @@ open3d~=0.14.1
 tqdm~=4.62.3
 gpflow~=2.2.1
 bunch
-sympy~=1.11.0
-roboticstoolbox-python~=1.0.2
