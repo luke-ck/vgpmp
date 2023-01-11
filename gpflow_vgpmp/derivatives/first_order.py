@@ -1,5 +1,5 @@
 import tensorflow as tf
-from gpflow.kernels.stationaries import SquaredExponential
+from gpflow.kernels.stationaries import SquaredExponential, Kernel, Matern52
 from tensorflow import Tensor
 
 from .dispatch import K_grad
@@ -15,11 +15,11 @@ def first_order_derivative_se(inducing_variable_ny, inducing_variable_Zy, kernel
     return norm * partial_derivative
 
 
-@K_grad.register(Tensor, Tensor, SquaredExponential)
+@K_grad.register(Tensor, Tensor, Matern52)
 def k_grad_se_fallback(
         inducing_location_ny: Tensor,
         inducing_location_Zy: Tensor,
-        kernel: SquaredExponential,
+        kernel: Matern52,
 ):
     iterator = tf.range(inducing_location_ny.shape[0])
     block = tf.map_fn(lambda i: first_order_derivative_se(inducing_location_ny[i], inducing_location_Zy, kernel),

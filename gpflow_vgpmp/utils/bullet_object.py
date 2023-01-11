@@ -54,22 +54,22 @@ class Object:
                     object_path = os.path.join(pybullet_data_path, "plane_transparent.urdf")
                 elif name == "table":
                     object_path = os.path.join(pybullet_data_path, "table/table.urdf")
-
             except FileNotFoundError:
                 print(f"No path for {name} found")
                 pass
-        else:
+        elif name == "scene":
             object_path = path
+        else:
+            raise ValueError("Path for object not specified. Currently supported objects are plane and table, or"
+                             "you can specify a path to a URDF file for a scene.")
 
-        with suppress_stdout():
-            if name != "plane":
-                # print(position)
-
-                self.ID = p.loadURDF(object_path, position)
-                print(f"Set ID to {self.ID}")
-                print(f"Created a {name}")
+        with suppress_stdout(): # suppress annoying warnings from pybullet
+            if self.position is not None:
+                self.ID = p.loadURDF(object_path, self.position, self.orientation)
             else:
                 self.ID = p.loadURDF(object_path)
+        print(f"Set ID to {self.ID}")
+        print(f"Created a {name}")
 
     def set_position(self, pos):
         self.position = pos

@@ -1,0 +1,61 @@
+radius: [0.14, 0.14, 0.09, 0.09, 0.09, 0.09, 0.09, 0.11, 0.09, 0.09, 0.09, 0.08, 0.08, 0.08, 0.08, 0.085, 0.085, 0.08, 0.08, 0.08, 0.058]
+num_spheres: 21 # should be dependent on robot
+spheres_over_links:
+      [
+        "iiwa_description_link_1",
+        "iiwa_description_link_2",
+        "iiwa_description_link_3",
+        "iiwa_description_link_4",
+        "iiwa_description_link_5",
+        "iiwa_description_link_6",
+        "iiwa_description_link_7"
+      ]
+active_joints:
+      [
+         "iiwa_description_joint_1",
+         "iiwa_description_joint_2",
+         "iiwa_description_joint_3",
+         "iiwa_description_joint_4",
+         "iiwa_description_joint_5",
+         "iiwa_description_joint_6",
+         "iiwa_description_joint_7"
+      ]
+basename: "iiwa_description_link_0"
+wrist_test: "iiwa_description_link_ee"
+path: "kuka.urdf"
+joint_limits:
+        [
+                2.967,  -2.967,   # iiwa_description_joint_1
+                2.0944, -2.0944,  # iiwa_description_joint_2
+                2.967,  -2.967,   # iiwa_description_joint_3
+                2.0944, -2.0944,  # iiwa_description_joint_4
+                2.967,  -2.967,   # iiwa_description_joint_5
+                2.0944, -2.0944,  # iiwa_description_joint_6
+                3.054,  -3.054    # iiwa_description_joint_7
+        ]
+velocity_limits: 
+        [
+                1.71,   -1.71,   # iiwa_description_joint_1
+                1.71,   -1.71,   # iiwa_description_joint_2
+                1.745,  -1.745,  # iiwa_description_joint_3
+                2.269,  -2.269,  # iiwa_description_joint_4
+                2.443,  -2.443,  # iiwa_description_joint_5
+                3.1415, -3.1415, # iiwa_description_joint_6
+                3.1415, -3.1415  # iiwa_description_joint_7
+        ]
+
+dh_parameters: # d, a, alpha
+  [
+    0.340, 0.0, -1.5708,  # iiwa_description_joint_1
+    0.0,   0.0, 1.5708,  # iiwa_description_joint_2
+    0.400, 0.0, 1.5708,  # iiwa_description_joint_3
+    0.0,   0.0, -1.5708,  # iiwa_description_joint_4
+    0.400, 0.0, -1.5708,  # iiwa_description_joint_5
+    0.0,   0.0, 1.5708,  # iiwa_description_joint_6
+    0.126, 0.0, 0.0  # iiwa_description_joint_7
+   ]
+twist: [ 0., 0., 0., 0., 0., 0., 0. ]
+dof: 7
+craig_dh_convention: False
+no_frames_for_spheres: 8
+fk_slice: [0, 1, 2, 3, 4, 5, 6, 7]
