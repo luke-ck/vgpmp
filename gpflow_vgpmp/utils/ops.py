@@ -20,9 +20,9 @@ def bounded_Z(low, high, Z):
 
 def initialize_Z(num_latent_gps, num_inducing):
     Z = tf.convert_to_tensor(np.array(
-        [np.full(num_latent_gps, i) for i in np.linspace(0.1, 0.9, num_inducing)], dtype=np.float64))
+        [np.full(num_latent_gps, i) for i in np.linspace(0.1 * 100, 0.9 * 100, num_inducing)], dtype=np.float64))
 
-    Z = bounded_Z(low=0.1 - 5e-2, high=0.9 + 5e-2, Z=Z)
+    Z = bounded_Z(low=0.1 * 100 - 5e-2, high=0.9 * 100 + 5e-2, Z=Z)
     return Z
 
 

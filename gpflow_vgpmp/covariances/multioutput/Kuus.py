@@ -32,6 +32,7 @@ def Kuu_fallback_shared_separate(
     jittermat = tf.eye(inducing_variable.num_inducing + 2, dtype=Kmm.dtype)[None, :, :] * jitter
     return Kmm + jittermat
 
+
 @Kuu.register(FallbackSharedIndependentInducingVariables, SharedIndependent)
 def Kuu_fallback_shared_shared(
         inducing_variable: FallbackSharedIndependentInducingVariables,

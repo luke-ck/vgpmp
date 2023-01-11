@@ -55,19 +55,19 @@
       ]
 
 - scene:
-    object_position:   [-0.2, 0, -0.2] # [ 0.62, -0.15, 0.85 ] [ 0.55, -0.0, 0.75]
-    object_path: "/data/scenes/industrial/industrial.urdf"
-    problemset: "industrial"
-    sdf_path: "data/scenes/industrial/industrial_vgpmp.sdf"
+    object_position: [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] [-0.2, 0, -0.2] #   
+    object_path: "/data/scenes/bookshelves/bookshelves_table_mesh.urdf"
+    problemset: "bookshelves"
+    sdf_path: "data/scenes/bookshelves/bookshelves_table_center-acd_vgpmp.sdf"
 - planner:
-    num_samples: 15
-    sigma_obs: 0.0005
-    num_inducing: 10
+    num_samples: 7
+    sigma_obs: 0.003
+    num_inducing: 6
     num_spheres: 37 # should be dependent on robot
-    learning_rate: 0.15
-    alpha: 2
-    num_steps: 150
-    lengthscale: 1
+    learning_rate: 0.09
+    alpha: 10
+    num_steps: 130
+    lengthscale: 100
 
 - simulation:
     #Choose object (Bottle, cube_small.urdf, cube_no_rotation.urdf, r2d2.urdf, sphere2.urdf,teddy_vhacd.urdf,teddy_vhacd.urdf) or other standard objects from pybullet

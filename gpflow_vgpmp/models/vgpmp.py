@@ -8,8 +8,7 @@ from gpflow.base import Parameter, TensorLike
 from gpflow.config import default_float
 from gpflow.covariances import Kuf
 from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables
-from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52, Matern32,
-                            Cosine)
+from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52)
 from gpflow.kullback_leiblers import prior_kl, gauss_kl
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
@@ -18,9 +17,7 @@ from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
 from gpflow_vgpmp.utils.miscellaneous import timing
 from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param
 from gpflow_vgpmp.utils.sampler import Sampler
-from gpflow_vgpmp.covariances.Kuus import Kuu
-from gpflow import mean_functions
-from tensorflow_probability import bijectors as tfb
+from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
 
 # <------ Exports
 __all__ = "vgpmp"
@@ -30,9 +27,18 @@ __all__ = "vgpmp"
 # ---------------GP Planner----------------
 # =========================================
 
+# @prior_kl.register(VariableInducingPoints, Kernel, object, object)
+# def _(inducing_variable, kernel, q_mu, q_sqrt, whiten=False):
+#     if whiten:
+#         return gauss_kl(q_mu, q_sqrt, None)
+#     else:
+#         K = kernel.kernel(inducing_variable._Z)
+#         K += default_jitter() * tf.eye(inducing_variable.num_inducing, dtype=K.dtype)# [P, M, M] or [M, M]
+#
+#         return gauss_kl(q_mu, q_sqrt, K)
 
 class VGPMP(PathwiseSVGP, ABC):
-    def __init__(self, *args, alpha, query_states, num_samples, num_bases, num_inducing,
+    def __init__(self, *args, prior: Callable = None, alpha, query_states, num_samples, num_bases, num_inducing,
                  parameters,
                  learning_rate, **kwargs):
         super(PathwiseSVGP, self).__init__(*args, **kwargs)
@@ -45,9 +51,9 @@ class VGPMP(PathwiseSVGP, ABC):
         self.num_samples = num_samples
         self.num_bases = num_bases
         self.num_inducing = num_inducing
+        self.prior = prior
         self.planner_parameters = parameters
         self.alpha = Parameter(alpha, transform=positive(1e-4))
-
 
     @classmethod
     def initialize(cls,
@@ -94,11 +100,16 @@ class VGPMP(PathwiseSVGP, ABC):
         Z = initialize_Z(num_latent_gps, num_inducing)
 
         if kernels is None:
-
-            kernel = SquaredExponential(lengthscales=lengthscale, variance=0.15)
-            kernel.lengthscales = bounded_param(0.9, 1.1, kernel.lengthscales)
-            # kernel.variance = bounded_param(0.09, 0.4, kernel.variance)
-        kernel = SharedIndependent(kernel, output_dim=num_latent_gps)
+            kernels = []
+            for i in range(num_latent_gps):
+                kern = Matern52(lengthscales=100)
+                kern.lengthscales = bounded_param(80, 200, kern.lengthscales)
+                kern.variance = Parameter(0.15 - i * 0.02, transform=positive(0.0001), trainable=False)
+                kernels.append(kern)
+            # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
+            # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
+            # kernel.variance = bounded_param(0.1, 0.5, kernel.variance)
+        kernel = SeparateIndependent(kernels)
 
         # Original inducing points
         _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
@@ -124,14 +135,17 @@ class VGPMP(PathwiseSVGP, ABC):
 
     @property
     def q_mu(self):
-        Z = self.inducing_variable
-        K = Kuu(Z, self.kernel, jitter=default_jitter())  # [M, M]
-        Linv = tf.linalg.inv(tf.linalg.cholesky(K))
-        return Linv @ tf.concat([self.query_states, self._q_mu], axis=0)
-
+        return tf.concat([self.query_states, self._q_mu], axis=0)
+        
     @property
     def q_sqrt(self):
-        return tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
+        """
+        Manually whiten covariance matrix
+        """
+        # K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter()) # sharedIndependent
+        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
+        L = tf.linalg.cholesky(K)
+        return L @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
                1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
 
     def _init_variational_parameters(
@@ -180,6 +194,25 @@ class VGPMP(PathwiseSVGP, ABC):
         )
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
 
+    def prior_kl_sharedindependent(self):
+        """
+        Computes the KL divergence between the variational posterior and the prior.
+        Shift the mean of the variational posterior to the mean of the prior.
+        """
+        n = len(self.inducing_variable.inducing_variable.ny)
+        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
+        L = tf.linalg.cholesky(K)
+
+        # Subtract prior mean from q_mu, then whiten
+        # print("shapes", K[..., :n], L[..., :n, :n], tf.transpose(self.query_states)[..., None])
+        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(self.query_states)[..., None])
+        q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
+
+        # print("means", p_mu, q_mu)
+        whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[n:, ...]
+        # print(self._q_sqrt)
+        return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
+
     @tf.function
     def elbo(self, data: tf.Tensor) -> tf.Tensor:
         r"""
@@ -199,15 +232,22 @@ class VGPMP(PathwiseSVGP, ABC):
 
         with self.temporary_paths(num_samples=self.num_samples, num_bases=self.num_bases):
             f = self.predict_f_samples(data)  # S x N x D
-
         g = self.likelihood.joint_sigmoid(f)
-        kl = self.prior_kl()
-        likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
 
-        tf.print("likelihood_obs", likelihood_obs)
+        kl = self.prior_kl_sharedindependent()
+        # if self.num_data is not None:
+        #     num_data = tf.cast(self.num_data, kl.dtype)
+        #     minibatch_size = tf.cast(tf.shape(data)[0], kl.dtype)
+        #     tf.print("num_data", num_data)
+        #     tf.print("minibatch_size", minibatch_size)
+        #     scale = num_data / minibatch_size
+        # else:
+        #     scale = tf.cast(1.0, kl.dtype)
+        likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0) # log_prob produces S x N
+        tf.print("likelihood_obs", likelihood_obs, summarize=-1)
         tf.print("kl", kl)
-
-        return (tf.reduce_sum(likelihood_obs) * self.alpha) - kl
+        # tf.print("scale", scale)
+        return tf.reduce_sum(likelihood_obs) * self.alpha - kl
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:
@@ -232,27 +272,18 @@ class VGPMP(PathwiseSVGP, ABC):
     #     return objective
 
     def sample_from_posterior(self, X):
-        # mu2, sigma2 = self.predict_f(X)
-        # with tf.GradientTape() as tape:
-        #     tape.watch(mu2)
-        #     mu = self.likelihood.joint_sigmoid(mu2)
-        # gradient = tape.gradient(mu, mu2)
-        # func1 = tf.range(mu2.shape[0])
-        #
-        # uncertainty = tf.math.abs(gradient * tf.math.sqrt(tf.math.abs(sigma2)))
-        # result = tf.map_fn(lambda i: self.likelihood.sampler.compute_joint_pos_uncertainty(mu[i], uncertainty[i]),
-        #                    func1, fn_output_signature=default_float())
+
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
         mu = self.likelihood.joint_sigmoid(mu)
-        # with self.temporary_paths(num_samples=1, num_bases=self.num_bases):
-        #     f = tf.squeeze(self.predict_f_samples(X))
+        with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
+            f = tf.squeeze(self.predict_f_samples(X))
         # print(self.num_bases)
-        # g = self.likelihood.joint_sigmoid(f)
-        return mu, sigma
+        samples = self.likelihood.joint_sigmoid(f)
+        return mu, samples[self.get_best_sample(samples)], samples[:7]
 
     def initialize_optimizer(self, learning_rate):
-        step_sizes = [0.15, 0.1]
-        num_steps = 175
-        boundaries = [k * num_steps // len(step_sizes) for k in range(1, len(step_sizes))]
-        schedule = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, step_sizes)
-        return tf.optimizers.Adam(schedule, beta_1=0.8, beta_2=0.95)
+        return tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)
+
+    def get_best_sample(self, samples):
+        cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
+        return tf.math.argmax(cost)
