@@ -7,7 +7,7 @@ from gpflow.base import Parameter
 from gpflow.base import default_float
 from tensorflow_probability import bijectors as tfb
 from scipy.spatial.transform import Rotation as rot
-
+import time
 
 # <---------------- utilities ----------------->
 def bounded_Z(low, high, Z):
@@ -122,3 +122,15 @@ def get_transform_matrix_craig(theta, d, a, alpha):
     ], dtype=np.float64)
 
     return T
+
+def timing(f):
+    def wrap(*args, **kwargs):
+        start = time.time()
+        ret = f(*args, **kwargs)
+        end = time.time()
+        print('{:s} function took {:.3f} ms'.format(
+            f.__name__, (end - start) * 1000.0))
+
+        return ret
+
+    return wrap

@@ -14,11 +14,11 @@ __all__ = 'simulation'
 class Simulation:
     def __init__(self):
         """ 
-            The object manipulated by the simulator.
-            On init the sim loads all data from the parameter file and saves in the class as 4 different dicts:
+            On init the sim loads all data from the parameter file and saves in the class as 5 different dicts:
                     - self.scene_params = scene_params["scene"]
                     - self.robot_params = robot_params["robot"]
                     - self.planner_params = planner_params["planner"]
+                    - self.sim_params = sim_params["simulation"]
                     - self.graphic_params = graphic_params["graphics"]
 
             It also starts the simulator with or without GUI based on parameters, see parameters.
@@ -27,6 +27,7 @@ class Simulation:
         self.planner_params = None
         self.graphic_params = None
         self.robot_params = None
+        self.sim_params = None
         self.scene_params = None
         self.physicsClient = None
         self.data_dir_path = get_root_package_path() + "/data/"
@@ -51,27 +52,28 @@ class Simulation:
             print(e)
 
         # input("Welcome! \nEdit the parameter file and press enter when ready...\n")
+
         self.load_params(self.params)
         self.start_engine()
 
     def load_params(self, params):
         """ Load and extract data from parameter file """
-
-        robot_params, scene_params, planner_params, graphic_params = params
+        robot_params, scene_params, planner_params, trainable_params, graphic_params = params
         self.scene_params = scene_params["scene"]
         self.robot_params = robot_params["robot"]
         self.planner_params = planner_params["planner"]
+        self.trainable_params = trainable_params["trainable_parameters"]
         self.graphic_params = graphic_params["graphics"]
-
+        
         self.get_robot_config(self.robot_params)
         self.get_scene_config(self.scene_params)
-        print(self.scene_params)
 
     def get_params(self) -> Bunch:
         params = defaultdict(dict)
         params["scene"] = self.scene_params
         params["robot"] = self.robot_params
         params["planner"] = self.planner_params
+        params["trainable_params"] = self.trainable_params
         params["graphics"] = self.graphic_params
         params = Bunch(params)
         return params

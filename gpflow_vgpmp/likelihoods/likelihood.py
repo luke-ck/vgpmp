@@ -5,7 +5,7 @@ from gpflow.base import Parameter
 from gpflow.config import default_float
 from gpflow.likelihoods import GaussianMC, Gaussian
 from gpflow.utilities import positive
-from gpflow_vgpmp.utils.miscellaneous import decay_sigma
+from gpflow_vgpmp.utils.ops import bounded_param
 from tensorflow_probability import bijectors as tfb
 
 __all__ = "likelihood"
@@ -19,17 +19,16 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
     """
 
     def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
-                 velocity_constraints,
+                 velocity_constraints, train_sigma, no_frames_for_spheres, epsilon,
                  DEFAULT_VARIANCE_LOWER_BOUND=1e-14, **kwargs):
         super().__init__(**kwargs)
 
         self.sampler = sampler
         self.sdf = sdf
         # sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
-        sigma_obs_joints = tf.broadcast_to(sigma_obs, [4, 1])
-        print(self.sampler.num_spheres)
+        sigma_obs_joints = tf.broadcast_to(sigma_obs, [no_frames_for_spheres, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
-        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=False)
+        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=train_sigma)
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
         self.joint_constraints = tf.constant(joint_constraints, shape=(len(joint_constraints) // 2, 2),
@@ -44,6 +43,12 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             low=self.velocity_constraints[:, 1],
             high=self.velocity_constraints[:, 0]
         )
+        self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
+        self.epsilon = tf.constant(epsilon, dtype=default_float())
+    def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
+        func = tf.range(num_latent_gps + 1)
+        return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
+                        fn_output_signature=default_float())
 
     @tf.function
     def log_prob(self, F):
@@ -82,13 +87,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             [tf.Tensor]: [S x N]
         """
-        # tf.print(L)
-        func = tf.range(f.shape[0])
-        cost = tf.map_fn(  # this evaluates each [N x P x 3] of the S samples
-            lambda i: self._hinge_loss(f[i]),
-            func, fn_output_signature=default_float(), parallel_iterations=8,
-        )
-
+        cost = self._hinge_loss(f) #tf.clip_by_value(self._hinge_loss(f), clip_value_min=0, clip_value_max=0.75)
         S, N, P = cost.shape
         delta = tf.expand_dims(cost, -1)
         var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) / self.variance
@@ -96,7 +95,14 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
         dist_list = tf.reshape(res, shape=(S, N))
 
-        return - 0.5 * dist_list
+        # normal_cost = tf.reshape(f[:, :, 26, :], [f.shape[0], f.shape[1], 1, f.shape[3]]) - f[:, :, 27:, :]
+        # normal_cost = tf.linalg.normalize(normal_cost, axis=-1)[0]
+        # normal_cost = tf.reduce_sum(normal_cost * self.normal, axis=-1)
+        # new_delta = tf.expand_dims(normal_cost, -1)
+        # normal_cost = tf.matmul(new_delta, tf.matmul(var[:, :, 27:, 27:], new_delta), transpose_a=True)
+        # normal_cost = tf.reshape(normal_cost, shape=(S, N))
+        
+        return - 0.5 * dist_list #* 500. - 0.5 * normal_cost * 10.
 
     @tf.function
     def _sample_config_cost(self, f):
@@ -123,19 +129,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             func, fn_output_signature=(default_float())
         )
 
-    @tf.custom_gradient
-    def papirus_loss(self, data, epsilon=0.05):
-        epsilon = tf.cast(epsilon, dtype=default_float())
-        out = tf.where(data <= epsilon, - data + epsilon, 0.0)
-
-        def grad(upstream):
-            upstream = tf.where(data == epsilon, tf.cast(-0.5, dtype=default_float()), upstream)
-            return upstream, tf.cast(0., dtype=default_float())
-
-        return out, grad
-
     @tf.function
-    def _hinge_loss(self, data, epsilon=0.1):
+    def _hinge_loss(self, data):
         r"""
             Penalise configurations where arm is too close to objects with negative cost -d + \epsilon
         Args:
@@ -146,10 +141,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             [tf.Tensor]: [N x P]
         """
         d = self._signed_distance_grad(data)
-        epsilon = tf.cast(epsilon, dtype=default_float())
-        loss1 = tf.where(d <= epsilon, - d + epsilon, 0.0)
+        loss1 = tf.where(d <= self.epsilon, - d + self.epsilon, 0.0)
         return loss1
-        # return self.smoothed_hinge_loss(d, epsilon)
+        # return self.smoothed_hinge_loss(d, self.epsilon)
 
     @tf.function
     def smoothed_hinge_loss(self, data, epsilon):

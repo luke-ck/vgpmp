@@ -1,23 +1,39 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "wam"
-    robot_start_pos: [0, 0, 1.0292]
-    robot_start_orientation_euler: [0, 0, 0]
+    robot_name: "kuka"
+    robot_start_pos: [0, 0, 0] # for wam try 0, 0, 1.0292 for exact comparison with gpmp2 repo, 
+                               # or choose [0, 0, 0.346] to set the base at the origin
+    robot_start_orientation_euler: [0, 0, 0] # for ur10 make sure to give this -3.1415, -3.1415, 0
 - scene:
-    object_position: [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [-0.2, 0, -0.2] #    # [ 0.55, -0.0, 0.75]
+    object_position: [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] #  [-0.2, 0, -0.2] #    # [ 0.55, -0.0, 0.75]
     object_name: "bookshelves_table_mesh_gpmp.urdf"
     problemset: "bookshelves"
     sdf_name: "bookshelves_table_gpmp.sdf"
 - planner:
     num_samples: 7
-    sigma_obs: 0.004
-    num_inducing: 25
-    num_spheres: 15 # should be dependent on robot
+    sigma_obs: 0.0005
+    epsilon: 0.05
+    num_inducing: 25 # 25 for wam
     learning_rate: 0.09
     alpha: 10
     num_steps: 130
-    lengthscale: 900
+    lengthscale: 800 # 600 for first 19 pairs, 500 for last pair
+    time_spacing_X: 70
+    time_spacing_Xnew: 100
+- trainable_parameters:
+    q_mu: True
+    q_sqrt: True
+    lengthscales: True
+    kernel_variance: True
+    sigma_obs: False
+    inducing_variable: False
+    alpha: False
 - graphics:
     visuals: True
     quality: high
     GUI: True
+    debug_joint_positions: False
+    debug_sphere_positions: False
+    visualize_best_sample: True
+    visualize_ee_path_uncertainty: False
+    visualize_drawn_samples: False

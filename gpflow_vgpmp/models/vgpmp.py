@@ -15,10 +15,9 @@ from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
 from gpflow_vgpmp.inducing_variables.inducing_variables import VariableInducingPoints
 from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
-from gpflow_vgpmp.utils.miscellaneous import timing
-from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param
+from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param, timing
 from gpflow_vgpmp.utils.sampler import Sampler
-from gpflow_vgpmp.covariances.Kuus import Kuu
+from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
 
 # <------ Exports
 __all__ = "vgpmp"
@@ -78,6 +77,10 @@ class VGPMP(PathwiseSVGP, ABC):
                    kernels: List[Kernel] = None,
                    num_latent_gps: int = None,
                    parameters=None,
+                   train_sigma=False,
+                   no_frames_for_spheres=7,
+                   robot_name="franka",
+                   epsilon=0.05,
                    **kwargs):
 
         if parameters is None:
@@ -101,24 +104,23 @@ class VGPMP(PathwiseSVGP, ABC):
         Z = initialize_Z(num_latent_gps, num_inducing)
 
         if kernels is None:
-            # kernels = []
-            # for i in range(num_latent_gps):
-            #     kern = SquaredExponential(lengthscales=lengthscale - i * 0.05)
-            #     kern.lengthscales = bounded_param(0.2, 0.95, kern.lengthscales)
-            #     kern.variance = Parameter(0.95, transform=positive(0.1), trainable=False)
-            #     kernels.append(kern)
-            kernel = Matern52(lengthscales=lengthscale, variance=0.15)
-            kernel.lengthscales = bounded_param(2, 2 * 10000, kernel.lengthscales)
+            kernels = []
+            for i in range(num_latent_gps):
+                kern = Matern52(lengthscales=lengthscale)
+                kern.lengthscales = bounded_param(2, 20000, kern.lengthscales)
+                kern.variance = Parameter(0.15, transform=positive(0.0001), trainable=False)
+                kernels.append(kern)
+            # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
+            # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
             # kernel.variance = bounded_param(0.1, 0.5, kernel.variance)
-        kernel = SharedIndependent(kernel, output_dim=num_latent_gps)
+        kernel = SeparateIndependent(kernels)
 
         # Original inducing points
         _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
-
-        sampler = Sampler(robot, parameters)
+        sampler = Sampler(robot, parameters, robot_name)
         likelihood = VariationalMonteCarloLikelihood(sigma_obs, num_spheres, sampler, sdf, rs, offset,
-                                                     joint_constraints,
-                                                     velocity_constraints)
+                                                     joint_constraints, velocity_constraints, 
+                                                     train_sigma, no_frames_for_spheres, epsilon)
 
         return cls(kernel=kernel,
                    likelihood=likelihood,
@@ -145,9 +147,9 @@ class VGPMP(PathwiseSVGP, ABC):
         
     @property
     def q_sqrt(self):
-        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
-        return L[None, ...] @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
+        return L @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
                1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
 
     def _init_variational_parameters(
@@ -198,15 +200,14 @@ class VGPMP(PathwiseSVGP, ABC):
 
     def prior_kl(self):
         n = len(self.inducing_variable.inducing_variable.ny)
-        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
 
         # Subtract prior mean from q_mu, then whiten
-        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
+        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(self.query_states)[..., None])
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
-        # tf.print(q_mu - p_mu, p_mu)
-        whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
-        print(whitened_diff, self._q_sqrt)
+
+        whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[n:, ...]
         return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     @tf.function
@@ -240,8 +241,8 @@ class VGPMP(PathwiseSVGP, ABC):
         # else:
         #     scale = tf.cast(1.0, kl.dtype)
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0) # log_prob produces S x N
-        tf.print("likelihood_obs", likelihood_obs, summarize=-1)
-        tf.print("kl", kl)
+        # tf.print("likelihood_obs", likelihood_obs, summarize=-1)
+        # tf.print("kl", kl)
         # tf.print("scale", scale)
         return tf.reduce_sum(likelihood_obs) * self.alpha - kl
 
@@ -274,7 +275,7 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=100, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1))[0][-1] for time in sample] for sample in samples])
+        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1), self.likelihood.sampler.craig_dh_convention)[0][-1] for time in sample] for sample in samples])
         uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
         return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 

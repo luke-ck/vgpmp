@@ -114,7 +114,6 @@ class Robot:
         # TODO: check if link indexes for spheres coincide with joint indexes
 
         cumsum = 0
-        print(self.sphere_link_idx)
         for k, v in self.sphere_link_idx.items():
             # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
             # link
@@ -170,6 +169,7 @@ class Robot:
                       f"behaviour, so please edit the parameter file such that this message doesn't appear.")
                 sys.exit(-1)
             self.joint_idx.append(idx)
+        
         self.dof = len(self.joint_idx)
         self.set_joints_to_links()
 
@@ -228,7 +228,6 @@ class Robot:
 
     def set_joint_position(self, joint_config: Union[List[float], np.array]):
         r"""Set joint angles to active joints (overrides physics engine)
-
         Args:
             joint_config (array): joint angles to be set
         """
@@ -274,29 +273,30 @@ class Robot:
             cur_pos = np.array(self.get_curr_config())
 
             delta = next_pos - cur_pos
-            if iteration % 100 == 0:
-                print(cur_pos)
-                print(f"delta at iter {iteration} is {np.max(np.abs(delta))}")
+            # if iteration % 100 == 0:
+                # print(cur_pos)
+                # print(f"delta at iter {iteration} is {np.max(np.abs(delta))}")
             iteration += 1
-            if iteration > 10000:
+            if iteration > 2000:
                 success = 0
                 break
         return success
 
-    def move_to_ee_config(self, joint_config):
+    def move_to_ee_config(self, joint_config, end_config):
         r"""
             Args:
             joint_config(np.array): (len(joint_config), len(self.joint_idx))
-
         """
         success = 1
 
         for idx, next_pos in enumerate(joint_config):
-            print(f"Current goal joint state to be reached has index {idx}")
+            # print(f"Current goal joint state to be reached has index {idx}")
             success = self.move_to_next_config(next_pos)
             if not success:
                 print(f"Next state was not reachable")
+                self.set_joint_motor_control(end_config, 3, 0)
                 break
+        return success
 
     def get_sphere_id(self) -> Tuple[defaultdict, int]:
         r"""
@@ -332,17 +332,17 @@ class Robot:
                 for _coord in p.getLinkStates(self.robot_model, idx, computeForwardKinematics=True)
             ], dtype=np.object).astype(np.float64)
 
-    def forward_kinematics(self, thetas) -> np.array:
+    def forward_kinematics(self, thetas, craig) -> np.array:
 
         T00 = self.base_pose
-        # print(f"T00 is {T00}")
-        # T00 = np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).reshape(4, 4)
-        # print(f"thetas are {thetas}")
         angles = thetas + self.twist
         transform_matrices = np.zeros((7, 4, 4))
         DH_mat = np.concatenate([angles, self.DH], axis=-1)
         for idx, params in enumerate(DH_mat):
-            transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
+            if craig:
+                transform_matrix = get_transform_matrix_craig(params[0], params[1], params[2], params[3])
+            else:
+                transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
             transform_matrices[idx] = transform_matrix
 
         homogenous_transforms = np.zeros((8, 4, 4), dtype=np.float64)
@@ -350,12 +350,10 @@ class Robot:
         for i in range(len(transform_matrices)):
             homogenous_transforms[i + 1] = np.array(
                 homogenous_transforms[i] @ transform_matrices[i]).reshape(4, 4)
-        # print(f"transform_matrices is {transform_matrices}")
-        # print(f"homogenous_transforms is {homogenous_transforms}")
         return homogenous_transforms
 
-    def compute_joint_positions(self, joint_config) -> np.array:
-        pos_aux = self.forward_kinematics(joint_config)
+    def compute_joint_positions(self, joint_config, craig) -> np.array:
+        pos_aux = self.forward_kinematics(joint_config, craig)
         pos = pos_aux[1:, :3, 3]
         return pos, pos_aux
 
@@ -375,10 +373,8 @@ class Robot:
     def get_sphere_transform(self, joints):
         # Union[np.array, TensorLike]
         r""" compute the sphere translational transform from joint world frame positions in cartesian coordinates
-
         Args:
             joints (array): joint cartesian coordinates
-
         Returns:
             [np.array]: sphere cartesian coordinates
         """
@@ -395,7 +391,6 @@ class Robot:
             and velocities will be 0). Usually after this we query the link
             (links are attached to joints x) states and compute forward kinematics
             implicitly.
-
             Args:
                 joint_config([np.array]):  [len(joint_idx) x 1]
         """

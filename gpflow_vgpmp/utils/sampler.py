@@ -54,31 +54,63 @@ class Sampler:
     r"""
         This class is the interface that enables communication
         between tensorflow and pybullet. Cost for samples generated
-        in the Monte Carlo routine is computed here.
+        in the Monte Carlo routine is computed here, using custom
+        gradients, to be able to call pybullet inside the computation
+        graph.
 
     """
 
-    def __init__(self, robot, parameters):
+    def __init__(self, robot, parameters, robot_name):
         self.robot = robot
         sphere_offsets = self.robot.sphere_offsets
-
+        print(self.robot.dof)
         self.DH = tf.constant(parameters["dh_parameters"], shape=(self.robot.dof, 3), dtype=default_float())
-        self.twist = tf.reshape(tf.constant(parameters["twist"], dtype=default_float()), (self.robot.dof, 1))
+        self.pi = tf.reshape(tf.constant(parameters["twist"], dtype=default_float()), (self.robot.dof, 1))
         self.arm_base = tf.expand_dims(tf.constant(self.robot.base_pose), axis=0)
         self.spheres_to_links = np.array(self.robot.sphere_link_interval)
         self.num_spheres = self.robot.num_spheres
-        print(f"num_spheres: {self.num_spheres}")
+        self.craig_dh_convention = parameters["craig_dh_convention"]
         self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
-        self.num_spheres[0] += 1
-        self.num_spheres[1] -= 1
+        self.fk_slice = parameters["fk_slice"]
+        
+        if robot_name == "wam":
+            self.num_spheres[0] += 1
+            self.num_spheres[1] -= 1
+
         for index, offset in enumerate(sphere_offsets):
-            if index < 8:
-                mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
-            elif index > 8 and index <= 12:
-                mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
+            if robot_name == "wam":
+                if index < 8:
+                    mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
+                elif index > 8 and index <= 12:
+                    mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
+                elif index > 14:
+                    mat = set_base((offset[0], offset[1], offset[2]))
+                else:
+                    mat = set_base((offset[0], -offset[1], offset[2]))
+
+            elif robot_name == "ur10":
+                if index > 0 and index < 7:
+                    mat = set_base((offset[2], offset[0], offset[1] + 0.163941 + 0.05))
+                else:
+                    mat = set_base((offset[2], offset[0], offset[1]))
+
+            elif robot_name == "kuka":
+                if index > 1 and index < 5:
+                    mat = set_base((offset[0], -offset[2] + 0.18, offset[1]))
+                elif index >= 5 and index < 8:
+                    mat = set_base((offset[0], offset[2], offset[1]))
+                elif index >= 8 and index < 11:
+                    mat = set_base((offset[0], offset[2] - 0.18, -offset[1]))
+                elif index >= 11 and index < 15:
+                    mat = set_base((offset[0], -offset[2], offset[1]))
+                elif index >= 15 and index < 17:
+                    mat = set_base((offset[0], offset[2] + 0.1, offset[1] - 0.06))
+                elif index >= 17 and index < 20:
+                    mat = set_base((offset[0], offset[2] - 0.07, offset[1]))
+                else:
+                    mat = set_base((offset[0], offset[1], offset[2]))
             else:
-                mat = set_base((offset[0], -offset[1], offset[2]))
-            
+                mat = set_base(offset)
             self.sphere_offsets[index] = mat
 
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
@@ -90,18 +122,22 @@ class Sampler:
         def grad(upstream):
             upstream_string = tf.strings.format("{}\n", upstream, summarize=-1)
             tf.io.write_file("matrices.txt", upstream_string)
-            # tf.print("upstream translation dim:", upstream.shape)
             return upstream
 
         return x, grad
 
     @tf.function
     def _compute_fk(self, joint_config):
-        DH = tf.concat([joint_config + self.twist, self.DH], axis=-1)
+        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
 
-        transform_matrices = tf.map_fn(
-            lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
-            parallel_iterations=4)
+        if self.craig_dh_convention:
+            transform_matrices = tf.map_fn(
+                lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+                parallel_iterations=4)
+        else:
+            transform_matrices = tf.map_fn(
+                lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+                parallel_iterations=4)
 
         homogeneous_transforms = tf.concat(
             [self.arm_base, transform_matrices], axis=0)
@@ -112,11 +148,16 @@ class Sampler:
 
     @tf.function
     def _compute_fk_ee_pos(self, joint_config):
-        DH = tf.concat([joint_config + self.twist, self.DH], axis=-1)
+        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
 
-        transform_matrices = tf.map_fn(
-            lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
-            parallel_iterations=4)
+        if self.craig_dh_convention:
+            transform_matrices = tf.map_fn(
+                lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+                parallel_iterations=4)
+        else:
+            transform_matrices = tf.map_fn(
+                lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
+                parallel_iterations=4)
 
         homogeneous_transforms = tf.concat(
             [self.arm_base, transform_matrices], axis=0)
@@ -124,6 +165,15 @@ class Sampler:
         out = tf.scan(tf.matmul, homogeneous_transforms)
 
         return out[-1, :3, 3]
+
+    @tf.custom_gradient
+    def check_gradients(self, x):
+
+        def grad(upstream):
+            tf.print(upstream, summarize=-1)
+            return upstream
+
+        return x, grad
 
     @tf.function
     def _fk_cost(self, joint_config):
@@ -141,9 +191,8 @@ class Sampler:
         """
 
         # <------------- Computing Forward Kinematics ------------>
-
-        fk_pos = self._compute_fk(joint_config)
-        fk_pos = tf.concat([tf.expand_dims(fk_pos[3], axis=0), fk_pos[5:]], axis=0)
+        # joint_config = self.check_gradients(joint_config)
+        fk_pos = tf.gather(self._compute_fk(joint_config), self.fk_slice, axis=0)
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
         sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
         return tf.squeeze(sphere_positions[:, :3, 3])
@@ -170,14 +219,12 @@ class Sampler:
             x = xyz_positions[0]
             y = xyz_positions[1]
             z = xyz_positions[2]
-        # print(tape.gradient(xyz_positions, joint_config))
         gradients = tf.stack([tape.gradient(x, joint_config),
                               tape.gradient(y, joint_config),
                               tape.gradient(z, joint_config)])
 
         position_uncertainties = gradients * joint_config_uncertainty[None, ...]
         position_uncertainties = tf.squeeze(position_uncertainties ** 2)
-        # print(position_uncertainties)
         return tf.math.sqrt(tf.reduce_sum(position_uncertainties, axis=-1))
 
     @tf.custom_gradient

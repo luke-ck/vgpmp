@@ -30,11 +30,8 @@ class RobotSimulator:
 
     def loop(self, planner=None):
         while True:
-            ceva = input()
-            print(ceva)
-
-            if input() == "exit":
-                sys.exit()
+            if input() == "q":
+                break
             elif input() == 'a':
                 print(self.robot.get_curr_config())
 
