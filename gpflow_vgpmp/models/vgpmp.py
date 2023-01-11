@@ -133,17 +133,15 @@ class VGPMP(PathwiseSVGP, ABC):
                    alpha=alpha,
                    **kwargs)
 
-    # def prior_kl(self) -> tf.Tensor:
-    #     return kullback_leiblers.prior_kl(
-    #         self.inducing_variable.inducing_variable, self.kernel, self._q_mu, self._q_sqrt, whiten=self.whiten
-    #     )
-
     @property
     def q_mu(self):
         return tf.concat([self.query_states, self._q_mu], axis=0)
         
     @property
     def q_sqrt(self):
+        """
+        Manually whiten covariance matrix
+        """
         K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
         return L[None, ...] @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
@@ -195,7 +193,11 @@ class VGPMP(PathwiseSVGP, ABC):
         )
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
 
-    def prior_kl(self):
+    def prior_kl_sharedindependent(self):
+        """
+        Computes the KL divergence between the variational posterior and the prior.
+        Shift the mean of the variational posterior to the mean of the prior.
+        """
         n = len(self.inducing_variable.inducing_variable.ny)
         K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
@@ -229,7 +231,7 @@ class VGPMP(PathwiseSVGP, ABC):
             f = self.predict_f_samples(data)  # S x N x D
         g = self.likelihood.joint_sigmoid(f)
 
-        kl = self.prior_kl()
+        kl = self.prior_kl_sharedindependent()
         # if self.num_data is not None:
         #     num_data = tf.cast(self.num_data, kl.dtype)
         #     minibatch_size = tf.cast(tf.shape(data)[0], kl.dtype)

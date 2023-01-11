@@ -20,7 +20,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
     def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
                  velocity_constraints,
-                 DEFAULT_VARIANCE_LOWER_BOUND=1e-14, **kwargs):
+                 DEFAULT_VARIANCE_LOWER_BOUND=1e-4, **kwargs):
         super().__init__(**kwargs)
 
         self.sampler = sampler
@@ -134,7 +134,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         return out, grad
 
     @tf.function
-    def _hinge_loss(self, data, epsilon=0.1):
+    def _hinge_loss(self, data, epsilon=0.05):
         r"""
             Penalise configurations where arm is too close to objects with negative cost -d + \epsilon
         Args:

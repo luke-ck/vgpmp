@@ -15,12 +15,9 @@ def Kuu_fallback_shared_separate(
         *,
         jitter: float = 0.0,
 ) -> tf.Tensor:
-    # print("intra pe aici")
-    # print(inducing_variable.inducing_variable.Z)
     Kmm = tf.stack(
         [Kuu(inducing_variable.inducing_variable, k) for k in kernel.kernels], axis=0
     )  # [L, M+2, M+2]
-    # print(Kmm, "shaearasdf")
     # Kzz = tf.pad(Kmm, [[0, 0], [2, 0], [2, 0]])
     # zy_ny_block = K_grad(inducing_variable.inducing_variable.Zy,
     #                      inducing_variable.inducing_variable.ny, kernel)  # [L, M+2, 2]
@@ -35,6 +32,7 @@ def Kuu_fallback_shared_separate(
     jittermat = tf.eye(inducing_variable.num_inducing + 2, dtype=Kmm.dtype)[None, :, :] * jitter
     return Kmm + jittermat
 
+
 @Kuu.register(FallbackSharedIndependentInducingVariables, SharedIndependent)
 def Kuu_fallback_shared_shared(
         inducing_variable: FallbackSharedIndependentInducingVariables,
@@ -42,7 +40,6 @@ def Kuu_fallback_shared_shared(
         *,
         jitter: float = 0.0,
 ) -> tf.Tensor:
-    # print("dar pe aici")
     Kmm = Kuu(inducing_variable.inducing_variable, kernel.kernel)
 
     jittermat = tf.eye(inducing_variable.num_inducing + 2, dtype=Kmm.dtype) * jitter
