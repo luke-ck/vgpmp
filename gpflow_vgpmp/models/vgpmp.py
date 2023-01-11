@@ -111,8 +111,12 @@ class VGPMP(PathwiseSVGP, ABC):
 
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscale)
-                kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
-                kern.variance = bounded_param(0.05, 0.2, variance)
+                if i == 3:
+                    kern.lengthscales = bounded_param(low[i], high[i], 100)
+                else:
+                    kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
+
+                kern.variance = bounded_param(0.05, 1, variance)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
@@ -279,7 +283,7 @@ class VGPMP(PathwiseSVGP, ABC):
 
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
         mu = self.likelihood.joint_sigmoid(mu)
-        with self.temporary_paths(num_samples=100, num_bases=self.num_bases):
+        with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
         uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1), self.likelihood.sampler.craig_dh_convention)[0][-1] for time in sample] for sample in samples])

@@ -15,9 +15,9 @@
     epsilon: 0.05
     num_inducing: 25 # 25 for wam
     learning_rate: 0.09
-    variance: 0.15
+    variance: 0.5
     alpha: 10
-    num_steps: 100
+    num_steps: 130
     lengthscale: 600 # 600 for first 19 pairs, 500 for last pair
     time_spacing_X: 70
     time_spacing_Xnew: 150

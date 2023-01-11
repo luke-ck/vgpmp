@@ -51,7 +51,7 @@ if __name__ == '__main__':
     #                         -1.26557614]], dtype=np.float64)
     
     sphere_links = robot_params["spheres_over_links"]
-    start_joints = np.array(queries[0], dtype=np.float64)
+    start_joints = np.array(queries[3], dtype=np.float64)
     robot.initialise(start_joints, active_joints, sphere_links, initial_config_names, initial_config_joints, 0)
 
     # DEBUGING CODE FOR VISUALIZING JOINTS
@@ -112,6 +112,8 @@ if __name__ == '__main__':
                             robot_params=robot_params, planner_params=planner_params, scene_params=scene_params, 
                             trainable_params=trainable_params, graphics_params=graphics_params)
         total_solved += solved
+        if solved == 0:
+            print(f"Failed to solve problem {i} -> {j}")
         p.removeAllUserDebugItems()
 
     print(f"Planner solved {total_solved} / {len(query_indices)} problems")
