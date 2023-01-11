@@ -1,7 +1,7 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "kuka"
-    robot_start_pos: [0, 0, 0] # for wam try 0, 0, 1.0292 for exact comparison with gpmp2 repo, 
+    robot_name: "wam"
+    robot_start_pos: [0, 0, 1.3752] # for wam try 0, 0, 1.0292 for exact comparison with gpmp2 repo,
                                # or choose [0, 0, 0.346] to set the base at the origin
     robot_start_orientation_euler: [0, 0, 0] # for ur10 make sure to give this -3.1415, -3.1415, 0
 - scene:
@@ -11,15 +11,16 @@
     sdf_name: "bookshelves_table_gpmp.sdf"
 - planner:
     num_samples: 7
-    sigma_obs: 0.0005
+    sigma_obs: 0.005
     epsilon: 0.05
     num_inducing: 25 # 25 for wam
     learning_rate: 0.09
+    variance: 0.15
     alpha: 10
-    num_steps: 130
-    lengthscale: 800 # 600 for first 19 pairs, 500 for last pair
+    num_steps: 100
+    lengthscale: 600 # 600 for first 19 pairs, 500 for last pair
     time_spacing_X: 70
-    time_spacing_Xnew: 100
+    time_spacing_Xnew: 150
 - trainable_parameters:
     q_mu: True
     q_sqrt: True

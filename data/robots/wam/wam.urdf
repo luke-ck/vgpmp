@@ -150,6 +150,13 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <visual name="ball_0">
+      <origin xyz="0.045 -0.55 0.0" rpy="0.0 -0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.09"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
     <inertial>
       <origin xyz="-.00236981 -.01542114 .03105614 "/>
       <mass value="3.87493756"/>
@@ -210,13 +217,6 @@
       <geometry>
         <mesh filename="package://sw_meshes/elbow_link_fine.stl"/>
       </geometry>
-    </visual>
-    <visual name="ball_0">
-      <origin xyz="-0.00 -0.0 0.0" rpy="0.0 -0.0 0.0"/>
-      <geometry>
-        <sphere radius="0.09"/>
-      </geometry>
-      <material name="Blue"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="-0.045 -0.1 0.0" rpy="0.0 -0.0 0.0"/>

@@ -62,20 +62,15 @@ class Sampler:
 
     def __init__(self, robot, parameters, robot_name):
         self.robot = robot
-        sphere_offsets = self.robot.sphere_offsets
-        print(self.robot.dof)
+        sphere_offsets = robot.sphere_offsets
         self.DH = tf.constant(parameters["dh_parameters"], shape=(self.robot.dof, 3), dtype=default_float())
         self.pi = tf.reshape(tf.constant(parameters["twist"], dtype=default_float()), (self.robot.dof, 1))
         self.arm_base = tf.expand_dims(tf.constant(self.robot.base_pose), axis=0)
         self.spheres_to_links = np.array(self.robot.sphere_link_interval)
-        self.num_spheres = self.robot.num_spheres
+        self.num_spheres = robot.num_spheres
         self.craig_dh_convention = parameters["craig_dh_convention"]
         self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
         self.fk_slice = parameters["fk_slice"]
-        
-        if robot_name == "wam":
-            self.num_spheres[0] += 1
-            self.num_spheres[1] -= 1
 
         for index, offset in enumerate(sphere_offsets):
             if robot_name == "wam":
@@ -85,6 +80,8 @@ class Sampler:
                     mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
                 elif index > 14:
                     mat = set_base((offset[0], offset[1], offset[2]))
+                elif index == 8:
+                    mat = set_base((0, 0, 0))
                 else:
                     mat = set_base((offset[0], -offset[1], offset[2]))
 

@@ -45,7 +45,7 @@ class Robot:
         self.base = params["basename"]
         self.wrist_test = params["wrist_test"]
         self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
-        self.num_spheres = []
+        self.num_spheres = None
         self.active_links = None
         with suppress_stdout():
             self.robot_model = p.loadURDF(
@@ -111,9 +111,11 @@ class Robot:
         """
         self.sphere_link_idx, total_spheres = self.get_sphere_id()
         assert total_spheres == len(self.rs)
+        assert self.num_spheres is None
         # TODO: check if link indexes for spheres coincide with joint indexes
 
         cumsum = 0
+        self.num_spheres = []
         for k, v in self.sphere_link_idx.items():
             # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
             # link

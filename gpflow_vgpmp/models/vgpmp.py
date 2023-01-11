@@ -62,6 +62,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    sigma_obs=0.05,
                    rs=List[float],
                    alpha=1,
+                   variance=0.1,
                    learning_rate: float = 0.1,
                    num_inducing: int = 14,
                    num_samples: int = 51,
@@ -105,10 +106,13 @@ class VGPMP(PathwiseSVGP, ABC):
 
         if kernels is None:
             kernels = []
+            low = tf.constant([50.0] * num_output_dims, dtype=default_float())
+            high = tf.constant([1000.0] * num_output_dims, dtype=default_float())
+
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscale)
-                kern.lengthscales = bounded_param(2, 20000, kern.lengthscales)
-                kern.variance = Parameter(0.15, transform=positive(0.0001), trainable=False)
+                kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
+                kern.variance = bounded_param(0.05, 0.2, variance)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)

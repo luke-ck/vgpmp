@@ -85,9 +85,9 @@ if __name__ == '__main__':
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
     
     total_solved = 0
-    query_indices = [(7, 5)] # [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16), 
-                     # (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3), 
-                     # (3, 9), (9, 4), (4, 13), (13, 8)]
+    query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
+                     (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
+                     (3, 9), (9, 4), (4, 13), (13, 8)]
                      # (13, 12)   fails # index 4
                      # (8, 16)    fails # index 7
                      # (9, 5)     fails # index 9
@@ -112,6 +112,7 @@ if __name__ == '__main__':
                             robot_params=robot_params, planner_params=planner_params, scene_params=scene_params, 
                             trainable_params=trainable_params, graphics_params=graphics_params)
         total_solved += solved
+        p.removeAllUserDebugItems()
 
     print(f"Planner solved {total_solved} / {len(query_indices)} problems")
     time.sleep(10)

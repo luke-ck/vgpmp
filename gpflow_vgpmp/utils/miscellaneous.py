@@ -9,7 +9,8 @@ import pybullet as p
 import tensorflow as tf
 from gpflow import set_trainable
 from tqdm import tqdm
-
+import tensorflow_probability as tfp
+import gpflow
 from gpflow_vgpmp.models.vgpmp import VGPMP
 
 # from gpflow_vgpmp.utils.simulator import RobotSimulator
@@ -132,6 +133,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                num_samples=planner_params["num_samples"],
                                sigma_obs=planner_params["sigma_obs"],
                                alpha=planner_params["alpha"],
+                               variance=planner_params["variance"],
                                learning_rate=planner_params["learning_rate"],
                                lengthscale=planner_params["lengthscale"],
                                offset=scene_params["object_position"],
@@ -297,10 +299,11 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 def disable_param_opt(planner, trainable_params):
     # Set priors to parameters here
 
-    # planner.likelihood.variance.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(0.0005),
-    #                                                              gpflow.utilities.to_default_float(0.005))
-    planner.alpha.prior = tfp.distributions.Normal(gpflow.utilities.to_default_float(10),
-                                                   gpflow.utilities.to_default_float(0.2))
+    # planner.likelihood.variance.prior = tfp.distributions.Normal(planner.likelihood.variance,
+    #                                                              gpflow.utilities.to_default_float(0.0001)
+
+    planner.alpha.prior = tfp.distributions.Normal(planner.alpha,
+                                                   gpflow.utilities.to_default_float(5))
 
     #
 
