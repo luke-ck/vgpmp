@@ -205,10 +205,11 @@ class VGPMP(PathwiseSVGP, ABC):
         )
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
 
-    def prior_kl_sharedindependent(self):
+    def prior_kl_separateindependent(self):
         """
         Computes the KL divergence between the variational posterior and the prior.
         Shift the mean of the variational posterior to the mean of the prior.
+        For SeparateIndependent kernel.
         """
         n = len(self.inducing_variable.inducing_variable.ny)
         K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
@@ -219,6 +220,21 @@ class VGPMP(PathwiseSVGP, ABC):
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
 
         whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[n:, ...]
+        return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
+
+    def prior_kl_sharedindependent(self):
+        """
+        Functionally equivalent to prior_kl_separateindependent, but for SharedIndependent kernel
+        """
+        n = len(self.inducing_variable.inducing_variable.ny)
+        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
+        L = tf.linalg.cholesky(K)
+
+        # Subtract prior mean from q_mu, then whiten
+        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
+        q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
+
+        whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
         return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     @tf.function
@@ -242,20 +258,18 @@ class VGPMP(PathwiseSVGP, ABC):
             f = self.predict_f_samples(data)  # S x N x D
         g = self.likelihood.joint_sigmoid(f)
 
-        kl = self.prior_kl_sharedindependent()
-        # if self.num_data is not None:
-        #     num_data = tf.cast(self.num_data, kl.dtype)
-        #     minibatch_size = tf.cast(tf.shape(data)[0], kl.dtype)
-        #     tf.print("num_data", num_data)
-        #     tf.print("minibatch_size", minibatch_size)
-        #     scale = num_data / minibatch_size
-        # else:
-        #     scale = tf.cast(1.0, kl.dtype)
-        likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0) # log_prob produces S x N
+        kl = self.prior_kl_separateindependent()
+        if self.num_data is not None:
+            num_data = tf.cast(self.num_data, kl.dtype)
+            minibatch_size = tf.cast(tf.shape(data)[0], kl.dtype)
+            scale = num_data / minibatch_size
+        else:
+            scale = tf.cast(1.0, kl.dtype)
+        likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
         # tf.print("likelihood_obs", likelihood_obs, summarize=-1)
         # tf.print("kl", kl)
         # tf.print("scale", scale)
-        return tf.reduce_sum(likelihood_obs) * self.alpha - kl
+        return tf.reduce_sum(likelihood_obs) * scale * self.alpha - kl
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:

@@ -20,38 +20,34 @@ class RobotSimulator:
         self.scene = Object(name="scene",
                             path=self.sim.scene_params["object_path"],
                             position=self.sim.scene_params["object_position"])
-        # self.table = Object(name="table", position=[-0.65, 0.9, 0])
-        # self.scene = Object(name="scene",
-        #                     path=self.sim.scene_params["object_name"],
-        #                     position=[100, 100, 100])
 
     def get_simulation_params(self) -> Bunch:
         return self.sim.get_params()
 
     def loop(self, planner=None):
-        while True:
-            if input() == "q":
-                break
-            elif input() == 'a':
-                print(self.robot.get_curr_config())
-
-            elif input() == 'v':
+        exit = False
+        while not exit:
+            action = input("Enter action: ")
+            if action == "q":
+                exit = True
+            elif action == 'c':
+                print(f"Current config is :{self.robot.get_curr_config()}")
+            elif action == 'sdf':
                 if planner is not None:
-                    joints = self.robot.get_curr_config()
-                    position = planner.likelihood.sampler._fk_cost(joints.reshape(7, 1))
-                    print(planner.likelihood._signed_distance_grad(position))
-
+                    self.get_rt_sdf_grad(planner)
                 else:
                     print("There was no planner given")
-            elif input() == 'c':
+            elif action == 'fk':
                 if planner is not None:
                     joints = self.robot.get_curr_config()
                     tf.print(planner.debug_likelihood(tf.reshape(joints, (1, 1, 7))))
-
                 else:
                     print("There was no planner given")
 
-    def get_rt_sdf(self, planner):
-        joints = self.robot.get_curr_config()
-        position = planner.likelihood.sampler._fk_cost(joints.reshape(7, 1))
+    def get_rt_sdf_grad(self, planner):
+        """
+        Get the signed distance gradient of the current robot configuration and print it
+        """
+        joints = self.robot.get_curr_config().reshape(7, 1)
+        position = planner.likelihood.sampler._fk_cost(joints)
         print(planner.likelihood._signed_distance_grad(position))
