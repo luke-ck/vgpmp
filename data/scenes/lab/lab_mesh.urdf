@@ -17,13 +17,13 @@
 
         <visual>
             <geometry>
-                <mesh filename="bookshelves_table_gpmp.obj"/>
+                <mesh filename="lab.obj"/>
             </geometry>
             <material name="Brown"/>
         </visual>
         <collision>
             <geometry>
-                <mesh filename="bookshelves_table_gpmp.obj"/>
+                <mesh filename="lab.obj"/>
             </geometry>
         </collision>
     </link>

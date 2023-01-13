@@ -16,8 +16,8 @@ class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def states(problemset):
-        if problemset == "bookshelves":
-            n_states = 100
+        if problemset == "lab":
+            n_states = 17
             states = [list() for _ in range(n_states)]
             states[0] = [0, 0, 0, 0, 0, 0, 0]
             states[1] = [-0.8, -1.70, 1.64, 1.29, 1.1, -0.106, 2.2 - 3.1415/2 * 3]
@@ -38,7 +38,7 @@ class Problemset(AbstractProblemset, ABC):
             states[16] = [-1.29228216, -1.90587936, 1.65480383, 0.20854488, 0.6896924, 0.52053023, -2.4882973 ] # table
             
         if problemset == "industrial":
-            n_states = 100
+            n_states = 10
             states = [list() for _ in range(n_states)]
             states[0] = [0, 0, 0, 0, 0, 0, 0]
             states[1] = [0.9451404199026255, 0.05808521969095677, -0.3527564807017076, 1.0823735126667904, 0.08740831834786257, 0.7376408146933362, 1.5098142718954632]
