@@ -1,26 +1,11 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "wam"
-    robot_start_pos: [0, 0, 1.3752] # for wam try 0, 0, 1.0292 for exact comparison with gpmp2 repo,
-                               # or choose [0, 0, 0.346] to set the base at the origin
-    robot_start_orientation_euler: [0, 0, 0] # for ur10 make sure to give this -3.1415, -3.1415, 0
+    robot_name: "kuka"
 - scene:
-    object_position: [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] #  [-0.2, 0, -0.2] #    # [ 0.55, -0.0, 0.75]
-    object_name: "bookshelves_table_mesh_gpmp.urdf"
-    problemset: "bookshelves"
-    sdf_name: "bookshelves_table_gpmp.sdf"
-- planner:
-    num_samples: 7
-    sigma_obs: 0.005
-    epsilon: 0.05
-    num_inducing: 10 # 25 for wam
-    learning_rate: 0.09
-    variance: 0.5
-    alpha: 100
-    num_steps: 130
-    lengthscale: 600 # 600 for first 19 pairs, 500 for last pair
-    time_spacing_X: 70
-    time_spacing_Xnew: 150
+    object_position: [-0.2, 0, -0.2]  # [ 0.62, -0.15, 0.834]  # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] #    # [ 0.55, -0.0, 0.75]
+    object_name: "industrial.urdf"
+    problemset: "industrial"
+    sdf_name: "industrial_vgpmp.sdf"
 - trainable_parameters:
     q_mu: True
     q_sqrt: True
@@ -28,7 +13,7 @@
     kernel_variance: True
     sigma_obs: False
     inducing_variable: False
-    alpha: False
+    alpha: True
 - graphics:
     visuals: True
     quality: high

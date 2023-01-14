@@ -8,11 +8,7 @@ class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def default_pose(problemset):
-        return [0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
-
-    @staticmethod
-    def default_joint_values(problemset):
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     @staticmethod
     def states(problemset):
@@ -30,27 +26,81 @@ class Problemset(AbstractProblemset, ABC):
             states[8] = [-1.63475427, -1.16351356, -0.2439754,  1.67138724, -0.676114, 0.09897403, -0.42969901]
             states[9] = [-1.65675007, -1.56161412, 1.41763991, -0.735414, -0.05649168, 0.83173543, -0.36160198]
             states[10] = [1.90321228, -1.3967333, 2.1108019,  0.17666078, -0.6683322, -0.99942099, -0.78571672]
-        if problemset == "industrial":
+        elif problemset == "industrial":
             n_states = 9
             states = [list() for _ in range(n_states)]
             states[0] = [-0.40559687, 0.90881157, 0.67154698, -0.42949893, 1.38729146, 0.08476077, 0.46148802]
             states[1] = [ 0.46677742, 0.90725565, -0.71711314, -0.65490859, -1.26788683, -0.17395347, 0.36174169]
             states[2] = [-1.56802787, -0.92442251, 1.24349469, -1.40102403, 2.16888415, 2.03915208, 1.2007262]
             states[3] = [-2.21041063, -0.89597717, 1.80050713, -0.51560786, 2.91583137, -0.44374258, 1.88469752]
-            states[4] = [-0.94672464, 0.60709815, -2.96705973, 0.96348489, -2.63712788, 0.82603669, 0.50394097]
+            states[4] = [-0.94672464, 0.60709815, -2.94705973, 0.96348489, -2.63712788, 0.82603669, 0.50394097]
             states[5] = [-1.78810809, 0.17870216, -2.95667161, 1.6378849, -1.01828982, 0.0606072, 0.65012045]
             states[6] = [-1.35057625, 0.5838822, -2.77513306, 0.51041783, -0.65820477, -0.82270028, 0.35602494]
             states[7] = [-1.65521238, 0.75530852, -2.8386648, 0.14505213, 0.00402573, -1.03228289, 0.29148176]
             states[8] = [ 1.2179725, 1.19623672, 0.73636572, 1.46116258, 1.54880835, -1.90864908, 2.67156503]
+        else:
+            sys.exit("Invalid problemset")
         return n_states, states
 
     @staticmethod
     def joint_names(problemset):
         return [
-         "kuka_arm_joint_0",
-         "kuka_arm_joint_1",
-         "kuka_arm_joint_2",
-         "kuka_arm_joint_3",
-         "kuka_arm_joint_4",
-         "kuka_arm_joint_5"
+         "iiwa_description_joint_1",
+         "iiwa_description_joint_2",
+         "iiwa_description_joint_3",
+         "iiwa_description_joint_4",
+         "iiwa_description_joint_5",
+         "iiwa_description_joint_6",
+         "iiwa_description_joint_7",
+         "iiwa_description_joint_ee"
       ]
+
+    @staticmethod
+    def pos_and_orn(problemset):
+        if problemset == "industrial":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "bookshelves":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        else:
+            sys.exit("Invalid problemset")
+
+    @staticmethod
+    def object_position(problemset):
+        if problemset == "industrial":
+            return [-0.2, 0.0, -0.2]
+        elif problemset == "bookshelves":
+            return [0.62, -0.15, 0.834]
+        else:
+            sys.exit("Invalid problemset")
+    @staticmethod
+    def planner_params(problemset):
+        if problemset == "industrial":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscales": [200.0] * 7,
+                "variance": 0.05,
+                "alpha": 25,
+                "num_samples": 7,
+                "num_inducing": 7,
+                "learning_rate": 0.15,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        elif problemset == "bookshelves":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscale": 100.0,
+                "variance": 0.5,
+                "alpha": 3.0,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.1,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        else:
+            sys.exit("Invalid problemset")

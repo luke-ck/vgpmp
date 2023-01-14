@@ -53,7 +53,9 @@ def write_parameter_to_file(model_parameter, filepath):
 
 def create_problems(problemset, robot_name):
     r"""
-    Open the problemsets
+    For the given problemset and robot names, returns the combination of all possible problems,
+    the planner parameters for the given environment and robot, and the
+    robot joint names, their default pose and the robot position in world coordinates.
     """
     # Start and end joint angles
     Problemset = import_problemsets(robot_name)
@@ -65,7 +67,9 @@ def create_problems(problemset, robot_name):
           (len(benchmark), problemset))
     names = Problemset.joint_names(problemset)
     pose = Problemset.default_pose(problemset)
-    return states, names, pose
+    planner_params = Problemset.planner_params(problemset)
+    robot_pos_and_orn = Problemset.pos_and_orn(problemset)
+    return benchmark, planner_params, names, pose, robot_pos_and_orn
 
 
 def set_scene(robot, active_joints, initial_config_joints, initial_config_names, initial_config_pose):
@@ -135,7 +139,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                alpha=planner_params["alpha"],
                                variance=planner_params["variance"],
                                learning_rate=planner_params["learning_rate"],
-                               lengthscale=planner_params["lengthscale"],
+                               lengthscales=planner_params["lengthscales"],
                                offset=scene_params["object_position"],
                                joint_constraints=robot_params["joint_limits"],
                                velocity_constraints=robot_params["velocity_limits"],
@@ -201,11 +205,12 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # ENDING DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     disable_param_opt(planner, trainable_params)
+    robot.set_joint_position(start_joints)
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
     sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew)
+    robot.set_joint_position(start_joints)
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
-    robot.set_joint_position(start_joints)
 
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
@@ -292,7 +297,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     for kern in planner.kernel.kernels:
         print(f" lengthscale {kern.lengthscales}")
         print(f" variance {kern.variance}")
-    res = robot.move_to_ee_config(best_sample, y[1])
+    res = robot.move_to_ee_config(best_sample, end_joints)
     return res
 
 
@@ -336,22 +341,18 @@ def import_problemsets(robot_name):
     sys.path.insert(0, os.path.abspath('data/problemsets'))
     if robot_name == "franka":
         from franka import Problemset
-        return Problemset
     elif robot_name == "pr2":
         from pr2 import Problemset
-        return Problemset
     elif robot_name == "ur10":
         from ur10 import Problemset
-        return Problemset
     elif robot_name == "wam":
         from wam import Problemset
-        return Problemset
     elif robot_name == "kuka":
         from kuka import Problemset
-        return Problemset
     else:
         print("Robot not available. Check params file and try again... The simulator will now exit.")
         sys.exit(-1)
+    return Problemset
 
 
 def decay_sigma(sigma_obs, num_latent_gps, decay_rate):

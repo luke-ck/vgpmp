@@ -5,17 +5,6 @@ from problemset import AbstractProblemset
 
 
 class Problemset(AbstractProblemset, ABC):
-    def __init__(self):
-        super().__init__()
-        self.joint_limits = [
-                             2.8973, -2.8973,  # r_shoulder_pan_joint
-                             1.7628, -1.7628,  # r_shoulder_lift_joint
-                             2.8973, -2.8973,  # r_upper_arm_joint
-                             -0.0698, -3.0718,  # r_elbow_flex_joint
-                             2.8973, -2.8973,  # r_forearm_roll_joint
-                             3.7525, -0.0175,  # r_wrist_flex_joint
-                             2.8973, -2.8973  # r_wrist_roll_joint
-                             ]
 
     @staticmethod
     def default_pose(problemset):
@@ -57,8 +46,7 @@ class Problemset(AbstractProblemset, ABC):
             states[8] = [-1.86172887, -0.54058267, -2.89730173, -2.05795973, 2.32546362, 3.42704807, -1.36045151]
             states[9] = [ 2.29424201, -0.84012076, 2.3159208, -0.67236157, 2.745811, 2.09272489, 1.83100074]
             states[10] = [1.35213072, 1.35108746, -1.29627257, -0.43364257, -0.66074936, 1.70439247, 0.76911109]
-            return n_states, states
-        if problemset == 'industrial':
+        elif problemset == 'industrial':
             n_states = 9
             states = [list() for _ in range(n_states)]
             states[0] = [0.5, 0.156, 0.225, -0.88, 0.0, 0.0, 0.5]
@@ -70,11 +58,58 @@ class Problemset(AbstractProblemset, ABC):
             states[6] = [-0.89457144, -0.47499645, -0.6139825, -2.16674660, -0.134227, 2.89230967, 0.00972345]
             states[7] = [2.3741933, -0.91396071, 1.510302, -0.16472317, 1.88311249, 0.95135129, 2.52099306]
             states[8] = [-1.66790953, -0.95104631, 1.53387632, -1.31270822, 0.2641123, 3.01614685, 3.55402013]
-            return n_states, states
-
         else:
             print("Unknown problem set")
             sys.exit()
+        return n_states, states
 
-    def get_joint_limits(self):
-        return self.joint_limits
+    @staticmethod
+    def pos_and_orn(problemset):
+        if problemset == "industrial":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "bookshelves":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        else:
+            sys.exit("Invalid problemset")
+
+    @staticmethod
+    def object_position(problemset):
+        if problemset == "industrial":
+            return [-0.2, 0.0, -0.2]
+        elif problemset == "bookshelves":
+            return [0.62, -0.15, 0.834]
+        else:
+            sys.exit("Invalid problemset")
+    @staticmethod
+    def planner_params(problemset):
+        if problemset == "industrial":
+            return {
+                "sigma_obs": 0.0005,
+                "epsilon": 0.05,
+                "lengthscales": [200] * 7,
+                "variance": 0.1,
+                "alpha": 25,
+                "num_samples": 15,
+                "num_inducing": 10,
+                "learning_rate": 0.1,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        elif problemset == "bookshelves":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscale": [190.0] * 7,
+                "variance": 0.5,
+                "alpha": 3.0,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.09,
+                "num_steps": 130,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        else:
+            sys.exit("Invalid problemset")
+

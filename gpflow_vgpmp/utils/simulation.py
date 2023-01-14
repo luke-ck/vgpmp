@@ -14,17 +14,15 @@ __all__ = 'simulation'
 class Simulation:
     def __init__(self):
         """ 
-            On init the sim loads all data from the parameter file and saves in the class as 5 different dicts:
+            On init the sim loads all data from the parameter file and saves in the class as 4 different dicts:
                     - self.scene_params = scene_params["scene"]
                     - self.robot_params = robot_params["robot"]
-                    - self.planner_params = planner_params["planner"]
                     - self.sim_params = sim_params["simulation"]
                     - self.graphic_params = graphic_params["graphics"]
 
             It also starts the simulator with or without GUI based on parameters, see parameters.
 
         """
-        self.planner_params = None
         self.graphic_params = None
         self.robot_params = None
         self.sim_params = None
@@ -58,10 +56,9 @@ class Simulation:
 
     def load_params(self, params):
         """ Load and extract data from parameter file """
-        robot_params, scene_params, planner_params, trainable_params, graphic_params = params
+        robot_params, scene_params, trainable_params, graphic_params = params
         self.scene_params = scene_params["scene"]
         self.robot_params = robot_params["robot"]
-        self.planner_params = planner_params["planner"]
         self.trainable_params = trainable_params["trainable_parameters"]
         self.graphic_params = graphic_params["graphics"]
         
@@ -72,7 +69,6 @@ class Simulation:
         params = defaultdict(dict)
         params["scene"] = self.scene_params
         params["robot"] = self.robot_params
-        params["planner"] = self.planner_params
         params["trainable_params"] = self.trainable_params
         params["graphics"] = self.graphic_params
         params = Bunch(params)

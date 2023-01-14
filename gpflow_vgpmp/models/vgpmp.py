@@ -68,7 +68,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    num_samples: int = 51,
                    num_bases: int = 1024,
                    num_spheres=None,
-                   lengthscale: float = 0.75,
+                   lengthscales: List[float] = None,
                    offset: List = None,
                    query_states: List[np.array] = None,
                    joint_constraints: List = None,
@@ -77,10 +77,10 @@ class VGPMP(PathwiseSVGP, ABC):
                    robot=None,
                    kernels: List[Kernel] = None,
                    num_latent_gps: int = None,
-                   parameters=None,
-                   train_sigma=False,
+                   parameters: dict = None,
+                   train_sigma: bool = True,
                    no_frames_for_spheres=7,
-                   robot_name="franka",
+                   robot_name: str = None,
                    epsilon=0.05,
                    **kwargs):
 
@@ -95,28 +95,36 @@ class VGPMP(PathwiseSVGP, ABC):
                 "Number of spheres has not been set. The simulator will now exit...")
             sys.exit()
 
+        if lengthscales is None:
+            print("Lengthscales have not been set. The simulator will now exit...")
+            sys.exit()
+
         if offset is None:
             offset = [0, 0, 0]
 
         assert num_output_dims == num_latent_gps
         assert query_states is not None
         assert joint_constraints is not None
+        assert len(lengthscales) == num_latent_gps
 
         Z = initialize_Z(num_latent_gps, num_inducing)
 
         if kernels is None:
             kernels = []
-            low = tf.constant([50.0] * num_output_dims, dtype=default_float())
-            high = tf.constant([1000.0] * num_output_dims, dtype=default_float())
+            lower = []
+            upper = []
+            for i in range(num_latent_gps):
+                lower.append(max([lengthscales[i] - 100, 10]))
+                upper.append(min([lengthscales[i] + 100, 500]))
+            low = tf.constant(lower, dtype=default_float())
+            high = tf.constant(upper, dtype=default_float())
+            low = tf.constant([min(lengthscales) - 5] * num_output_dims, dtype=default_float())
+            high = tf.constant([max(lengthscales) + 100] * num_output_dims, dtype=default_float())
 
             for i in range(num_latent_gps):
-                kern = Matern52(lengthscales=lengthscale)
-                if i == 3:
-                    kern.lengthscales = bounded_param(low[i], high[i], 100)
-                else:
-                    kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
-
-                kern.variance = bounded_param(0.05, 1, variance)
+                kern = Matern52(lengthscales=lengthscales[i])
+                kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
+                kern.variance = bounded_param(max([0.02, variance - 0.1]), min([0.5, variance + 0.1]), variance)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
@@ -127,7 +135,7 @@ class VGPMP(PathwiseSVGP, ABC):
         _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
         sampler = Sampler(robot, parameters, robot_name)
         likelihood = VariationalMonteCarloLikelihood(sigma_obs, num_spheres, sampler, sdf, rs, offset,
-                                                     joint_constraints, velocity_constraints, 
+                                                     joint_constraints, velocity_constraints,
                                                      train_sigma, no_frames_for_spheres, epsilon)
 
         return cls(kernel=kernel,
@@ -147,7 +155,7 @@ class VGPMP(PathwiseSVGP, ABC):
     @property
     def q_mu(self):
         return tf.concat([self.query_states, self._q_mu], axis=0)
-        
+
     @property
     def q_sqrt(self):
         """
@@ -181,11 +189,11 @@ class VGPMP(PathwiseSVGP, ABC):
         :param num_inducing:
             Number of inducing variables, typically refered to as M.
         :param q_mu:
-            Mean of the variational Gaussian posterior. If None the function will initialise
+            Mean of the variational Gaussian posterior. If None the function initializes
             the mean with zeros. If not None, the shape of `q_mu` is checked.
         :param q_sqrt:
             Cholesky of the covariance of the variational Gaussian posterior.
-            If None the function will initialise `q_sqrt` with identity matrix.
+            If None the function initializes `q_sqrt` with identity matrix.
             If not None, the shape of `q_sqrt` is checked, depending on `q_diag`.
         :param q_diag:
             Used to check if `q_mu` and `q_sqrt` have the correct shape or to
@@ -193,8 +201,9 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else self.likelihood.joint_sigmoid.inverse(
-            q_mu)
+        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
+            tf.repeat(self.likelihood.joint_sigmoid.inverse(
+                q_mu), num_inducing, axis=0)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
 
         np_q_sqrt: np.ndarray = np.array(
@@ -219,7 +228,8 @@ class VGPMP(PathwiseSVGP, ABC):
         p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(self.query_states)[..., None])
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
 
-        whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[n:, ...]
+        whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[
+                        n:, ...]
         return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     def prior_kl_sharedindependent(self):
@@ -259,17 +269,10 @@ class VGPMP(PathwiseSVGP, ABC):
         g = self.likelihood.joint_sigmoid(f)
 
         kl = self.prior_kl_separateindependent()
-        if self.num_data is not None:
-            num_data = tf.cast(self.num_data, kl.dtype)
-            minibatch_size = tf.cast(tf.shape(data)[0], kl.dtype)
-            scale = num_data / minibatch_size
-        else:
-            scale = tf.cast(1.0, kl.dtype)
+
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
-        # tf.print("likelihood_obs", likelihood_obs, summarize=-1)
-        # tf.print("kl", kl)
-        # tf.print("scale", scale)
-        return tf.reduce_sum(likelihood_obs) * scale * self.alpha - kl
+
+        return tf.reduce_sum(likelihood_obs) * self.alpha - kl
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:
@@ -300,7 +303,9 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1), self.likelihood.sampler.craig_dh_convention)[0][-1] for time in sample] for sample in samples])
+        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
+                                                                                       self.likelihood.sampler.craig_dh_convention)[
+                                     0][-1] for time in sample] for sample in samples])
         uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
         return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 
