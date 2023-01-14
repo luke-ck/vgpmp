@@ -258,7 +258,7 @@ class Robot:
         return np.array([joint[0] for joint in p.getJointStates(self.robot_model, self.joint_idx)],
                         dtype=np.float64).reshape((1, len(self.joint_idx)))
 
-    def set_joint_motor_control(self, position, kp=50, kv=0.3):
+    def set_joint_motor_control(self, position, kp=300, kv=0.5):
 
         for i, idx in enumerate(self.joint_idx):
             p.setJointMotorControl2(self.robot_model,
@@ -282,7 +282,7 @@ class Robot:
         iteration = 0
         while np.max(np.abs(delta)) > eps:
 
-            self.set_joint_motor_control(next_pos, 100, 0.5)
+            self.set_joint_motor_control(next_pos, 300, 0.5)
             p.stepSimulation()
             cur_pos = np.array(self.get_curr_config())
 
@@ -298,7 +298,7 @@ class Robot:
                 break
         return success
 
-    def move_to_ee_config(self, joint_config, end_config):
+    def move_to_ee_config(self, joint_config):
         r"""
             Args:
             joint_config(np.array): (len(joint_config), len(self.joint_idx))

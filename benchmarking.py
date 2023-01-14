@@ -99,7 +99,9 @@ if __name__ == '__main__':
         for i, (start_joints, end_joints) in enumerate(queries):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
-            robot.set_curr_config(start_joints)
+            robot.set_curr_config(np.squeeze(start_joints))
+            robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
+            p.stepSimulation()
             solved = solve_planning_problem(env=env,
                                             robot=robot,
                                             sdf=sdf,
