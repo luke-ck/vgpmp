@@ -32,7 +32,7 @@ class Problemset(AbstractProblemset, ABC):
             states[10] = [-1.0134840362055058, -0.7750392131670687, 0.5644467662671233, -0.016414804186924686, -0.0015339130707234757, 0.0007755138818968637]
             states[11] = [0.7654192050089095, -0.8439873347273738, 0.9013713739939475, -1.9100974089637022, -2.5294310029718754, 0.46645986618069685]
 
-        if problemset == "industrial":
+        elif problemset == "industrial":
             n_states = 100
             states = [list() for _ in range(n_states)]
             states[0] = [-1.578, -1.578, 0, 0, 0, 0]
@@ -49,5 +49,62 @@ class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def joint_names(problemset):
-        return ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
-                "wrist_3_joint"]
+        return [
+            "shoulder_pan_joint", 
+            "shoulder_lift_joint", 
+            "elbow_joint", 
+            "wrist_1_joint", 
+            "wrist_2_joint",
+            "wrist_3_joint"
+        ]
+
+    @staticmethod
+    def pos_and_orn(problemset):
+        if problemset == "industrial":
+            return [0.0, 0.0, 0.0], [-3.1415, -3.1415, 0.0, 1.0]
+        elif problemset == "bookshelves":
+            return [0.0, 0.0, 0.0], [-3.1415, -3.1415, 0.0, 1.0]
+        else:
+            sys.exit("Invalid problemset")
+
+    @staticmethod
+    def object_position(problemset):
+        if problemset == "industrial":
+            return [-0.2, 0.0, 0.08]
+        elif problemset == "bookshelves":
+            return [0.95, -0.15, 0.834]
+        else:
+            sys.exit("Invalid problemset")
+
+    @staticmethod
+    def planner_params(problemset):
+        if problemset == "industrial":
+            return {
+                "sigma_obs": 0.05,
+                "epsilon": 0.05,
+                "lengthscales": [100, 100, 100, 600, 600, 600],
+                "variance": 0.05,
+                "alpha": 100,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.09,
+                "num_steps": 170,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        elif problemset == "bookshelves":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscale": 100.0,
+                "variance": 0.5,
+                "alpha": 3.0,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.1,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        else:
+            sys.exit("Invalid problemset")

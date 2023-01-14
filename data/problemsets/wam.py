@@ -37,7 +37,7 @@ class Problemset(AbstractProblemset, ABC):
             states[15] = [ 1.9937845, 1.52197993, 0.44538624, 1.10392873, -1.28498349, 1.32703383, 2.49745328] # table
             states[16] = [-1.29228216, -1.90587936, 1.65480383, 0.20854488, 0.6896924, 0.52053023, -2.4882973 ] # table
             
-        if problemset == "industrial":
+        elif problemset == "industrial":
             n_states = 10
             states = [list() for _ in range(n_states)]
             states[0] = [0, 0, 0, 0, 0, 0, 0]
@@ -51,7 +51,7 @@ class Problemset(AbstractProblemset, ABC):
             states[8] = [0.6478256551868494, 0.4760895207119921, 0.2405648101744346, 0.6639301477277679, -0.8958582955276541, 0.7198592006957218, -0.5004250661217159]
             states[9] = [-1.7282127065673578, 0.09888218122066639, 0.19736163924951683, 1.2625983412082895, 0.2961151699367499, 0.6170075248906132, -0.034513110561670564]
             
-        if problemset == "bookshelves":
+        elif problemset == "bookshelves":
             n_states = 12
             states = [list() for _ in range(n_states)]
             states[0] = [0, 0, 0, 0, 0, 0, 0]
@@ -71,10 +71,83 @@ class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def joint_names(problemset):
-        return ["wam/base_yaw_joint",
-         "wam/shoulder_pitch_joint",
-         "wam/shoulder_yaw_joint",
-         "wam/elbow_pitch_joint",
-         "wam/wrist_yaw_joint",
-         "wam/wrist_pitch_joint",
-         "wam/palm_yaw_joint"]
+        return [
+            "wam/base_yaw_joint",
+            "wam/shoulder_pitch_joint",
+            "wam/shoulder_yaw_joint",
+            "wam/elbow_pitch_joint",
+            "wam/wrist_yaw_joint",
+            "wam/wrist_pitch_joint",
+            "wam/palm_yaw_joint"
+            ]
+
+    @staticmethod
+    def pos_and_orn(problemset):
+        if problemset == "industrial":
+            return [0.0, 0.0, 0.346], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "lab":
+            return [0.0, 0.0, 1.3752], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "bookshelves":
+            return [0.0, 0.0, 0.346], [0.0, 0.0, 0.0, 1.0]
+        else:
+            sys.exit("Invalid problemset")
+
+    @staticmethod
+    def object_position(problemset):
+        if problemset == "industrial":
+            return [-0.2, 0.0, 0.08]
+        elif problemset == "lab":
+            return [0.625, 0.275, 0.85]
+        elif problemset == "bookshelves":
+            return [0.85, -0.15, 0.834]
+        else:
+            sys.exit("Invalid problemset")
+
+    @staticmethod
+    def planner_params(problemset):
+        if problemset == "industrial":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscales": [600.0, 600.0, 600.0, 100.0, 600.0, 600.0, 600.0],
+                "variance": 0.05,
+                "alpha": 100,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.09,
+                "num_steps": 130,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        
+        elif problemset == "lab":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscales": [600.0, 600.0, 600.0, 100.0, 600.0, 600.0, 600.0],
+                "variance": 0.05,
+                "alpha": 100,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.09,
+                "num_steps": 130,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+
+        elif problemset == "bookshelves":
+            return {
+                "sigma_obs": 0.005,
+                "epsilon": 0.05,
+                "lengthscale": 100.0,
+                "variance": 0.5,
+                "alpha": 3.0,
+                "num_samples": 7,
+                "num_inducing": 10,
+                "learning_rate": 0.1,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        else:
+            sys.exit("Invalid problemset")
