@@ -8,7 +8,7 @@ class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
     def default_pose(problemset):
-        return [0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     @staticmethod
     def default_joint_values(problemset):

@@ -69,6 +69,7 @@ def create_problems(problemset, robot_name):
     pose = Problemset.default_pose(problemset)
     planner_params = Problemset.planner_params(problemset)
     robot_pos_and_orn = Problemset.pos_and_orn(problemset)
+
     return benchmark, planner_params, names, pose, robot_pos_and_orn
 
 
@@ -130,7 +131,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     num_steps = planner_params["num_steps"]
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints)
     num_data, num_output_dims = y.shape
-    q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof)
+    q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],
@@ -342,8 +343,6 @@ def import_problemsets(robot_name):
     sys.path.insert(0, os.path.abspath('data/problemsets'))
     if robot_name == "franka":
         from franka import Problemset
-    elif robot_name == "pr2":
-        from pr2 import Problemset
     elif robot_name == "ur10":
         from ur10 import Problemset
     elif robot_name == "wam":
