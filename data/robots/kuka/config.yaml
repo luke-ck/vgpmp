@@ -59,4 +59,4 @@ dof: 7
 craig_dh_convention: False
 no_frames_for_spheres: 8
 fk_slice: [0, 1, 2, 3, 4, 5, 6, 7]
-q_mu: [0, 0, 0, 0, 0, 0]
+q_mu: [0, 0, 0, 0, 0, 0, 0]
