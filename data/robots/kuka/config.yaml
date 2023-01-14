@@ -1,5 +1,5 @@
 radius: [0.14, 0.14, 0.09, 0.09, 0.09, 0.09, 0.09, 0.11, 0.09, 0.09, 0.09, 0.08, 0.08, 0.08, 0.08, 0.085, 0.085, 0.08, 0.08, 0.08, 0.058]
-num_spheres: 21 # should be dependent on robot
+num_spheres: 21
 spheres_over_links:
       [
         "iiwa_description_link_1",
