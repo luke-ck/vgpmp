@@ -15,13 +15,27 @@ class AbstractProblemset(object, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @staticmethod
-    def problem_states(problemset: str) -> Tuple[int, List]:
+    def states(problemset: str) -> Tuple[int, List]:
         raise NotImplementedError
 
     @staticmethod
     def joint_names(problemset: str) -> List[str]:
         """
         The joint names for all joints in the robot
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def pos_and_orn(problemset: str) -> Tuple[List[float], List[float]]:
+        """
+        The position and orientation of the robot in the world frame
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def planner_params(problemset: str) -> dict:
+        """
+        The parameters for the planner
         """
         raise NotImplementedError
 
