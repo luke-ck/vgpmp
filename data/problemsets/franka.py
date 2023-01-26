@@ -13,8 +13,7 @@ class Problemset(AbstractProblemset, ABC):
         if problemset == 'industrial':
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         else:
-            print("Unknown problem set")
-            sys.exit()
+            raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
     def joint_names(problemset):
@@ -27,8 +26,7 @@ class Problemset(AbstractProblemset, ABC):
                     'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
                     'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
         else:
-            print("Unknown problem set")
-            sys.exit()
+            raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
     def states(problemset):
@@ -59,8 +57,7 @@ class Problemset(AbstractProblemset, ABC):
             states[7] = [2.3741933, -0.91396071, 1.510302, -0.16472317, 1.88311249, 0.95135129, 2.52099306]
             states[8] = [-2.63212708, -0.79542704, -2.61988842, -0.42029416, -0.24882192, 1.3649156, -0.52094162]
         else:
-            print("Unknown problem set")
-            sys.exit()
+            raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
 
     @staticmethod
@@ -70,7 +67,7 @@ class Problemset(AbstractProblemset, ABC):
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
         else:
-            sys.exit("Invalid problemset")
+            raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
     def object_position(problemset):
@@ -79,8 +76,7 @@ class Problemset(AbstractProblemset, ABC):
         elif problemset == "bookshelves":
             return [0.62, -0.15, 0.834]
         else:
-            sys.exit("Invalid problemset")
-
+            raise ValueError("Unknown problem set: {}".format(problemset))
     @staticmethod
     def planner_params(problemset):
         if problemset == "industrial":
@@ -112,4 +108,4 @@ class Problemset(AbstractProblemset, ABC):
                 "time_spacing_Xnew": 50
             }
         else:
-            sys.exit("Invalid problemset")
+            raise ValueError("Unknown problem set: {}".format(problemset))

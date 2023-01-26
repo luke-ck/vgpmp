@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<robot name="bookshelves">
+    <link name="bookshelf" type="static">
+        <contact>
+            <lateral_friction value="100000.0"/>
+            <rolling_friction value="0.0"/>
+        </contact>
+        <inertial>
+            <mass value="0"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+
+
+        <visual>
+            <geometry>
+                <mesh filename="boxes.obj"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </visual>
+
+        <collision>
+            <geometry>
+                <mesh filename="boxes.obj"/>
+            </geometry>
+        </collision>
+    </link>
+</robot>

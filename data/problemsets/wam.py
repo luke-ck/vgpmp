@@ -61,7 +61,8 @@ class Problemset(AbstractProblemset, ABC):
             states[8] = [-0.7003932265674542, 1.4883421234257534, 1.5471542434790984, 1.7664718354022626, 1.22, 1.59, -1.176334923255994]
             states[9] = [-0.97432256015594, 1.312356045557156, 2.0661115107288897, 0.1660797315277275, -1.7811733857335887, -0.33995896543955245, 0.1602472019090536]
             states[10] = [0.8814780601565136, 0.9755541639513481, 0.0902709169728008, 0.9092159375773388, -2.185473945460899, 0.4651907292730379, -2.58318530718]
-
+        else:
+            raise ValueError("Unknown problemset: {}".format(problemset))
         return n_states, states
 
     @staticmethod
@@ -85,7 +86,7 @@ class Problemset(AbstractProblemset, ABC):
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.346], [0.0, 0.0, 0.0, 1.0]
         else:
-            sys.exit("Invalid problemset")
+            raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
     def object_position(problemset):
@@ -96,7 +97,7 @@ class Problemset(AbstractProblemset, ABC):
         elif problemset == "bookshelves":
             return [0.85, -0.15, 0.834]
         else:
-            sys.exit("Invalid problemset")
+            raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
     def planner_params(problemset):
@@ -145,4 +146,4 @@ class Problemset(AbstractProblemset, ABC):
                 "time_spacing_Xnew": 150
             }
         else:
-            sys.exit("Invalid problemset")
+            raise ValueError("Unknown problem set: {}".format(problemset))
