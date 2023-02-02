@@ -131,7 +131,6 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
-    print("robot_params", robot_params)
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],

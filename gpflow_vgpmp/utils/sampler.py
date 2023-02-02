@@ -131,18 +131,16 @@ class Sampler:
     def _compute_fk(self, joint_config):
         DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
 
-        if self.craig_dh_convention:
-            transform_matrices = tf.map_fn(
-                lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
-                parallel_iterations=4)
-        else:
-            transform_matrices = tf.map_fn(
-                lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
-                parallel_iterations=4)
+        # Get the modified or standard transform matrix for each set of DH parameters
+        transform_matrices = tf.map_fn(
+            lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3])
+            if self.craig_dh_convention
+            else get_transform_matrix(i[0], i[1], i[2], i[3]),
+            DH, fn_output_signature=default_float(), parallel_iterations=None)
 
-        homogeneous_transforms = tf.concat(
-            [self.arm_base, transform_matrices], axis=0)
+        homogeneous_transforms = tf.concat([self.arm_base, transform_matrices], axis=0)
 
+        # Compute the matrix product of all the homogeneous transforms
         out = tf.scan(tf.matmul, homogeneous_transforms)
 
         return out
