@@ -8,22 +8,45 @@ from tensorflow_probability import bijectors as tfb
 
 __all__ = "likelihood"
 
+from gpflow_vgpmp.utils.sampler import Sampler
+
 
 class VariationalMonteCarloLikelihood(Gaussian, ABC):
     r"""
     Main class for computing likelihood. Interfaces with pybullet and the signed distance field.
     """
 
-    def __init__(self, sigma_obs, num_spheres, sampler, sdf, radius, offset, joint_constraints,
-                 velocity_constraints, train_sigma, no_frames_for_spheres, epsilon,
-                 DEFAULT_VARIANCE_LOWER_BOUND=1e-14, **kwargs):
+    def __init__(self,
+                 sigma_obs,
+                 num_spheres,
+                 robot,
+                 parameters,
+                 robot_name,
+                 sdf,
+                 radius,
+                 offset,
+                 joint_constraints,
+                 velocity_constraints,
+                 train_sigma,
+                 no_frames_for_spheres,
+                 epsilon,
+                 DEFAULT_VARIANCE_LOWER_BOUND=1e-14,
+                 **kwargs):
         super().__init__(**kwargs)
 
-        self.sampler = sampler
+        parameters["robot_name"] = robot_name
+        parameters["sphere_offsets"] = robot.sphere_offsets
+        parameters["num_spheres_list"] = robot.num_spheres
+        parameters["dof"] = robot.dof
+        parameters["sphere_link_interval"] = robot.sphere_link_interval
+        parameters["base_pose"] = robot.base_pose
+
+        self.sampler = Sampler(parameters, robot_name)
         self.sdf = sdf
-        # sigma_obs_joints = decay_sigma(sigma_obs, num_latent_gps, 1.5)
+        print("sigma obs: ", sigma_obs)
+        print('num_spheres: ', num_spheres)
         sigma_obs_joints = tf.broadcast_to(sigma_obs, [no_frames_for_spheres, 1])
-        Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=self.sampler.num_spheres, axis=0), (1, num_spheres))
+        Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=robot.num_spheres, axis=0), (1, num_spheres))
         self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=train_sigma)
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
@@ -35,13 +58,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             low=self.joint_constraints[:, 1],
             high=self.joint_constraints[:, 0],
         )
-        self.vel_sigmoid = tfb.Sigmoid(
-            low=self.velocity_constraints[:, 1],
-            high=self.velocity_constraints[:, 0]
-        )
-        self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
         self.epsilon = tf.constant(epsilon, dtype=default_float())
         self._p = num_spheres
+        self.compute_joint_positions = robot.compute_joint_positions # TODO: Ugly. We are copying a function
 
     @tf.function
     def log_prob(self, F):
@@ -88,14 +107,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
         dist_list = tf.reshape(res, shape=(S, N))
 
-        # normal_cost = tf.reshape(f[:, :, 26, :], [f.shape[0], f.shape[1], 1, f.shape[3]]) - f[:, :, 27:, :]
-        # normal_cost = tf.linalg.normalize(normal_cost, axis=-1)[0]
-        # normal_cost = tf.reduce_sum(normal_cost * self.normal, axis=-1)
-        # new_delta = tf.expand_dims(normal_cost, -1)
-        # normal_cost = tf.matmul(new_delta, tf.matmul(var[:, :, 27:, 27:], new_delta), transpose_a=True)
-        # normal_cost = tf.reshape(normal_cost, shape=(S, N))
-        
-        return - 0.5 * dist_list #* 500. - 0.5 * normal_cost * 10.
+        return - 0.5 * dist_list
 
     @tf.function
     def _sample_config_cost(self, f):

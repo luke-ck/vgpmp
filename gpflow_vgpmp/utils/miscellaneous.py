@@ -97,7 +97,7 @@ def optimization_step(model, closure, optimizer):
     return loss
 
 
-def training_loop(model, data, num_steps, optimizer):
+def training_loop(model, data, num_steps):
     r"""
 
     """
@@ -107,7 +107,7 @@ def training_loop(model, data, num_steps, optimizer):
     closure = model.training_loss_closure(data)
     step_iterator = tqdm(range(num_steps))
     for _ in step_iterator:
-        loss = tf_optimization_step(model, closure, optimizer)
+        loss = tf_optimization_step(model, closure, model.optimizer)
         step_iterator.set_postfix_str(f"ELBO: {-loss:.3e}")
 
 
@@ -116,7 +116,6 @@ def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_jo
     X = tf.convert_to_tensor(np.array(
         [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_X)], dtype=np.float64))
 
-    print(start_joints)
     y = tf.concat([start_joints.reshape((1, degree_of_freedom)), end_joints.reshape((1, degree_of_freedom))], axis=0)
     Xnew = tf.convert_to_tensor(np.array(
         [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_Xnew)], dtype=np.float64))
@@ -132,6 +131,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
+    print("robot_params", robot_params)
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],
@@ -208,8 +208,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     disable_param_opt(planner, trainable_params)
     robot.set_joint_position(start_joints)
-    training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
-    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew)
+    training_loop(model=planner, num_steps=num_steps, data=X)
+    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot)
     robot.set_joint_position(start_joints)
     tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)

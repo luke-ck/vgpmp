@@ -84,6 +84,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    epsilon=0.05,
                    **kwargs):
 
+
         if parameters is None:
             parameters = {}
 
@@ -133,10 +134,20 @@ class VGPMP(PathwiseSVGP, ABC):
 
         # Original inducing points
         _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
-        sampler = Sampler(robot, parameters, robot_name)
-        likelihood = VariationalMonteCarloLikelihood(sigma_obs, num_spheres, sampler, sdf, rs, offset,
-                                                     joint_constraints, velocity_constraints,
-                                                     train_sigma, no_frames_for_spheres, epsilon)
+
+        likelihood = VariationalMonteCarloLikelihood(sigma_obs,
+                                                     num_spheres,
+                                                     robot,
+                                                     parameters,
+                                                     robot_name,
+                                                     sdf,
+                                                     rs,
+                                                     offset,
+                                                     joint_constraints,
+                                                     velocity_constraints,
+                                                     train_sigma,
+                                                     no_frames_for_spheres,
+                                                     epsilon)
 
         return cls(kernel=kernel,
                    likelihood=likelihood,
@@ -296,14 +307,14 @@ class VGPMP(PathwiseSVGP, ABC):
     #         objective += self.prior(self)
     #     return objective
 
-    def sample_from_posterior(self, X):
+    def sample_from_posterior(self, X, robot):
 
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
         mu = self.likelihood.joint_sigmoid(mu)
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
+        uncertainty = np.array([[robot.compute_joint_positions(np.array(time).reshape(-1, 1),
                                                                                        self.likelihood.sampler.craig_dh_convention)[
                                      0][-1] for time in sample] for sample in samples])
         uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
