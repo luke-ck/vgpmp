@@ -308,20 +308,3 @@ class Sampler:
             return gr
 
         return tf.reshape(spheres_loc, (-1, 3)), grad
-
-    @tf.function
-    def sampleConfigs(self, joint_configs, sample_dim):
-        r"""
-
-        Args:
-            joint_configs ([tf.tensor]): N x D
-            sample_dim ([type]): N
-
-        Returns:
-            [type]: N x P x 3
-        """
-        K = tf.map_fn(lambda i: self._fk_cost(tf.reshape(
-            joint_configs[i], (-1, 1))), tf.range(sample_dim), fn_output_signature=default_float(),
-                      parallel_iterations=None)
-
-        return K

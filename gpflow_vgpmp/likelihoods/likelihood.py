@@ -1,16 +1,12 @@
 from abc import ABC
-import numpy as np
 import tensorflow as tf
 from gpflow.base import Parameter
 from gpflow.config import default_float
-from gpflow.likelihoods import GaussianMC, Gaussian
+from gpflow.likelihoods import Gaussian
 from gpflow.utilities import positive
-from gpflow_vgpmp.utils.ops import bounded_param
 from tensorflow_probability import bijectors as tfb
 
 __all__ = "likelihood"
-
-TWOPI = np.log(2 * np.pi)
 
 
 class VariationalMonteCarloLikelihood(Gaussian, ABC):
@@ -45,10 +41,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         )
         self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
         self.epsilon = tf.constant(epsilon, dtype=default_float())
-    def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
-        func = tf.range(num_latent_gps + 1)
-        return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
-                        fn_output_signature=default_float())
+        self._p = num_spheres
 
     @tf.function
     def log_prob(self, F):
@@ -121,13 +114,22 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             [tf.Tensor]: [S x N x P x 3]
         """
-        sample_dim = f.shape[1]
-        func = tf.range(f.shape[0])
-        return tf.map_fn(  # this evaluates each [N x D] of the S samples
-            lambda i:
-            self.sampler.sampleConfigs(f[i], sample_dim),
-            func, fn_output_signature=(default_float())
-        )
+        # Get the shape of the input tensor
+        s, n, d = f.shape
+
+        # Flatten the tensor so that it can be processed in one batch
+        f = tf.reshape(f, (s * n, d))
+
+        # Compute forward kinematics for all configurations in parallel using tf.vectorized_map
+        k = tf.vectorized_map(self._fk_cost, f)
+
+        # Reshape the output back to the original shape
+        return tf.reshape(k, (s, n, self._p, 3))
+
+    @tf.function
+    def _fk_cost(self, joint_config):
+        # tf.print(joint_config.shape)
+        return self.sampler._fk_cost(tf.expand_dims(joint_config, axis=1))
 
     @tf.function
     def _hinge_loss(self, data):
@@ -141,17 +143,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             [tf.Tensor]: [N x P]
         """
         d = self._signed_distance_grad(data)
-        loss1 = tf.where(d <= self.epsilon, - d + self.epsilon, 0.0)
-        return loss1
-        # return self.smoothed_hinge_loss(d, self.epsilon)
 
-    @tf.function
-    def smoothed_hinge_loss(self, data, epsilon):
-        out = tf.where(tf.math.logical_and(data > tf.cast(0.0, dtype=default_float()), data < epsilon),
-                       (epsilon - data) ** 2 / 2, data)
-        out = tf.where(out > epsilon, tf.cast(0.0, dtype=default_float()), out)
-        out = tf.where(out < tf.cast(0.0, dtype=default_float()), tf.cast(0.5, dtype=default_float()) - out, out)
-        return out
+        return tf.where(d <= self.epsilon, self.epsilon - d, 0.0)
 
     @tf.custom_gradient
     def _signed_distance_grad(self, data):
