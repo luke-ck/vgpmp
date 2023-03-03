@@ -23,9 +23,9 @@ wrist_test: "ee_link"
 path: "ur10.urdf"
 joint_limits:
         [
-                2, -2,  # shoulder_pan_joint
-                0.45, -2.7,  # shoulder_lift_joint
-                2, -2,  # elbow_joint
+                6.28, -6.28,  # shoulder_pan_joint
+                6.28, -6.28,  # shoulder_lift_joint
+                6.28, -6.28,  # elbow_joint
                 6.28, -6.28,  # wrist_1_joint
                 6.28, -6.28,  # wrist_2_joint
                 6.28, -6.28   # wrist_3_joint

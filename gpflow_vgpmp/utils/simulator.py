@@ -20,7 +20,7 @@ class RobotSimulator:
         self.scene = Object(name="scene",
                             path=self.sim.scene_params["object_path"],
                             position=self.sim.scene_params["object_position"])
-
+        self.sett = set([i for i in range(100)])
     def get_simulation_params(self) -> Bunch:
         return self.sim.get_params()
 
@@ -43,6 +43,8 @@ class RobotSimulator:
                     tf.print(planner.debug_likelihood(tf.reshape(joints, (1, 1, 7))))
                 else:
                     print("There was no planner given")
+            else:
+                print(f"Current config is :{self.robot.get_curr_config(int(action))}")
 
     def get_rt_sdf_grad(self, planner):
         """
