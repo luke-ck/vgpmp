@@ -45,6 +45,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         )
         self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
         self.epsilon = tf.constant(epsilon, dtype=default_float())
+        self._p = num_spheres
+
+
     def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
         func = tf.range(num_latent_gps + 1)
         return tf.map_fn(lambda i: sigma_obs / (decay_rate * tf.cast(i + 1, dtype=default_float())), func,
@@ -106,28 +109,22 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
     @tf.function
     def _sample_config_cost(self, f):
-        r"""
-        This function computes the cartesian position for each configuration
-        in each sample. More explicitly, each iteration of map_fn returns a
-        tensor of N x P x 3, where P is the dimensionality of spheres fitted
-        on the robot arm. Under the hood we do forward kinematics, going from
-        active joints to sphere locations in the cartesian space, and handle
-        gradients associated with these operations.We do S iterations,
-        one iteration per sample.
+        # Get the shape of the input tensor
+        s, n, d = f.shape
 
-        Args:
-            F (tf.Tensor): [S x N x D]
+        # Flatten the tensor so that it can be processed in one batch
+        f = tf.reshape(f, (s * n, d))
 
-        Returns:
-            [tf.Tensor]: [S x N x P x 3]
-        """
-        sample_dim = f.shape[1]
-        func = tf.range(f.shape[0])
-        return tf.map_fn(  # this evaluates each [N x D] of the S samples
-            lambda i:
-            self.sampler.sampleConfigs(f[i], sample_dim),
-            func, fn_output_signature=(default_float())
-        )
+        # Compute forward kinematics for all configurations in parallel using tf.vectorized_map
+        k = tf.vectorized_map(self._fk_cost, f)
+
+        # tf.print(k.shape)
+        # Reshape the output back to the original shape
+        return tf.reshape(k, (s, n, self._p, 3))
+
+    @tf.function
+    def _fk_cost(self, joint_config):
+        return self.sampler._fk_cost(tf.expand_dims(joint_config, axis=1))
 
     @tf.function
     def _hinge_loss(self, data):
