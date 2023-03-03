@@ -116,7 +116,6 @@ def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_jo
     X = tf.convert_to_tensor(np.array(
         [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_X)], dtype=np.float64))
 
-    print(start_joints)
     y = tf.concat([start_joints.reshape((1, degree_of_freedom)), end_joints.reshape((1, degree_of_freedom))], axis=0)
     Xnew = tf.convert_to_tensor(np.array(
         [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_Xnew)], dtype=np.float64))
@@ -124,7 +123,7 @@ def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_jo
 
 
 def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params,
-                           trainable_params, graphics_params):
+                           trainable_params, graphics_params, run=0, k=0):
     grid_spacing_X = planner_params["time_spacing_X"]
     grid_spacing_Xnew = planner_params["time_spacing_Xnew"]
     dof = robot_params["dof"]
@@ -132,6 +131,21 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
+    
+    # UR10
+    # Means for Bookshelves
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[ 0.03029222, -2.48669224, 2.12514402, -1.77658193, -1.23535012, 0.21037382] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.21040983, -1.54239571, 2.0412341, -1.78920066, 1.53611764, 0.9651554 ] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 2)], [y[1] for _ in range(planner_params["num_inducing"] // 2)]], axis=0) # 31, 37 ish, the above for the rest
+    
+    # Means for Industrial
+    # [-0.39039088, -2.29511129, 1.61724922, -2.62198995, -1.22776726, 0.08762118]
+    q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.39039088, -2.29511129, 1.61724922, -2.62198995, -1.22776726, 0.08762118] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+
+    # write q_mu as an interpolated path between y[0] and y[1]
+    # q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])])
+
+    # print(q_mu.shape)
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],
@@ -209,10 +223,32 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     disable_param_opt(planner, trainable_params)
     robot.set_joint_position(start_joints)
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
+    # print(planner._q_mu)
     sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew)
     robot.set_joint_position(start_joints)
-    tf.print(planner.likelihood.variance, summarize=-1)
+    # for joint in planner.likelihood.joint_sigmoid(planner._q_mu):
+    #     robot.set_joint_position(joint)
+    #     robot.set_joint_motor_control(np.squeeze(joint), 300, 0.5)
+    #     p.stepSimulation()
+    #     time.sleep(2)
+    # tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
+
+    # SAVE THE BEST SAMPLE
+    # best_path = np.load("/home/freshpate/saved_paths/ur10/bookshelves/pair_0_run_0.npy")
+    # xxx = best_path[-1]
+    # link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
+    #                                                 robot_params["craig_dh_convention"])
+    # prev = link_pos[-1]
+    # print(xxx, prev, np.abs(xxx - prev))
+    # sys.exit()
+    # for x in best_path[1:]:
+    #     p.addUserDebugLine(xxx, x, lineColorRGB=[0, 1, 0],
+    #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+    #     xxx = x
+
+    # time.sleep(100)
 
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
@@ -295,11 +331,16 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-    print(f" alpha {planner.alpha}")
-    for kern in planner.kernel.kernels:
-        print(f" lengthscale {kern.lengthscales}")
-        print(f" variance {kern.variance}")
+    # print(f" alpha {planner.alpha}")
+    # for kern in planner.kernel.kernels:
+    #     print(f" lengthscale {kern.lengthscales}")
+    #     print(f" variance {kern.variance}")
     res = robot.move_to_ee_config(best_sample)
+    if res == 1:
+        path = np.array([robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
+                                                        robot_params["craig_dh_convention"])[0][-1] for joint_config in best_sample])
+        np.save("/home/freshpate/saved_paths/ur10/industrial/pair_{}_run_{}".format(k, run), path)
+        
     return res
 
 

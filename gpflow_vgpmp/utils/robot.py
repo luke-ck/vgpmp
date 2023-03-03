@@ -248,16 +248,20 @@ class Robot:
         if isinstance(joint_config, np.ndarray) and joint_config.ndim == 2:
             assert joint_config.shape[0] == 1
             joint_config = np.squeeze(joint_config)
+        ceva = {1, 2, 3, 4, 5, 6, 7}
         for idx, joint in enumerate(self.joint_idx):
             p.resetJointState(self.robot_model, joint, joint_config[idx])
-
+        #FOR WAM
+        # for i in range(23):
+        #     if i not in ceva:
+        #         p.resetJointState(self.robot_model, i, 0)
     def get_curr_config(self) -> np.ndarray:
         r"""
         Return joint position for each joint as a list
         """
         return np.array([joint[0] for joint in p.getJointStates(self.robot_model, self.joint_idx)],
                         dtype=np.float64).reshape((1, len(self.joint_idx)))
-
+        
     def set_joint_motor_control(self, position, kp=300, kv=0.5):
 
         for i, idx in enumerate(self.joint_idx):
@@ -352,7 +356,7 @@ class Robot:
 
         T00 = self.base_pose
         angles = thetas + self.twist
-        transform_matrices = np.zeros((7, 4, 4))
+        transform_matrices = np.zeros((len(thetas), 4, 4))
         DH_mat = np.concatenate([angles, self.DH], axis=-1)
         for idx, params in enumerate(DH_mat):
             if craig:
@@ -361,7 +365,7 @@ class Robot:
                 transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
             transform_matrices[idx] = transform_matrix
 
-        homogenous_transforms = np.zeros((8, 4, 4), dtype=np.float64)
+        homogenous_transforms = np.zeros((len(thetas) + 1, 4, 4), dtype=np.float64)
         homogenous_transforms[0] = T00
         for i in range(len(transform_matrices)):
             homogenous_transforms[i + 1] = np.array(

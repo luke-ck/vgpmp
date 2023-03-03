@@ -9,7 +9,7 @@ from gpflow.base import Parameter, TensorLike
 from gpflow.config import default_float
 from gpflow.covariances import Kuf
 from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables
-from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52)
+from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52, Matern12)
 from gpflow.kullback_leiblers import prior_kl, gauss_kl
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
@@ -124,7 +124,7 @@ class VGPMP(PathwiseSVGP, ABC):
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscales[i])
                 kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
-                kern.variance = bounded_param(max([0.02, variance - 0.1]), min([0.5, variance + 0.1]), variance)
+                kern.variance = bounded_param(max([0.02, variance - 0.1]), min([1.5, variance + 0.3]), variance)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
@@ -201,11 +201,12 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
-            tf.repeat(self.likelihood.joint_sigmoid.inverse(
-                q_mu), num_inducing, axis=0)
-        self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
+        # q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
+        #     tf.repeat(self.likelihood.joint_sigmoid.inverse(
+        #         q_mu), num_inducing, axis=0)
 
+        q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
+        self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
         np_q_sqrt: np.ndarray = np.array(
             [
                 np.eye(num_inducing, dtype=default_float())
@@ -242,6 +243,7 @@ class VGPMP(PathwiseSVGP, ABC):
 
         # Subtract prior mean from q_mu, then whiten
         p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
+        
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
 
         whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
@@ -303,10 +305,11 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
-                                                                                       self.likelihood.sampler.craig_dh_convention)[
-                                     0][-1] for time in sample] for sample in samples])
-        uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
+        # uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
+        #                                                                                self.likelihood.sampler.craig_dh_convention)[
+        #                              0][-1] for time in sample] for sample in samples])
+        # uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
+        uncertainty = 1.0
         return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 
     def initialize_optimizer(self, learning_rate):
@@ -314,5 +317,5 @@ class VGPMP(PathwiseSVGP, ABC):
 
     def get_best_sample(self, samples):
         cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
-        tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
+        # tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
         return tf.math.argmax(cost)
