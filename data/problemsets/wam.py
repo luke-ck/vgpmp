@@ -104,11 +104,11 @@ class Problemset(AbstractProblemset, ABC):
             return {
                 "sigma_obs": 0.005,
                 "epsilon": 0.05,
-                "lengthscales": [500.0, 500.0, 500.0, 70.0, 500.0, 500.0, 500.0],
+                "lengthscales": [500.0, 500.0, 500.0, 200.0, 500.0, 500.0, 500.0],
                 "variance": 0.5,
                 "alpha": 100,
                 "num_samples": 7,
-                "num_inducing": 10,
+                "num_inducing": 24,
                 "learning_rate": 0.09,
                 "num_steps": 130,
                 "time_spacing_X": 70,
@@ -117,13 +117,13 @@ class Problemset(AbstractProblemset, ABC):
         
         elif problemset == "lab":
             return {
-                "sigma_obs": 0.005,
+                "sigma_obs": 0.0005,
                 "epsilon": 0.05,
-                "lengthscales": [600.0, 600.0, 600.0, 70.0, 600.0, 600.0, 600.0],
-                "variance": 0.05,
-                "alpha": 100,
+                "lengthscales": [400.0, 400.0, 400.0, 250.0, 500.0, 500.0, 500.0],
+                "variance": 1.65,
+                "alpha": 1,
                 "num_samples": 7,
-                "num_inducing": 10,
+                "num_inducing": 24,
                 "learning_rate": 0.09,
                 "num_steps": 130,
                 "time_spacing_X": 70,
@@ -132,13 +132,13 @@ class Problemset(AbstractProblemset, ABC):
 
         elif problemset == "bookshelves":
             return {
-                "sigma_obs": 0.05,
-                "epsilon": 0.01,
-                "lengthscales": [100.0, 500.0, 500.0, 100.0, 500.0, 500.0, 100.0],
+                "sigma_obs": 0.00005,
+                "epsilon": 0.05,
+                "lengthscales": [500.0, 500.0, 500.0, 200.0, 500.0, 500.0, 500.0],
                 "variance": 0.5,
                 "alpha": 100,
                 "num_samples": 7,
-                "num_inducing": 25,
+                "num_inducing": 24,
                 "learning_rate": 0.09,
                 "num_steps": 130,
                 "time_spacing_X": 70,
