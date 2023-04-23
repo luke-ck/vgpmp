@@ -111,20 +111,20 @@ class VGPMP(PathwiseSVGP, ABC):
 
         if kernels is None:
             kernels = []
-            lower = []
-            upper = []
-            for i in range(num_latent_gps):
-                lower.append(max([lengthscales[i] - 100, 10]))
-                upper.append(min([lengthscales[i] + 100, 500]))
-            low = tf.constant(lower, dtype=default_float())
-            high = tf.constant(upper, dtype=default_float())
-            low = tf.constant([min(lengthscales) - 5] * num_output_dims, dtype=default_float())
-            high = tf.constant([max(lengthscales) + 100] * num_output_dims, dtype=default_float())
+            # lower = []
+            # upper = []
+            # for i in range(num_latent_gps):
+            #     lower.append(max([lengthscales[i] - 100, 10]))
+            #     upper.append(min([lengthscales[i] + 100, 500]))
+            # low = tf.constant(lower, dtype=default_float())
+            # high = tf.constant(upper, dtype=default_float())
+            low = tf.constant([50] * num_output_dims, dtype=default_float())
+            high = tf.constant([1000] * num_output_dims, dtype=default_float())
 
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscales[i])
                 kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
-                kern.variance = bounded_param(max([0.02, variance - 0.1]), min([100.5, variance + 0.3]), variance)
+                kern.variance = bounded_param(0.05, 1, variance)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
@@ -302,7 +302,7 @@ class VGPMP(PathwiseSVGP, ABC):
 
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
         mu = self.likelihood.joint_sigmoid(mu)
-        with self.temporary_paths(num_samples=500, num_bases=self.num_bases):
+        with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
         # uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),

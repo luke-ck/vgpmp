@@ -11,7 +11,7 @@
     q_sqrt: True
     lengthscales: True
     kernel_variance: True
-    sigma_obs: True
+    sigma_obs: False
     inducing_variable: False
     alpha: False
 - graphics:

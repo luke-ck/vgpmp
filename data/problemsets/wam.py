@@ -117,13 +117,13 @@ class Problemset(AbstractProblemset, ABC):
         
         elif problemset == "lab":
             return {
-                "sigma_obs": 0.0005,
+                "sigma_obs": 0.005,
                 "epsilon": 0.05,
-                "lengthscales": [400.0, 400.0, 400.0, 250.0, 500.0, 500.0, 500.0],
-                "variance": 1.65,
-                "alpha": 1,
+                "lengthscales": [600.0, 600.0, 600.0, 100.0, 600.0, 600.0, 600.0],
+                "variance": 0.5,
+                "alpha": 100,
                 "num_samples": 7,
-                "num_inducing": 24,
+                "num_inducing": 10,
                 "learning_rate": 0.09,
                 "num_steps": 130,
                 "time_spacing_X": 70,

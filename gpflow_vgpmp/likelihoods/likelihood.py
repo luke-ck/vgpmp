@@ -118,7 +118,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         
         #     fn_output_signature=default_float())
         # print(self.variance)
-        return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1) - self.log_normalization_constant(tf.squeeze(self.variance))# dist_list #  #* 500. - 0.5 * normal_cost * 10.
+        return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1) #- self.log_normalization_constant(tf.squeeze(self.variance))# dist_list #  #* 500. - 0.5 * normal_cost * 10.
 
     @tf.function
     def _sample_config_cost(self, f):

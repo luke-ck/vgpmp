@@ -192,7 +192,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 4)], [[-1.67437444, 1.20892299, 1.08881254, 2.37224745, -4.50290855, 0.29917642, 2.57918215] for _ in range(planner_params["num_inducing"] // 4)], [[0.0] * 7 for _ in range(planner_params["num_inducing"] // 4)],  [y[1] for _ in range(planner_params["num_inducing"] // 4)]], axis=0)
 
     # write q_mu as an interpolated path between y[0] and y[1]
-    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])]) # all ish
+    # q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])]) # all ish
 
     # print(q_mu.shape)
     # planner = VGPMP.initialize(num_data=num_data,
@@ -226,7 +226,9 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     planner.query_states = planner.likelihood.joint_sigmoid.inverse(
             tf.constant(y, dtype=default_float(), shape=(2, planner.num_latent_gps)))
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
-    planner._q_mu.assign(planner.likelihood.joint_sigmoid.inverse(q_mu))
+    q_mu = np.zeros((planner_params["num_inducing"], planner.num_latent_gps), dtype=np.float64)
+    # planner._q_mu.assign(planner.likelihood.joint_sigmoid.inverse(q_mu))
+    planner._q_mu.assign(q_mu)
 
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
