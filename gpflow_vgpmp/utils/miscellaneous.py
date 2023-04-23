@@ -279,6 +279,10 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     disable_param_opt(planner, trainable_params)
     robot.set_joint_position(start_joints)
+    tf.print(planner.q_mu, summarize=-1)
+    for kern in planner.kernel.kernels:
+        print(f" lengthscale {kern.lengthscales}")
+        print(f" variance {kern.variance}")
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
     # print(planner._q_mu)
     sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew)

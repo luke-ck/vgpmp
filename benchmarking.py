@@ -156,6 +156,7 @@ if __name__ == '__main__':
                             graphics_params=graphics_params)
     # print(gpflow.utilities.parameter_dict(planner))
     weights = gpflow.utilities.parameter_dict(planner)
+    weights = gpflow.utilities.deepcopy(weights)#weights.copy()
     # not_worked = {1, 2, 7, 14, 17}
     not_worked = {9, 13, 19}
     total_runs = 5
