@@ -118,8 +118,8 @@ class VGPMP(PathwiseSVGP, ABC):
             #     upper.append(min([lengthscales[i] + 100, 500]))
             # low = tf.constant(lower, dtype=default_float())
             # high = tf.constant(upper, dtype=default_float())
-            low = tf.constant([50] * num_output_dims, dtype=default_float())
-            high = tf.constant([1000] * num_output_dims, dtype=default_float())
+            low = tf.constant([50.0] * num_output_dims, dtype=default_float())
+            high = tf.constant([1000.0] * num_output_dims, dtype=default_float())
 
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscales[i])
@@ -201,11 +201,11 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        # q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
-        #     tf.repeat(self.likelihood.joint_sigmoid.inverse(
-        #         q_mu), num_inducing, axis=0)
+        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
+            tf.repeat(self.likelihood.joint_sigmoid.inverse(
+                q_mu), num_inducing, axis=0)
 
-        q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
+        # q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
         np_q_sqrt: np.ndarray = np.array(
             [
@@ -272,9 +272,15 @@ class VGPMP(PathwiseSVGP, ABC):
 
         kl = self.prior_kl_separateindependent()
 
+        if self.num_data is not None:
+            num_data = tf.cast(self.num_data, kl.dtype)
+            minibatch_size = tf.cast(tf.shape(data)[0], kl.dtype)
+            scale = num_data / minibatch_size
+        else:
+            scale = tf.cast(1.0, kl.dtype)
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
         # tf.print(likelihood_obs, summarize=-1)
-        return tf.reduce_sum(likelihood_obs) * self.alpha - kl # - self.likelihood.log_normalization_constant(tf.squeeze(self.likelihood.variance), 0.1)#+ tf.reduce_sum(( tf.squeeze(1 / self.likelihood.variance) ) ** 2) #* 0.00000001
+        return tf.reduce_sum(likelihood_obs) * scale * self.alpha - kl # - self.likelihood.log_normalization_constant(tf.squeeze(self.likelihood.variance), 0.1)#+ tf.reduce_sum(( tf.squeeze(1 / self.likelihood.variance) ) ** 2) #* 0.00000001
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:

@@ -160,7 +160,7 @@ def create_planner(env, robot, sdf, start_joints, end_joints, robot_params, plan
                                no_frames_for_spheres=robot_params["no_frames_for_spheres"],
                                robot_name=robot_params["robot_name"],
                                epsilon=planner_params["epsilon"],
-                               q_mu=q_mu,
+                               q_mu=None,
                                whiten=False
                                )
     return planner
@@ -192,37 +192,41 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 4)], [[-1.67437444, 1.20892299, 1.08881254, 2.37224745, -4.50290855, 0.29917642, 2.57918215] for _ in range(planner_params["num_inducing"] // 4)], [[0.0] * 7 for _ in range(planner_params["num_inducing"] // 4)],  [y[1] for _ in range(planner_params["num_inducing"] // 4)]], axis=0)
 
     # write q_mu as an interpolated path between y[0] and y[1]
-    # q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])]) # all ish
+    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])]) # all ish
 
     # print(q_mu.shape)
-    # planner = VGPMP.initialize(num_data=num_data,
-    #                            num_output_dims=num_output_dims,
-    #                            num_spheres=robot_params["num_spheres"],
-    #                            num_inducing=planner_params["num_inducing"],
-    #                            num_samples=planner_params["num_samples"],
-    #                            sigma_obs=planner_params["sigma_obs"],
-    #                            alpha=planner_params["alpha"],
-    #                            variance=planner_params["variance"],
-    #                            learning_rate=planner_params["learning_rate"],
-    #                            lengthscales=planner_params["lengthscales"],
-    #                            offset=scene_params["object_position"],
-    #                            joint_constraints=robot_params["joint_limits"],
-    #                            velocity_constraints=robot_params["velocity_limits"],
-    #                            rs=robot.rs,
-    #                            query_states=y,
-    #                            sdf=sdf,
-    #                            robot=robot,
-    #                            num_latent_gps=dof,
-    #                            parameters=robot_params,
-    #                            train_sigma=trainable_params["sigma_obs"],
-    #                            no_frames_for_spheres=robot_params["no_frames_for_spheres"],
-    #                            robot_name=robot_params["robot_name"],
-    #                            epsilon=planner_params["epsilon"],
-    #                            q_mu=q_mu,
-    #                            whiten=False
-    #                            )
+    planner = VGPMP.initialize(num_data=num_data,
+                               num_output_dims=num_output_dims,
+                               num_spheres=robot_params["num_spheres"],
+                               num_inducing=planner_params["num_inducing"],
+                               num_samples=planner_params["num_samples"],
+                               sigma_obs=planner_params["sigma_obs"],
+                               alpha=planner_params["alpha"],
+                               variance=planner_params["variance"],
+                               learning_rate=planner_params["learning_rate"],
+                               lengthscales=planner_params["lengthscales"],
+                               offset=scene_params["object_position"],
+                               joint_constraints=robot_params["joint_limits"],
+                               velocity_constraints=robot_params["velocity_limits"],
+                               rs=robot.rs,
+                               query_states=y,
+                               sdf=sdf,
+                               robot=robot,
+                               num_latent_gps=dof,
+                               parameters=robot_params,
+                               train_sigma=trainable_params["sigma_obs"],
+                               no_frames_for_spheres=robot_params["no_frames_for_spheres"],
+                               robot_name=robot_params["robot_name"],
+                               epsilon=planner_params["epsilon"],
+                               q_mu=None,
+                               whiten=False
+                               )
+    # print(planner.prior)
+    # import tensorflow.contrib.slim as slim
 
+    # planner.summary()
     gpflow.utilities.multiple_assign(planner, weights)
+    # tf.print(planner.inducing_variable.inducing_variable.Z)
     planner.query_states = planner.likelihood.joint_sigmoid.inverse(
             tf.constant(y, dtype=default_float(), shape=(2, planner.num_latent_gps)))
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
@@ -279,12 +283,15 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     disable_param_opt(planner, trainable_params)
     robot.set_joint_position(start_joints)
-    tf.print(planner.q_mu, summarize=-1)
-    for kern in planner.kernel.kernels:
-        print(f" lengthscale {kern.lengthscales}")
-        print(f" variance {kern.variance}")
+    # tf.print(planner.q_mu, summarize=-1)
+    # tf.print(planner.q_sqrt, summarize=-1)
+    # for kern in planner.kernel.kernels:
+    #     print(f" lengthscale {kern.lengthscales}")
+    #     print(f" variance {kern.variance}")
+    # planner.optimizer = tf.optimizers.Adam(learning_rate=0.09, beta_1=0.8, beta_2=0.95)
     training_loop(model=planner, num_steps=num_steps, data=X, optimizer=planner.optimizer)
     # print(planner._q_mu)
+    # return 1 
     sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew)
     robot.set_joint_position(start_joints)
     # for joint in planner.likelihood.joint_sigmoid(planner._q_mu):
@@ -292,7 +299,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     #     robot.set_joint_motor_control(np.squeeze(joint), 300, 0.5)
     #     p.stepSimulation()
     #     time.sleep(2)
-    tf.print(planner.likelihood.variance, summarize=-1)
+    # tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
 
     # SAVE THE BEST SAMPLE
@@ -383,6 +390,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     #     print(f" lengthscale {kern.lengthscales}")
     #     print(f" variance {kern.variance}")
     # time.sleep(10000)
+    # tf.print(planner.q_mu, summarize=-1)
     # print(f"likelihood variance {planner.likelihood.variance}")
     res = robot.move_to_ee_config(best_sample)
     # np.save("/home/freshpate/saved_paths/joints/wam/lab/pair_{}_run_{}".format(k, run), best_sample)
