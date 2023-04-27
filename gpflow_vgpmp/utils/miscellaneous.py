@@ -216,8 +216,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # To make them fit, you have to change their offset in the
     # initialization of the Sampler class in sampler.py.
     # Finally, make sure that the radius of the spheres is correctly defined and ordered in the config file.
-    p.addUserDebugLine([-0.04855343,  0.09839402,  0.97370369], [-0.04855343,  0.09839402,  1.07370369], lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    # p.addUserDebugLine([-0.04855343,  0.09839402,  0.97370369], [-0.04855343,  0.09839402,  1.07370369], lineColorRGB=[0, 0, 1],
+    #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     if graphics_params["debug_sphere_positions"]:
         start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(dof, -1))
         print(start_pos)

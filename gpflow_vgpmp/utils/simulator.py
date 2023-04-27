@@ -1,12 +1,12 @@
 import sys
-
+import os
 from bunch import Bunch
 import tensorflow as tf
 from gpflow_vgpmp.utils.bullet_object import Object
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 from gpflow_vgpmp.utils.simulation import Simulation
-
+import pybullet as p
 # ---------------Exports
 __all__ = 'simulator'
 
@@ -20,6 +20,15 @@ class RobotSimulator:
         self.scene = Object(name="scene",
                             path=self.sim.scene_params["object_path"],
                             position=self.sim.scene_params["object_position"])
+        texture_id = p.loadTexture(os.path.expanduser('~') + "/vgpmp/data/scenes/lab/pringles/textured.png")
+
+        if self.sim.scene_params["problemset"] == "lab":
+            self.pringles = Object(name="pringles",
+                                   path=os.path.expanduser('~') + "/vgpmp/data/scenes/lab/pringles/pringles.urdf",
+                                   position=[-0.03472223, 0.54439094, 0.85])
+        p.changeVisualShape(self.pringles.ID, -1, textureUniqueId=texture_id)
+
+        
         self.sett = set([i for i in range(100)])
     def get_simulation_params(self) -> Bunch:
         return self.sim.get_params()

@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<robot name="bookshelves">
+    <material name="texture_textured.png">
+      <texture filename="textured.png"/>
+    </material>
+
+    <link name="bookshelf" type="static">
+        <contact>
+            <lateral_friction value="100000.0"/>
+            <rolling_friction value="0.0"/>
+        </contact>
+        <inertial>
+            <mass value="0"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+
+        <visual>
+            <geometry>
+                <mesh filename="textured.obj"/>
+            </geometry>
+            <material name="texture_textured.png"/>
+        </visual>
+
+        <collision>
+            <geometry>
+                <mesh filename="textured.obj"/>
+            </geometry>
+        </collision>
+    </link>
+</robot>

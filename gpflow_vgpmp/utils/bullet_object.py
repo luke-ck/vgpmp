@@ -59,6 +59,8 @@ class Object:
                 pass
         elif name == "scene":
             object_path = path
+        elif name == "pringles":
+            object_path = path
         else:
             raise ValueError("Path for object not specified. Currently supported objects are plane and table, or"
                              "you can specify a path to a URDF file for a scene.")

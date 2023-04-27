@@ -57,9 +57,8 @@ if __name__ == '__main__':
     start_planner2 = [ 0.15984699, 0.9143245, -0.76890767, -0.38329052, 1.42599777, 1.90409489, -0.84829781]
 
     queries = [(start_planner1, end_planner1), (start_planner2, end_planner2)]
-    # robot.set_curr_config(np.squeeze(end_planner2))
+    # robot.set_curr_config(np.squeeze(end))
     # env.loop()
-    ee_pos_for_pringle = [-0.00472223, 0.28439094, 0.98321232]
 
     if graphics_params["debug_joint_positions"]:
         config = np.array(end_planner2)
@@ -72,12 +71,11 @@ if __name__ == '__main__':
             p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     # env.loop()
-    fff = [-0.04855343,  0.09839402,  0.97370369]
     # p.addUserDebugLine([-0.00472223, 0.28439094, 0.98321232], [-0.00472223, 0.28439094, 1.18321232], lineColorRGB=[0, 0, 1],
     #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
-    p.addUserDebugLine([-0.04855343,  0.09839402,  0.97370369], [-0.04855343,  0.09839402,  1.07370369], lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    # p.addUserDebugLine([-0.04855343,  0.09839402,  0.97370369], [-0.04855343,  0.09839402,  1.07370369], lineColorRGB=[0, 0, 1],
+    #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
 
     if graphics_params["debug_joint_positions"] and not graphics_params["debug_sphere_positions"]:
