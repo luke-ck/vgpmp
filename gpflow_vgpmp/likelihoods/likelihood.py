@@ -113,7 +113,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         # normal_cost = tf.matmul(new_delta, tf.matmul(var[:, :, 27:, 27:], new_delta), transpose_a=True)
         # normal_cost = tf.reshape(normal_cost, shape=(S, N))
         
-        return - 0.5 * dist_list - self.log_normalization_constant(tf.squeeze(self.variance)) #* 500. - 0.5 * normal_cost * 10.
+        return - 0.5 * dist_list #- self.log_normalization_constant(tf.squeeze(self.variance)) #* 500. - 0.5 * normal_cost * 10.
 
     @tf.function
     def _sample_config_cost(self, f):

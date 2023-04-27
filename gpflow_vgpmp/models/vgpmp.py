@@ -305,11 +305,11 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
-                                                                                       self.likelihood.sampler.craig_dh_convention)[
-                                     0][-1] for time in sample] for sample in samples])
-        uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
-        # uncertainty = 1.0
+        # uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
+        #                                                                                self.likelihood.sampler.craig_dh_convention)[
+        #                              0][-1] for time in sample] for sample in samples])
+        # uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
+        uncertainty = 1.0
         return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 
     def initialize_optimizer(self, learning_rate):

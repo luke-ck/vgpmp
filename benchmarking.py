@@ -81,7 +81,6 @@ if __name__ == '__main__':
 
     # sys.exit()
     total_solved = 0
-    total_runs = 1
     states = [list() for _ in range(15)]
     states[0] = [ 0.04295548, 0.95584516, -0.96807816, 0.97116162, 0.9778903, 0.65763463, -0.68464669] # top
     states[1] = [ 0.16082985, 1.11182696, -0.92183762, 0.3794195,   1.23 ,       0.47523424, -0.27413472] # top 
@@ -140,9 +139,11 @@ if __name__ == '__main__':
     
     # FRANKA
     not_worked = {5, 7, 14, 16, 17, 22, 24, 29, 31, 35, 37, 40, 42, 45, 46, 47, 49, 51, 52, 53, 54} # [10, 11]
+    total_runs = 1
+
     for run in range(total_runs):
         # for k, (i, j) in enumerate(query_indices):
-        for i, (start_joints, end_joints) in enumerate(queries):
+        for i, (start_joints, end_joints) in enumerate(queries[2:5]):
 
             # env.loop()
             # i += 35

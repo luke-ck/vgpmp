@@ -17,8 +17,8 @@
     q_sqrt: True
     lengthscales: True
     kernel_variance: True
-    sigma_obs: True
-    inducing_variable: False
+    sigma_obs: False
+    inducing_variable: True
     alpha: False
 - graphics:
     visuals: True
@@ -28,4 +28,4 @@
     debug_sphere_positions: False
     visualize_best_sample: True
     visualize_ee_path_uncertainty: False
-    visualize_drawn_samples: False
+    visualize_drawn_samples: True
