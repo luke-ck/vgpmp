@@ -114,11 +114,19 @@ def training_loop(model, data, num_steps, optimizer):
 def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_joints, end_joints, scale=100,
                   end_time=1):
     X = tf.convert_to_tensor(np.array(
-        [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_X)], dtype=np.float64))
+        [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale + 10, grid_spacing_X)], dtype=np.float64))
+
+    # X_grasp_aux = tf.convert_to_tensor(np.array(
+    #     [np.full(degree_of_freedom, i) for i in np.linspace(end_time * scale + 1, end_time * scale + 15, 30)], dtype=np.float64))
+
+    # X_grasp = tf.concat((X, X_grasp_aux), axis=0)
 
     y = tf.concat([start_joints.reshape((1, degree_of_freedom)), end_joints.reshape((1, degree_of_freedom))], axis=0)
     Xnew = tf.convert_to_tensor(np.array(
-        [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_Xnew)], dtype=np.float64))
+        [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale + 10, grid_spacing_Xnew)], dtype=np.float64))
+    
+    # Xnew_grasp = tf.concat((Xnew, X_grasp_aux), axis=0)
+
     return X, y, Xnew
 
 
@@ -155,7 +163,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [   [0.31138487, -0.96804195, -0.19908661, -2.12279637, -0.5745699, 1.66907652, 0.59840853] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
 
     # write q_mu as an interpolated path between y[0] and y[1]
-    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])])
+    # q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])])
 
     # print(q_mu.shape)
     planner = VGPMP.initialize(num_data=num_data,
@@ -181,7 +189,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                no_frames_for_spheres=robot_params["no_frames_for_spheres"],
                                robot_name=robot_params["robot_name"],
                                epsilon=planner_params["epsilon"],
-                               q_mu=q_mu,
+                               q_mu=None,
                                whiten=False
                                )
 
@@ -208,21 +216,22 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # To make them fit, you have to change their offset in the
     # initialization of the Sampler class in sampler.py.
     # Finally, make sure that the radius of the spheres is correctly defined and ordered in the config file.
-
+    p.addUserDebugLine([-0.04855343,  0.09839402,  0.97370369], [-0.04855343,  0.09839402,  1.07370369], lineColorRGB=[0, 0, 1],
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
     if graphics_params["debug_sphere_positions"]:
         start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(dof, -1))
-
+        print(start_pos)
         for i, pos in enumerate(start_pos):
             aux_pos = np.array(pos).copy()
             aux_pos[0] += 0.1
             aux_pos[1] += 0.1
             aux_pos[2] += 0.1
-            # if i >= 17 and i < 20:
-            #     p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
-            #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            if i == 24:
+                p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
+                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
             # else:
-            p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            # p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
+            #                    lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
 

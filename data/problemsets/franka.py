@@ -12,6 +12,8 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         if problemset == 'industrial':
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        if problemset == 'lab':
+            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         else:
             print("Unknown problem set")
             sys.exit()
@@ -23,6 +25,10 @@ class Problemset(AbstractProblemset, ABC):
                     'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
                     'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
         if problemset == 'industrial':
+            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
+                    'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
+                    'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
+        if problemset == 'lab':
             return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
                     'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
                     'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
@@ -58,6 +64,13 @@ class Problemset(AbstractProblemset, ABC):
             states[6] = [-0.89457144, -0.47499645, -0.6139825, -2.16674660, -0.134227, 2.89230967, 0.00972345]
             states[7] = [2.3741933, -0.91396071, 1.510302, -0.16472317, 1.88311249, 0.95135129, 2.52099306]
             states[8] = [-2.63212708, -0.79542704, -2.61988842, -0.42029416, -0.24882192, 1.3649156, -0.52094162]
+        elif problemset == 'lab':
+            n_states = 4
+            states = [list() for _ in range(n_states)]
+            states[0] = [0] * 7
+            states[1] = [-0.6982915, -0.47724027, 0.96112869, -1.64297994, 0.38184542, 1.28340287, 0.49280794]
+            states[2] = [-1.38294485, 0.61212638, -1.31441932, -0.22121811, 1.1110808, 1.38602424, 0.81529816]
+            states[3] = [-0.62041059, 0.41287353, -1.18343287, -0.71535791, 0.76938146, 1.65440323, 0.67104935]
         else:
             print("Unknown problem set")
             sys.exit()
@@ -69,6 +82,8 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "lab":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
         else:
             sys.exit("Invalid problemset")
 
@@ -78,6 +93,8 @@ class Problemset(AbstractProblemset, ABC):
             return [-0.2, 0.0, -0.2]
         elif problemset == "bookshelves":
             return [0.62, -0.15, 0.834]
+        elif problemset == "bookshelves":
+            return [ 0.625, 0.275, 0.85 ]
         else:
             sys.exit("Invalid problemset")
     @staticmethod
@@ -96,6 +113,22 @@ class Problemset(AbstractProblemset, ABC):
                 "time_spacing_X": 50,
                 "time_spacing_Xnew": 100
             }
+        
+        elif problemset == "lab":
+            return {
+                "sigma_obs": 0.0005,
+                "epsilon": 0.05,
+                "lengthscales": [400.0, 400.0, 400.0, 300.0, 300.0, 300.0, 300.0],
+                "variance": 0.5,
+                "alpha": 100.0,
+                "num_samples": 7,
+                "num_inducing": 24,
+                "learning_rate": 0.09,
+                "num_steps": 1200,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        
         elif problemset == "bookshelves":
             return {
                 "sigma_obs": 0.0005,
@@ -110,6 +143,7 @@ class Problemset(AbstractProblemset, ABC):
                 "time_spacing_X": 70,
                 "time_spacing_Xnew": 150
             }
+        
         else:
             sys.exit("Invalid problemset")
 

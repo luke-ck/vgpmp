@@ -201,11 +201,11 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        # q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
-        #     tf.repeat(self.likelihood.joint_sigmoid.inverse(
-        #         q_mu), num_inducing, axis=0)
+        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
+            tf.repeat(self.likelihood.joint_sigmoid.inverse(
+                q_mu), num_inducing, axis=0)
 
-        q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
+        # q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
         np_q_sqrt: np.ndarray = np.array(
             [
@@ -272,9 +272,10 @@ class VGPMP(PathwiseSVGP, ABC):
 
         kl = self.prior_kl_separateindependent()
 
-        likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
-
-        return tf.reduce_sum(likelihood_obs) * self.alpha - kl
+        collision_term, grasp_term = self.likelihood.log_prob(g)
+        likelihood_obs = tf.reduce_mean(collision_term, axis=0)  # log_prob produces S x N
+        grasp_likelihood = tf.reduce_mean(grasp_term, axis=0)  # N
+        return tf.reduce_sum(likelihood_obs) * self.alpha + tf.reduce_sum(grasp_likelihood) * 10 - kl
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:
@@ -316,6 +317,6 @@ class VGPMP(PathwiseSVGP, ABC):
         return tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)
 
     def get_best_sample(self, samples):
-        cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
+        cost = tf.reduce_sum(self.likelihood.log_prob(samples)[0], axis=-1)
         # tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
         return tf.math.argmax(cost)

@@ -46,6 +46,44 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
         self.epsilon = tf.constant(epsilon, dtype=default_float())
         self._p = num_spheres 
+        self.ee_pos_pringle = tf.constant([-0.00472223, 0.28439094, 0.98321232], dtype =default_float())
+        self.robot_pos_pringle = tf.constant([[-8.00000000e-02,  0.00000000e+00,  2.00000000e-02],
+                                              [ 0.00000000e+00,  0.00000000e+00,  4.00000000e-02],
+                                              [ 4.66474749e-02, -3.77360979e-02,  3.33000000e-01],
+                                              [ 1.55491583e-02, -1.25786993e-02,  2.53000000e-01],
+                                              [ 0.00000000e+00,  0.00000000e+00,  1.73000000e-01],
+                                              [-3.88728958e-02,  3.14467482e-02,  3.32999816e-01],
+                                              [-3.52279803e-02, -1.17468452e-02,  4.06627448e-01],
+                                              [-3.93576440e-02, -4.86510891e-02,  4.80255042e-01],
+                                              [-5.31322026e-02, -6.56794693e-02,  5.31794307e-01],
+                                              [-6.14994132e-02, -6.85744924e-02,  5.72063509e-01],
+                                              [-8.51143636e-02, -1.75342917e-02,  6.47808027e-01],
+                                              [-1.32522015e-01, -9.62383668e-03,  6.32318054e-01],
+                                              [-7.58764091e-02,  3.97528213e-02,  7.77608388e-01],
+                                              [-8.00923518e-02, -1.79209212e-03,  7.49657610e-01],
+                                              [-5.25372741e-02, -2.50975762e-02,  6.59393707e-01],
+                                              [-6.13766484e-04, -3.50165473e-02,  6.76143733e-01],
+                                              [-8.00060802e-02,  2.74899922e-01,  9.23326803e-01],
+                                              [-1.23927713e-01,  2.68078969e-01,  9.46225815e-01],
+                                              [-1.29465490e-01,  2.24370566e-01,  9.22584569e-01],
+                                              [-1.29503548e-01,  1.90085938e-01,  9.01381671e-01],
+                                              [-1.29541607e-01,  1.55801311e-01,  8.80178773e-01],
+                                              [-1.08726404e-01,  1.16185480e-01,  8.42798119e-01],
+                                              [-7.03425475e-02,  7.92980299e-02,  7.96257861e-01],
+                                              [-3.60844513e-02,  2.81720843e-01,  9.00427773e-01],
+                                              [-4.10510272e-03,  2.54336481e-01,  9.75443892e-01],
+                                              [-8.07661957e-03,  3.14170340e-01,  9.85648613e-01],
+                                              [-1.61006527e-02,  3.63558130e-01,  9.84969551e-01],
+                                              [ 2.62141740e-02,  3.68590744e-01,  1.03223612e+00],
+                                              [-4.16673123e-02,  5.06343946e-01,  9.87894724e-01],
+                                              [-4.94203909e-02,  4.90090675e-01,  9.87045638e-01],
+                                              [-4.65757849e-02,  4.70298878e-01,  9.86606331e-01],
+                                              [-3.17807793e-02,  5.07753370e-01,  9.88414330e-01],
+                                              [-1.97607918e-02,  4.94318946e-01,  9.88604456e-01],
+                                              [-1.69161859e-02,  4.74527149e-01,  9.88165149e-01],
+                                              [-8.35269778e-02,  4.11508210e-01,  9.83103941e-01],
+                                              [-2.42077796e-02,  4.19964751e-01,  9.86221576e-01],
+                                              [ 3.51114185e-02,  4.28421292e-01,  9.89339211e-01]], dtype=default_float())
 
     def decay_sigma(sigma_obs, num_latent_gps, decay_rate):
         func = tf.range(num_latent_gps + 1)
@@ -78,7 +116,27 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         """
         L = self._sample_config_cost(F)  # S x N x P x 3
         logp = self._scalar_log_prob(L)
-        return logp
+        grasp_logp = self._grasp_log_prob(L)
+        return logp, grasp_logp
+
+    @tf.function
+    def _grasp_log_prob(self, f):
+        r"""
+        Returns the log probability density log p(e|f) for samples S
+
+        Args:
+            F (tf.Tensor): [S x N x D x 3]
+
+        Returns:
+            [tf.Tensor]: [S]
+        """
+        spheres = f[:, -1, 24, :]
+        spheres = f[:, -1, :, :]
+        mean = spheres - self.robot_pos_pringle[None, ...]
+        mean = tf.math.reduce_sum(mean * mean, axis=-1)
+        force_pos = mean / 0.00005
+        
+        return - 0.5 * force_pos
 
     @tf.function
     def log_normalization_constant(self, sigma, k=0.2):
@@ -113,6 +171,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         # normal_cost = tf.matmul(new_delta, tf.matmul(var[:, :, 27:, 27:], new_delta), transpose_a=True)
         # normal_cost = tf.reshape(normal_cost, shape=(S, N))
         
+
         return - 0.5 * dist_list #- self.log_normalization_constant(tf.squeeze(self.variance)) #* 500. - 0.5 * normal_cost * 10.
 
     @tf.function

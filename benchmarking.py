@@ -50,17 +50,35 @@ if __name__ == '__main__':
     # If you are debugging the sphere positions also, make sure to match this with the
     # same joint configuration that is in the first tuple of the query_indices list.
     # The first element of the first tuple is the joint configuration that you visualize.
+    end_planner1 = [0.31109301, -0.72880518, 0.75456588, -1.01347162, 0.92935332, 2.24804542, -0.33061236]
+    end_planner2 = [0.86212819, -0.8842489, 0.31054139, -1.70539857, 1.08483577, 2.5299051, -0.64731048]
+    end = [0.89061377, -0.40183717, 0.48752105, -1.42820565, 0.75600404, 2.60547999, -0.52784457]
+    start_planner1 = [-0.19236134, 0.93622663, -0.8607566, -0.22610378, 0.74095531, 1.76073361, -0.95493156]
+    start_planner2 = [ 0.15984699, 0.9143245, -0.76890767, -0.38329052, 1.42599777, 1.90409489, -0.84829781]
+
+    queries = [(start_planner1, end_planner1), (start_planner2, end_planner2)]
+    # robot.set_curr_config(np.squeeze(end_planner2))
+    # env.loop()
+    ee_pos_for_pringle = [-0.00472223, 0.28439094, 0.98321232]
 
     if graphics_params["debug_joint_positions"]:
-        config = np.array(queries[0][0])
+        config = np.array(end_planner2)
         start_pos, start_mat = robot.compute_joint_positions(config.reshape(robot.dof, -1),
                                                              robot_params["craig_dh_convention"])
-
+        print(start_pos)
         for pos in start_pos:
             aux_pos = np.array(pos).copy()
             aux_pos[2] += 0.05
             p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+    # env.loop()
+    fff = [-0.04855343,  0.09839402,  0.97370369]
+    # p.addUserDebugLine([-0.00472223, 0.28439094, 0.98321232], [-0.00472223, 0.28439094, 1.18321232], lineColorRGB=[0, 0, 1],
+    #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
+    p.addUserDebugLine([-0.04855343,  0.09839402,  0.97370369], [-0.04855343,  0.09839402,  1.07370369], lineColorRGB=[0, 0, 1],
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+
 
     if graphics_params["debug_joint_positions"] and not graphics_params["debug_sphere_positions"]:
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
@@ -74,40 +92,7 @@ if __name__ == '__main__':
 
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
 
-    # print(planner_params)
-    with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
-        for querry in queries:
-            f.write(f"{list(querry)}\n")
-
-    # sys.exit()
     total_solved = 0
-    states = [list() for _ in range(15)]
-    states[0] = [ 0.04295548, 0.95584516, -0.96807816, 0.97116162, 0.9778903, 0.65763463, -0.68464669] # top
-    states[1] = [ 0.16082985, 1.11182696, -0.92183762, 0.3794195,   1.23 ,       0.47523424, -0.27413472] # top 
-    states[2] = [ 0.09952304, 1.09863569, -0.88496722, 0.38292964, 1.23, 0.41536308, -0.38031438] # top
-    states[3] = [ 0.10052545, 1.06389854, -1.09858978, 0.48121717, 0.76275836, 1.38780074, 0.79727844] # top
-    states[4] = [-0.45014853, 1.59318377, 0.4554682, 0.6065858, -0.38585459, 0.53452102, 0.00784768] # bottom
-    states[5] = [-0.34010213,  1.6881081,   0.98402557, 0.51367941, -2.39890266, -0.58455747, 1.01213727] # bottom
-    states[6] = [-0.22101804, 1.66367157, 1.09508804, 0.56299024, -2.89040372, -0.59143963, 1.31477334] # bottom
-    states[7] = [-0.67729868, 1.64146044, 1.12373694, 0.91912803, -3.17152523, -0.89928808, 1.388017  ] # bottom
-    states[8] = [-1.36399638, 1.91753362, 1.32779556, 2.07333031, 0.8333524, 0.08067977, -2.31735325] # bottom
-    states[9] = [-0.87877812, 1.64645585, 1.34329545, 1.62880413, 0.84055928, -0.0062247, -2.29039162] # bottom
-    states[10] = [ 1.38153424, 1.78324208, 0.18278696, 0.43210283, -1.62168076, 1.01491547, 2.18338891] # table
-    states[11] = [ 1.60174351, 1.74358664, 0.12658995, 0.20548551, -1.48280243, 0.92108951, 2.38725579] # table
-    states[12] = [ 1.9937845, 1.52197993, 0.44538624, 1.10392873, -1.28498349, 1.32703383, 2.49745328] # table
-    states[13] = [-1.29228216, -1.90587936, 1.65480383, 0.20854488, 0.6896924, 0.52053023, -2.4882973 ] # table
-    states[14] = [0] * 7
-    query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
-                     (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
-                     (3, 9), (9, 4), (4, 13), (13, 8)]
-    # (13, 12)   fails # index 4
-    # (8, 16)    fails # index 7
-    # (9, 5)     fails # index 9
-    # (12, 6)    fails # index 12
-    # (6, 7)     fails # index 13
-    # (7, 14)    fails # index 14
-    # (9, 4)     fails # index 18
-
     if robot_params["robot_name"] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
@@ -115,66 +100,14 @@ if __name__ == '__main__':
     elif robot_params["robot_name"] == "ur10":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
-    # robot.set_curr_config(np.squeeze(states[14]))
-    # env.loop()
-    # WAM
-    not_worked = {11, 12, 13, 19, 21, 44, 33, 42, 43} # just start and end q mu init
-    not_worked = {12, 13, 21, 43, 44} # increase the number of iterations to 200 from 130, to make them work, use the mean with the ciung state
-    
-    # UR10
-    # not_worked = {11, 19, 20, 21, 22, 27, 28, 31} # with 7 samples and with middle q_mu init until index 32, excluding it
-    # not_worked = {34, 37, 41, 43, 44} # with 20 samples and with middle q_mu init from index 32, including it
-    # not_worked = {21, 22, 28, 31} # what is left to not work with 20 samples
-    not_worked = {21, 22, 28, 31, 34, 37, 41, 43, 44} # these are the ones that DO NOT work with 20 samples, the rest should be fine
-                                                      # index 37 benefits from star and end q mu init
-    # to get things to work for ur10 use the first picture params until index 32, then use the second picture params from index 32
-    # these are the params that worked for the first two not_worked indices
-    # then for the first not_worked index, increase the number of samples to 20
-    nono = []
-    bef_32_20_samples = {11, 19, 20, 27}
 
-    # KUKA
-    not_worked = {2, 3, 4, 7, 9, 11, 12, 13, 16, 18, 19, 20, 21, 24, 26, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 48, 50, 51, 52, 53}
-    not_worked = {4, 13, 19, 21, 33, 40, 41, 42, 43, 44, 52}
-    
-    # FRANKA
-    not_worked = {5, 7, 14, 16, 17, 22, 24, 29, 31, 35, 37, 40, 42, 45, 46, 47, 49, 51, 52, 53, 54} # [10, 11]
+
     total_runs = 1
-
+    failed = []
     for run in range(total_runs):
+
         # for k, (i, j) in enumerate(query_indices):
-        for i, (start_joints, end_joints) in enumerate(queries[2:5]):
-
-            # env.loop()
-            # i += 35
-            # if i in not_worked:
-            #     continue
-            # UR10 MADNESS
-            # if i == 31:
-            #     continue
-            # # elif i == 31:
-            # #     planner_params["num_samples"] = 10
-            # elif i == 37:
-            #     continue
-            #     # planner_params["num_samples"] = 20
-            # elif i < 32:
-            #     if i in bef_32_20_samples:
-            #         planner_params["num_samples"] = 20
-            #     else:
-            #         planner_params["num_samples"] = 7
-            # else:
-            #     planner_params["num_samples"] = 20
-            
-            # LAB STUFF
-            # if k == 3:
-            #     planner_params["sigma_obs"] = 0.05
-            # else:
-            #     planner_params["sigma_obs"] = 0.005
-            # if i in {16, 49, 51}:
-            #     continue
-            # if i != 51:
-            #     continue
-
+        for i, (start_joints, end_joints) in enumerate(queries):
 
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
@@ -198,8 +131,8 @@ if __name__ == '__main__':
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
-                nono.append(i)
+                failed.append(i)
             p.removeAllUserDebugItems()
-    print(nono)
+    print(failed)
     print(f"Average total solved: {total_solved / total_runs} out of {len(queries)}")
     time.sleep(10)
