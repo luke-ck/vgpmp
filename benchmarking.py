@@ -80,8 +80,7 @@ if __name__ == '__main__':
             f.write(f"{list(querry)}\n")
 
     # sys.exit()
-    total_solved = 0
-    total_runs = 5
+    
     states = [list() for _ in range(15)]
     states[0] = [ 0.04295548, 0.95584516, -0.96807816, 0.97116162, 0.9778903, 0.65763463, -0.68464669] # top
     states[1] = [ 0.16082985, 1.11182696, -0.92183762, 0.3794195,   1.23 ,       0.47523424, -0.27413472] # top 
@@ -116,68 +115,14 @@ if __name__ == '__main__':
     elif robot_params["robot_name"] == "ur10":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
-    # robot.set_curr_config(np.squeeze(states[14]))
-    # env.loop()
-    # WAM
-    not_worked = {11, 12, 13, 19, 21, 44, 33, 42, 43} # just start and end q mu init
-    not_worked = {12, 13, 21, 43, 44} # increase the number of iterations to 200 from 130, to make them work, use the mean with the ciung state
-    
-    # UR10
-    # not_worked = {11, 19, 20, 21, 22, 27, 28, 31} # with 7 samples and with middle q_mu init until index 32, excluding it
-    # not_worked = {34, 37, 41, 43, 44} # with 20 samples and with middle q_mu init from index 32, including it
-    # not_worked = {21, 22, 28, 31} # what is left to not work with 20 samples
-    not_worked = {21, 22, 28, 31, 34, 37, 41, 43, 44} # these are the ones that DO NOT work with 20 samples, the rest should be fine
-                                                      # index 37 benefits from star and end q mu init
-    # to get things to work for ur10 use the first picture params until index 32, then use the second picture params from index 32
-    # these are the params that worked for the first two not_worked indices
-    # then for the first not_worked index, increase the number of samples to 20
-    nono = []
-    bef_32_20_samples = {11, 19, 20, 27}
-
-    # KUKA
-    not_worked = {2, 3, 4, 7, 9, 11, 12, 13, 16, 18, 19, 20, 21, 24, 26, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 48, 50, 51, 52, 53}
-    not_worked = {4, 13, 19, 21, 33, 40, 41, 42, 43, 44, 52}
-
-    new_not_worked = [4, 11, 13, 19, 20, 25, 27, 28, 30, 31, 34, 38, 41, 42, 43, 44, 4, 13, 21, 24, 27, 28, 31, 34, 40, 41, 42, 43, 44, 4, 13, 19, 21, 25, 28, 31, 36, 38, 40, 41, 42, 43, 2, 4, 10, 11, 13, 19, 20, 21, 24, 27, 28, 34, 36, 38, 40, 41, 42, 43, 44, 1, 4, 13, 24, 25, 27, 28, 31, 34, 40, 41, 42, 43, 44]
-    new_new_not_worked = [20, 27, 28, 34, 41, 4, 24, 28, 34, 40, 42, 43, 44, 4, 21, 28, 38, 41, 43, 2, 4, 11, 13, 21, 24, 27, 36, 38, 43, 44, 13, 27, 34, 40, 41]
-
-    moron_these_didnot_save_on_bookshelves = [10, 12, 16, 18, 21, 26, 27, 30, 5, 10, 16, 23] # until index 23 up to 35 because industrial duhhh
-
-    # 32, 31 not worked once
-    idx = new_not_worked.pop(0)
-    for run in range(total_runs):
-        # for k, (i, j) in enumerate(query_indices):
+    total_solved = 0
+    total_runs = 5
+    not_worked = []
+    nono = {32, 28, 29, 21, 22, 26, 16, 3}
+    for run in range(1, total_runs):
         for i, (start_joints, end_joints) in enumerate(queries):
-            # if i != idx:
+            # if i not in nono:
             #     continue
-            # else:
-            #     if new_not_worked:
-            #         idx = new_not_worked.pop(0)
-            # i += 35
-            # if i in not_worked:
-            #     continue
-            # UR10 MADNESS
-            # if i == 31:
-            #     continue
-            # # elif i == 31:
-            # #     planner_params["num_samples"] = 10
-            # elif i == 37:
-            #     continue
-            #     # planner_params["num_samples"] = 20
-            # elif i < 32:
-            #     if i in bef_32_20_samples:
-            #         planner_params["num_samples"] = 20
-            #     else:
-            #         planner_params["num_samples"] = 7
-            # else:
-            #     planner_params["num_samples"] = 20
-            
-            # LAB STUFF
-            # if k == 3:
-            #     planner_params["sigma_obs"] = 0.05
-            # else:
-            #     planner_params["sigma_obs"] = 0.005
-
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
@@ -199,8 +144,8 @@ if __name__ == '__main__':
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
-                nono.append(i)
+                not_worked.append(i)
             p.removeAllUserDebugItems()
-    print(nono)
+    print(not_worked)
     print(f"Average total solved: {total_solved / total_runs} out of {len(queries)}")
     time.sleep(10)

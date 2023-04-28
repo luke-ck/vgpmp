@@ -138,12 +138,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.21040983, -1.54239571, 2.0412341, -1.78920066, 1.53611764, 0.9651554 ] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
     # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 2)], [y[1] for _ in range(planner_params["num_inducing"] // 2)]], axis=0) # 31, 37 ish, the above for the rest
     
-    # Means for Industrial
-    # [-0.39039088, -2.29511129, 1.61724922, -2.62198995, -1.22776726, 0.08762118]
-    q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.39039088, -2.29511129, 1.61724922, -2.62198995, -1.22776726, 0.08762118] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
-
-    # write q_mu as an interpolated path between y[0] and y[1]
-    # q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])])
+    # The interpolated mean works great for the industrial setting
+    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in range(planner_params["num_inducing"])])
 
     # print(q_mu.shape)
     planner = VGPMP.initialize(num_data=num_data,
@@ -234,22 +230,6 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
 
-    # SAVE THE BEST SAMPLE
-    # best_path = np.load("/home/freshpate/saved_paths/ur10/bookshelves/pair_0_run_0.npy")
-    # xxx = best_path[-1]
-    # link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
-    #                                                 robot_params["craig_dh_convention"])
-    # prev = link_pos[-1]
-    # print(xxx, prev, np.abs(xxx - prev))
-    # sys.exit()
-    # for x in best_path[1:]:
-    #     p.addUserDebugLine(xxx, x, lineColorRGB=[0, 1, 0],
-    #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
-
-    #     xxx = x
-
-    # time.sleep(100)
-
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
@@ -332,15 +312,15 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     # print(f" alpha {planner.alpha}")
-    # for kern in planner.kernel.kernels:
-    #     print(f" lengthscale {kern.lengthscales}")
-    #     print(f" variance {kern.variance}")
+    for kern in planner.kernel.kernels:
+        print(f" lengthscale {kern.lengthscales}")
+        print(f" variance {kern.variance}")
     res = robot.move_to_ee_config(best_sample)
     if res == 1:
         path = np.array([robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
                                                         robot_params["craig_dh_convention"])[0][-1] for joint_config in best_sample])
-        np.save("/home/freshpate/saved_paths/ur10/industrial/pair_{}_run_{}".format(k, run), path)
-        
+        np.save("/home/freshpate/saved_paths/ur10/industrial/xyz/position_pair_{}_run_{}".format(k, run), path)
+        np.save("/home/freshpate/saved_paths/ur10/industrial/joint_angles/angles_pair_{}_run_{}".format(k, run), best_sample)
     return res
 
 
