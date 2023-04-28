@@ -18,7 +18,7 @@ class InducingPointsBase(InducingVariables, ABC):
 
         self._Z = Z
         self.start = tf.cast((tf.fill((1, dof), 0.)), dtype=default_float())
-        self.end = tf.cast((tf.fill((1, dof), 1. * 100)), dtype=default_float())
+        self.end = tf.cast((tf.fill((1, dof), 1.)), dtype=default_float())
 
     @property
     def Z(self):

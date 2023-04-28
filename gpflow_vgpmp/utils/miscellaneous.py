@@ -122,15 +122,29 @@ def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_jo
     return X, y, Xnew
 
 
+def detect_joint_limit_proximity(limits, q_mu):
+    """
+    if trajectory is too close to joint limits, return True
+    limits has shape (2, dof) where first row is upper limit and second row is lower limit
+    """
+    if q_mu is None:
+        return False
+    else:
+        return np.any(np.abs(q_mu - limits[:, 0]) < 0.1) or np.any(np.abs(q_mu - limits[:, 1]) < 0.1)
+
+
 def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params,
                            trainable_params, graphics_params):
     grid_spacing_X = planner_params["time_spacing_X"]
     grid_spacing_Xnew = planner_params["time_spacing_Xnew"]
     dof = robot_params["dof"]
     num_steps = planner_params["num_steps"]
-    X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints)
+    X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints, scale=1)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
+    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
+                     range(planner_params["num_inducing"])])  # all ish
+
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],
@@ -158,6 +172,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                whiten=False
                                )
 
+    assert(id(sdf) == id(planner.likelihood.sdf))
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     # This part of the code is used to visualize the spheres in the scene
@@ -299,7 +314,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         print(f" lengthscale {kern.lengthscales}")
         print(f" variance {kern.variance}")
     res = robot.move_to_ee_config(best_sample)
-    return res
+    # pos = tf.vectorized_map(planner.likelihood.compute_fk_joints, best_sample)
+    return res, best_sample
 
 
 def disable_param_opt(planner, trainable_params):

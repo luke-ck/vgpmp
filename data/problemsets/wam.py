@@ -120,7 +120,7 @@ class Problemset(AbstractProblemset, ABC):
             return {
                 "sigma_obs": 0.005,
                 "epsilon": 0.05,
-                "lengthscales": [600.0, 600.0, 600.0, 70.0, 600.0, 600.0, 600.0],
+                "lengthscales": [3] * 7,
                 "variance": 0.05,
                 "alpha": 100,
                 "num_samples": 7,

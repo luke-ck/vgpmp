@@ -9,7 +9,7 @@ from gpflow.base import Parameter, TensorLike
 from gpflow.config import default_float
 from gpflow.covariances import Kuf
 from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables
-from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52)
+from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52, RBF)
 from gpflow.kullback_leiblers import prior_kl, gauss_kl
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
@@ -123,9 +123,10 @@ class VGPMP(PathwiseSVGP, ABC):
             high = tf.constant([max(lengthscales) + 100] * num_output_dims, dtype=default_float())
 
             for i in range(num_latent_gps):
-                kern = Matern52(lengthscales=lengthscales[i])
-                kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
-                kern.variance = bounded_param(max([0.02, variance - 0.1]), min([0.5, variance + 0.1]), variance)
+                kern = Matern52(lengthscales=lengthscales[i], variance=variance)
+                # kern = RBF(lengthscales=lengthscales[i], variance=variance)
+                # kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
+                # kern.variance = bounded_param(max([0.02, variance - 0.1]), min([0.5, variance + 0.1]), variance)
                 kernels.append(kern)
             # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
             # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
@@ -212,9 +213,10 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else \
-            tf.repeat(self.likelihood.joint_sigmoid.inverse(
-                q_mu), num_inducing, axis=0)
+        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else q_mu
+            # else \
+            # tf.repeat(self.likelihood.joint_sigmoid.inverse(
+            #     q_mu), num_inducing, axis=0)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
 
         np_q_sqrt: np.ndarray = np.array(
@@ -278,8 +280,8 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=self.num_samples, num_bases=self.num_bases):
             f = self.predict_f_samples(data)  # S x N x D
         g = self.likelihood.joint_sigmoid(f)
-
         kl = self.prior_kl_separateindependent()
+
 
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
 

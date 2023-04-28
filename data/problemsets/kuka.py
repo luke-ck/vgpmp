@@ -81,17 +81,17 @@ class Problemset(AbstractProblemset, ABC):
     def planner_params(problemset):
         if problemset == "industrial":
             return {
-                "sigma_obs": 0.005,
-                "epsilon": 0.04,
-                "lengthscales": [200.0, 200.0, 100.0, 50.0, 100.0, 100.0, 100.0],
-                "variance": 0.05,
-                "alpha": 25,
-                "num_samples": 7,
+                "sigma_obs": 0.1,
+                "epsilon": 0.05,
+                "lengthscales": [2] * 7,
+                "variance": 0.3,
+                "alpha": 100,
+                "num_samples": 20,
                 "num_inducing": 7,
-                "learning_rate": 0.15,
-                "num_steps": 100,
-                "time_spacing_X": 70,
-                "time_spacing_Xnew": 150
+                "learning_rate": 0.02,
+                "num_steps": 200,
+                "time_spacing_X": 50,
+                "time_spacing_Xnew": 100
             }
         elif problemset == "bookshelves":
             return {

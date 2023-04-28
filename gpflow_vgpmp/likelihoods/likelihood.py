@@ -58,7 +58,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         )
         self.epsilon = tf.constant(epsilon, dtype=default_float())
         self._p = num_spheres
-        self.compute_joint_positions = robot.compute_joint_positions # TODO: Ugly. We are copying a function
+        # self.k = Parameter(tf.constant(10, dtype=default_float()), transform=positive())
 
     @tf.function
     def log_prob(self, F):
@@ -89,6 +89,13 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         return logp
 
     @tf.function
+    def log_normalization_constant(self, sigma, k):
+        sigma_inv_sqrt = tf.math.rsqrt(sigma)
+        erf_arg = tf.math.sqrt(0.5) * sigma_inv_sqrt * k
+        log_C = 0.5 * tf.math.log(6. * sigma) + tf.math.log(tf.math.erf(erf_arg) - tf.math.erf(0.))
+        return tf.reduce_sum(log_C, axis=-1)
+
+    @tf.function
     def _scalar_log_prob(self, f):
         r"""
         Args:
@@ -97,15 +104,15 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             [tf.Tensor]: [S x N]
         """
-        cost = self._hinge_loss(f) #tf.clip_by_value(self._hinge_loss(f), clip_value_min=0, clip_value_max=0.75)
-        S, N, P = cost.shape
-        delta = tf.expand_dims(cost, -1)
-        var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) / self.variance
+        cost = self._hinge_loss(f)
+        # S, N, P = cost.shape
+        # delta = tf.expand_dims(cost, -1)
+        # var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) / self.variance
+        #
+        # res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
+        # dist_list = tf.reshape(res, shape=(S, N))
 
-        res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
-        dist_list = tf.reshape(res, shape=(S, N))
-
-        return - 0.5 * dist_list
+        return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1)
 
     @tf.function
     def _sample_config_cost(self, f):
@@ -138,7 +145,6 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
     @tf.function
     def _fk_cost(self, joint_config):
-        # tf.print(joint_config.shape)
         return self.sampler._fk_cost(tf.expand_dims(joint_config, axis=1))
 
     @tf.function
@@ -155,6 +161,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         d = self._signed_distance_grad(data)
 
         return tf.where(d <= self.epsilon, self.epsilon - d, 0.0)
+        # return 1 / (1 + tf.math.exp(self.k * (d - self.epsilon))) * (- d + self.epsilon)
 
     @tf.custom_gradient
     def _signed_distance_grad(self, data):
@@ -163,9 +170,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             x_d * dx + y_d * dy + z_d * dz where d = [x_d, y_d, z_d]^T is the signed distance expressed in
             cartesian coordinates.
         Args:
-            data([tf.Tensor]): [N x P x 3]
+            data([tf.Tensor]): [S x N x P x 3]
         Returns:
-            d([tf.Tensor]): [N x P], grad([Tensor("gradients/...")]): [N x P x 3]
+            d([tf.Tensor]): [S x N x P], grad([Tensor("gradients/...")]): [S x N x P x 3]
         """
         # norm_data = data
         norm_data = tf.math.subtract(data, self.offset)  # 'center' the data around the origin. This is because the

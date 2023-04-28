@@ -1,11 +1,11 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "kuka"
+    robot_name: "wam"
 - scene:
-    object_position: [-0.2, 0, -0.2]  # [ 0.62, -0.15, 0.834]  # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] #    # [ 0.55, -0.0, 0.75]
-    object_name: "industrial.urdf"
-    problemset: "industrial"
-    sdf_name: "industrial_vgpmp.sdf"
+      object_position: [ 0.625, 0.275, 0.85 ] # [ 0.85, -0.15, 0.834] #  [-0.2, 0, -0.2] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.834] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] # [ 0.85, -0.15, 0.834] # [ 0.95, -0.15, 0.834]
+      object_name: "lab_mesh.urdf"
+      problemset: "lab"
+      sdf_name: "lab.sdf"
 - trainable_parameters:
     q_mu: True
     q_sqrt: True
@@ -13,7 +13,7 @@
     kernel_variance: True
     sigma_obs: False
     inducing_variable: False
-    alpha: True
+    alpha: False
 - graphics:
     visuals: True
     quality: high

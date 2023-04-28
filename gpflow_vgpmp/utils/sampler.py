@@ -6,18 +6,16 @@ def get_transform_matrix(theta, d, a, alpha):
     r"""
     Returns 4x4 homogenous matrix from DH parameters
     """
-    cTheta = tf.math.cos(theta)
-    sTheta = tf.math.sin(theta)
-    calpha = tf.math.cos(alpha)
-    salpha = tf.math.sin(alpha)
+    cTheta = tf.cos(theta)
+    sTheta = tf.sin(theta)
+    calpha = tf.cos(alpha)
+    salpha = tf.sin(alpha)
 
     T = tf.stack([
-        tf.cast([cTheta, -sTheta * calpha, sTheta *
-                 salpha, a * cTheta], dtype=default_float()),
-        tf.cast([sTheta, cTheta * calpha, -cTheta *
-                 salpha, a * sTheta], dtype=default_float()),
-        tf.cast([0., salpha, calpha, d], dtype=default_float()),
-        tf.cast([0., 0., 0., 1.], dtype=default_float())
+        [cTheta, -sTheta * calpha, sTheta * salpha, a * cTheta],
+        [sTheta, cTheta * calpha, -cTheta * salpha, a * sTheta],
+        [0., salpha, calpha, d],
+        [0., 0., 0., 1.]
     ])
 
     return T
@@ -28,16 +26,16 @@ def get_modified_transform_matrix(theta, d, a, alpha):
     r"""
     Returns 4x4 homogenous matrix from DH parameters
     """
-    cTheta = tf.math.cos(theta)
-    sTheta = tf.math.sin(theta)
-    calpha = tf.math.cos(alpha)
-    salpha = tf.math.sin(alpha)
+    cTheta = tf.cos(theta)
+    sTheta = tf.sin(theta)
+    calpha = tf.cos(alpha)
+    salpha = tf.sin(alpha)
 
     T = tf.stack([
-        tf.cast([cTheta, -sTheta, 0., a], dtype=default_float()),
-        tf.cast([sTheta * calpha, cTheta * calpha, -salpha, -d * salpha], dtype=default_float()),
-        tf.cast([sTheta * salpha, cTheta * salpha, calpha, d * calpha], dtype=default_float()),
-        tf.cast([0., 0., 0., 1.], dtype=default_float())
+        [cTheta, -sTheta, 0., a],
+        [sTheta * calpha, cTheta * calpha, -salpha, -d * salpha],
+        [sTheta * salpha, cTheta * salpha, calpha, d * calpha],
+        [0., 0., 0., 1.]
     ])
 
     return T
@@ -77,41 +75,8 @@ class Sampler:
         self.fk_slice = parameters["fk_slice"]
 
         for index, offset in enumerate(sphere_offsets):
-            if robot_name == "wam":
-                if index < 8:
-                    mat = set_base((offset[0] - 0.045, -offset[1], offset[2]))
-                elif index > 8 and index <= 12:
-                    mat = set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
-                elif index > 14:
-                    mat = set_base((offset[0], offset[1], offset[2]))
-                elif index == 8:
-                    mat = set_base((0, 0, 0))
-                else:
-                    mat = set_base((offset[0], -offset[1], offset[2]))
+            mat = self.get_mat(robot_name, index, offset)
 
-            elif robot_name == "ur10":
-                if index > 0 and index < 7:
-                    mat = set_base((offset[2], offset[0], offset[1] + 0.163941 + 0.05))
-                else:
-                    mat = set_base((offset[2], offset[0], offset[1]))
-
-            elif robot_name == "kuka":
-                if index > 1 and index < 5:
-                    mat = set_base((offset[0], -offset[2] + 0.18, offset[1]))
-                elif index >= 5 and index < 8:
-                    mat = set_base((offset[0], offset[2], offset[1]))
-                elif index >= 8 and index < 11:
-                    mat = set_base((offset[0], offset[2] - 0.18, -offset[1]))
-                elif index >= 11 and index < 15:
-                    mat = set_base((offset[0], -offset[2], offset[1]))
-                elif index >= 15 and index < 17:
-                    mat = set_base((offset[0], offset[2] + 0.1, offset[1] - 0.06))
-                elif index >= 17 and index < 20:
-                    mat = set_base((offset[0], offset[2] - 0.07, offset[1]))
-                else:
-                    mat = set_base((offset[0], offset[1], offset[2]))
-            else:
-                mat = set_base(offset)
             self.sphere_offsets[index] = mat
 
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
@@ -126,6 +91,41 @@ class Sampler:
             return upstream
 
         return x, grad
+
+    def get_mat(self, robot_name, index, offset):
+        if robot_name == "wam":
+            if index < 8:
+                return set_base((offset[0] - 0.045, -offset[1], offset[2]))
+            elif 8 < index <= 12:
+                return set_base((offset[0] + 0.045, -offset[1] - 0.05, offset[2]))
+            elif index > 14:
+                return set_base((offset[0], offset[1], offset[2]))
+            elif index == 8:
+                return set_base((0, 0, 0))
+            else:
+                return set_base((offset[0], -offset[1], offset[2]))
+        elif robot_name == "ur10":
+            if 0 < index < 7:
+                return set_base((offset[2], offset[0], offset[1] + 0.163941 + 0.05))
+            else:
+                return set_base((offset[2], offset[0], offset[1]))
+        elif robot_name == "kuka":
+            if 1 < index < 5:
+                return set_base((offset[0], -offset[2] + 0.18, offset[1]))
+            elif 5 <= index < 8:
+                return set_base((offset[0], offset[2], offset[1]))
+            elif 8 <= index < 11:
+                return set_base((offset[0], offset[2] - 0.18, -offset[1]))
+            elif 11 <= index < 15:
+                return set_base((offset[0], -offset[2], offset[1]))
+            elif 15 <= index < 17:
+                return set_base((offset[0], offset[2] + 0.1, offset[1] - 0.06))
+            elif 17 <= index < 20:
+                return set_base((offset[0], offset[2] - 0.07, offset[1]))
+            else:
+                return set_base((offset[0], offset[1], offset[2]))
+        else:
+            return set_base(offset)
 
     @tf.function
     def _compute_fk(self, joint_config):
@@ -146,35 +146,6 @@ class Sampler:
         return out
 
     @tf.function
-    def _compute_fk_ee_pos(self, joint_config):
-        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
-
-        if self.craig_dh_convention:
-            transform_matrices = tf.map_fn(
-                lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
-                parallel_iterations=4)
-        else:
-            transform_matrices = tf.map_fn(
-                lambda i: get_transform_matrix(i[0], i[1], i[2], i[3]), DH, fn_output_signature=default_float(),
-                parallel_iterations=4)
-
-        homogeneous_transforms = tf.concat(
-            [self.arm_base, transform_matrices], axis=0)
-
-        out = tf.scan(tf.matmul, homogeneous_transforms)
-
-        return out[-1, :3, 3]
-
-    @tf.custom_gradient
-    def check_gradients(self, x):
-
-        def grad(upstream):
-            tf.print(upstream, summarize=-1)
-            return upstream
-
-        return x, grad
-
-    @tf.function
     def _fk_cost(self, joint_config):
         r""" Computes the cost for a given config. It is advised to
         only use this function with the autograph since the decorator
@@ -191,10 +162,15 @@ class Sampler:
 
         # <------------- Computing Forward Kinematics ------------>
         # joint_config = self.check_gradients(joint_config)
-        fk_pos = tf.gather(self._compute_fk(joint_config), self.fk_slice, axis=0)
-        fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
+        fk_pos = self.compute_fk_joints(joint_config)
         sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
         return tf.squeeze(sphere_positions[:, :3, 3])
+
+    @tf.function
+    def compute_fk_joints(self, joint_config):
+        fk_pos = tf.gather(self._compute_fk(joint_config), self.fk_slice, axis=0)
+        fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
+        return fk_pos
 
     @tf.function
     def compute_joint_pos_uncertainty(self, joint_config, joint_config_uncertainty):

@@ -96,26 +96,47 @@ if __name__ == '__main__':
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
     # env.loop()
     for _ in range(total_runs):
-        for i, (start_joints, end_joints) in enumerate(queries):
+        for i, (start_joints, end_joints) in enumerate(queries[2:]):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
             robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()
-            solved = solve_planning_problem(env=env,
-                                            robot=robot,
-                                            sdf=sdf,
-                                            start_joints=start_joints,
-                                            end_joints=end_joints,
-                                            robot_params=robot_params,
-                                            planner_params=planner_params,
-                                            scene_params=scene_params,
-                                            trainable_params=trainable_params,
-                                            graphics_params=graphics_params)
+            solved, trajectory = solve_planning_problem(env=env,
+                                                        robot=robot,
+                                                        sdf=sdf,
+                                                        start_joints=start_joints,
+                                                        end_joints=end_joints,
+                                                        robot_params=robot_params,
+                                                        planner_params=planner_params,
+                                                        scene_params=scene_params,
+                                                        trainable_params=trainable_params,
+                                                        graphics_params=graphics_params)
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
             p.removeAllUserDebugItems()
+            break
+        break
 
     print(f"Average total solved: {total_solved / total_runs} out of {len(queries)}")
+    # reset the robot to the default position
+    # print(trajectory)
+    # robot.enable_collision_active_links(0)
+    # robot.set_curr_config(np.squeeze(start_joints))
+    # # Simulate the robot and overlap the robot positions
+    # trajectory = np.array(trajectory)[::10]
+    # for i in range(1, len(trajectory)):
+    #     robot_id = p.loadURDF(robot.urdf_path, useFixedBase=True, basePosition=[0, 0, 0])
+    #     # disable collision of the robot with environment
+    #     for idx in range(p.getNumJoints(robot_id)):
+    #         p.setCollisionFilterGroupMask(robot_id, idx, 0, 0)
+    #
+    #     for link in range(p.getNumJoints(robot_id)):
+    #         for joint_idx in range(trajectory[i].shape[0]):
+    #             p.resetJointState(robot_id, link, trajectory[i, joint_idx])
+
+
     time.sleep(10)
+    # Disconnect from the simulation
+    p.disconnect()
