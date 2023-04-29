@@ -74,6 +74,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
         return self._log_prob(F)
 
+    @tf.function
     def _log_prob(self, F):
         r"""
         Takes in a tensor of joint configs, computes the 3D world position of sphere coordinates
@@ -87,13 +88,6 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         L = self._sample_config_cost(F)  # S x N x P x 3
         logp = self._scalar_log_prob(L)
         return logp
-
-    @tf.function
-    def log_normalization_constant(self, sigma, k):
-        sigma_inv_sqrt = tf.math.rsqrt(sigma)
-        erf_arg = tf.math.sqrt(0.5) * sigma_inv_sqrt * k
-        log_C = 0.5 * tf.math.log(6. * sigma) + tf.math.log(tf.math.erf(erf_arg) - tf.math.erf(0.))
-        return tf.reduce_sum(log_C, axis=-1)
 
     @tf.function
     def _scalar_log_prob(self, f):

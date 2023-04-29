@@ -16,11 +16,12 @@ from gpflow_sampling.models import PathwiseSVGP
 from gpflow_vgpmp.inducing_variables.inducing_variables import VariableInducingPoints
 from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
 from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param, timing
-from gpflow_vgpmp.utils.sampler import Sampler
 from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
 
 # <------ Exports
 __all__ = "vgpmp"
+
+from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 
 
 # =========================================
@@ -63,35 +64,36 @@ class VGPMP(PathwiseSVGP, ABC):
         self._q_mu.assign(self.cached_q_mu)
         self._q_sqrt.assign(self.cached_q_sqrt)
         self.optimizer = self.initialize_optimizer(self.optimizer.learning_rate)
+
     @classmethod
     def initialize(cls,
+                   sigma_obs: float = 0.05,
+                   alpha: float = 1.0,
+                   variance: float = 0.1,
+                   lengthscales: List[float] = None,
+                   rs: List[float] = None,
+                   learning_rate: float = 0.1,
                    num_data=None,
                    num_output_dims=None,
-                   sigma_obs=0.05,
-                   rs=List[float],
-                   alpha=1,
-                   variance=0.1,
-                   learning_rate: float = 0.1,
                    num_inducing: int = 14,
                    num_samples: int = 51,
                    num_bases: int = 1024,
-                   num_spheres=None,
-                   lengthscales: List[float] = None,
+                   num_spheres: int = None,
                    offset: List = None,
                    query_states: List[np.array] = None,
                    joint_constraints: List = None,
                    velocity_constraints: List = None,
-                   sdf=None,
-                   robot=None,
+                   sdf: Optional['SignedDensityField'] = None,
+                   robot: Optional['Robot'] = None,
                    kernels: List[Kernel] = None,
                    num_latent_gps: int = None,
                    parameters: dict = None,
                    train_sigma: bool = True,
-                   no_frames_for_spheres=7,
+                   no_frames_for_spheres: int = 7,
                    robot_name: str = None,
-                   epsilon=0.05,
+                   epsilon: float = 0.05,
+                   q_mu: TensorLike = None,
                    **kwargs):
-
 
         if parameters is None:
             parameters = {}
@@ -123,9 +125,6 @@ class VGPMP(PathwiseSVGP, ABC):
             
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscales[i], variance=variance)
-                # kern = RBF(lengthscales=lengthscales[i], variance=variance)
-                # kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
-                # kern.variance = bounded_param(max([0.02, variance - 0.1]), min([0.5, variance + 0.1]), variance)
                 kernels.append(kern)
         kernel = SeparateIndependent(kernels)
 
@@ -146,6 +145,16 @@ class VGPMP(PathwiseSVGP, ABC):
                                                      no_frames_for_spheres,
                                                      epsilon)
 
+        # handle q_mu here
+        if q_mu is None:
+            q_mu = likelihood.joint_sigmoid(np.zeros(shape=(num_inducing, num_latent_gps), dtype=default_float()))
+        else:
+            assert isinstance(q_mu, np.ndarray)
+            if len(q_mu.shape) == 1:
+                q_mu = tf.repeat(q_mu, num_inducing, axis=0)
+            else:
+                assert q_mu.shape == (num_inducing, num_latent_gps)
+
         return cls(kernel=kernel,
                    likelihood=likelihood,
                    inducing_variable=SharedIndependentInducingVariables(_Z),
@@ -158,6 +167,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    parameters=parameters,
                    learning_rate=learning_rate,
                    alpha=alpha,
+                   q_mu=q_mu,
                    **kwargs)
 
     @property
@@ -209,10 +219,6 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        # q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else q_mu
-        #     # else \
-        # #     # tf.repeat(self.likelihood.joint_sigmoid.inverse(
-        # #     #     q_mu), num_inducing, axis=0)
 
         q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
