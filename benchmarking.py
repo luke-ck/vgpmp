@@ -74,6 +74,12 @@ if __name__ == '__main__':
 
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
 
+    # print(planner_params)
+    with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
+        for querry in queries:
+            f.write(f"{list(querry)}\n")
+
+    # sys.exit()
     total_solved = 0
     total_runs = 3
     # query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
@@ -94,12 +100,14 @@ if __name__ == '__main__':
     elif robot_params["robot_name"] == "ur10":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
+    # robot.set_curr_config(np.squeeze(states[14]))
     # env.loop()
     for _ in range(total_runs):
         for i, (start_joints, end_joints) in enumerate(queries[4:]):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
+            # env.loop()
             robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()
             solved, trajectory = solve_planning_problem(env=env,
@@ -115,8 +123,9 @@ if __name__ == '__main__':
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
+                nono.append(i)
             p.removeAllUserDebugItems()
-
+    print(nono)
     print(f"Average total solved: {total_solved / total_runs} out of {len(queries)}")
     # reset the robot to the default position
     # print(trajectory)

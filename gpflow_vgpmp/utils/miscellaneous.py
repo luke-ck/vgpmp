@@ -159,6 +159,13 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints, scale=1)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
+    
+    # WAM
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[0.46260489, -0.46922615, -0.0054897, 2.30599862, -0.31814771, 1.5535092, 0.10524932] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+    q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 2)], [y[1] for _ in range(planner_params["num_inducing"] // 2)]], axis=0)
+
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.79552928, -0.67950578, 0.36714378, -1.85928534, 1.2097811, 0.11837053, 0.50023788] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+    # print(q_mu.shape)
     q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
                      range(planner_params["num_inducing"])])  # all ish
 
@@ -188,6 +195,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                q_mu=q_mu,
                                whiten=False
                                )
+    
 
     assert (id(sdf) == id(planner.likelihood.sdf))
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
@@ -242,9 +250,10 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     training_loop(model=planner, num_steps=num_steps, data=X)
     sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot)
     robot.set_joint_position(start_joints)
-    tf.print(planner.likelihood.variance, summarize=-1)
     robot.enable_collision_active_links(-1)
 
+    # SAVE THE BEST SAMPLE
+    
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
@@ -257,7 +266,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
-            prev = link_pos
+    #         prev = link_pos
 
         link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
@@ -265,7 +274,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
-    # PLOT THE MEAN OF THE SAMPLES AND THE UNCERTAINTY in the path of the robot END EFFECTOR
+    # # PLOT THE MEAN OF THE SAMPLES AND THE UNCERTAINTY in the path of the robot END EFFECTOR
     if graphics_params["visualize_ee_path_uncertainty"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
@@ -305,7 +314,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                            lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
-    # PLOT THE SAMPLES
+    # # PLOT THE SAMPLES
     if graphics_params["visualize_drawn_samples"]:
         for sample in samples:
             link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
@@ -326,10 +335,11 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
-    print(f" alpha {planner.alpha}")
-    for kern in planner.kernel.kernels:
-        print(f" lengthscale {kern.lengthscales}")
-        print(f" variance {kern.variance}")
+    # print(f" alpha {planner.alpha}")
+    # for kern in planner.kernel.kernels:
+    #     print(f" lengthscale {kern.lengthscales}")
+    #     print(f" variance {kern.variance}")
+    # print(f" likelihood variance {planner.likelihood.variance}")
     res = robot.move_to_ee_config(best_sample)
     # pos = tf.vectorized_map(planner.likelihood.compute_fk_joints, best_sample)
     return res, best_sample

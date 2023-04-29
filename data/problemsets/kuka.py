@@ -38,11 +38,14 @@ class Problemset(AbstractProblemset, ABC):
             states[6] = [-1.35057625, 0.5838822, -2.77513306, 0.51041783, -0.65820477, -0.82270028, 0.35602494]
             states[7] = [-1.65521238, 0.75530852, -2.8386648, 0.14505213, 0.00402573, -1.03228289, 0.29148176]
             states[8] = [1.2179725, 1.19623672, 0.73636572, 1.46116258, 1.54880835, -1.90864908, 2.67156503]
+<<<<<<< HEAD
         elif problemset == "boxes":
             n_states = 2
             states = [list() for _ in range(n_states)]
             states[0] = [-1.88327995, 0.30243233, 1.88680381, -1.32331464, 1.3319037, 1.65225616, 0.5096332]
             states[1] = [-2.88286637, -0.2759609, 0.23902162, -1.17246602, 1.19599294, 1.88570609, 0.58906756]
+=======
+>>>>>>> origin/test-kuka
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
@@ -76,11 +79,17 @@ class Problemset(AbstractProblemset, ABC):
         elif problemset == "bookshelves":
             return [0.62, -0.15, 0.834]
         else:
+<<<<<<< HEAD
             raise ValueError("Unknown problem set: {}".format(problemset))
+=======
+            sys.exit("Invalid problemset")
+
+>>>>>>> origin/test-kuka
     @staticmethod
     def planner_params(problemset):
         if problemset == "industrial":
             return {
+<<<<<<< HEAD
                 "sigma_obs": 0.001,
                 "epsilon": 0.05,
                 "lengthscales": [2] * 7,
@@ -105,6 +114,32 @@ class Problemset(AbstractProblemset, ABC):
                 "learning_rate": 0.02,
                 "num_steps": 200,
                 "time_spacing_X": 100,
+=======
+                "sigma_obs": 0.00005,
+                "epsilon": 0.07,
+                "lengthscales": [400, 400, 400, 300, 300, 300, 300],
+                "variance": 0.5,
+                "alpha": 100,
+                "num_samples": 14,
+                "num_inducing": 24,
+                "learning_rate": 0.09,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        elif problemset == "bookshelves":
+            return {
+                "sigma_obs": 0.00005,
+                "epsilon": 0.07,
+                "lengthscales": [300, 300, 300, 300, 300, 300, 300],
+                "variance": 0.5,
+                "alpha": 100,
+                "num_samples": 14,
+                "num_inducing": 24,
+                "learning_rate": 0.09,
+                "num_steps": 100,
+                "time_spacing_X": 70,
+>>>>>>> origin/test-kuka
                 "time_spacing_Xnew": 150
             }
         elif problemset == "boxes":

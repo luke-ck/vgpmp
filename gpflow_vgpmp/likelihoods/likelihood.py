@@ -124,10 +124,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         active joints to sphere locations in the cartesian space, and handle
         gradients associated with these operations.We do S iterations,
         one iteration per sample.
-
         Args:
             F (tf.Tensor): [S x N x D]
-
         Returns:
             [tf.Tensor]: [S x N x P x 3]
         """
