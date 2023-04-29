@@ -43,6 +43,7 @@ class Robot:
         self.twist = np.array(params["twist"]).reshape((-1, 1))
 
         self.active_link_idx = []
+        self.name = params["robot_name"]
         self.rs = params['radius']
         self.link_names = params["spheres_over_links"]
         self.urdf_path = params["urdf_path"]
@@ -57,8 +58,8 @@ class Robot:
                 self.urdf_path,
                 start_pos,
                 start_orientation,
-                useFixedBase=1,
-                flags=p.URDF_USE_SELF_COLLISION
+                useFixedBase=1
+                # flags=p.URDF_USE_SELF_COLLISION # for some reason it makes wam's fingers to constantly move
             )
 
         self.link_idx = self.get_link_idx()
@@ -249,14 +250,22 @@ class Robot:
         if isinstance(joint_config, np.ndarray) and joint_config.ndim == 2:
             assert joint_config.shape[0] == 1
             joint_config = np.squeeze(joint_config)
-        # ceva = {1, 2, 3, 4, 5, 6, 7} # for wam
-        ceva = {0, 1, 2, 3, 4, 5, 6} # for franka
+
         for idx, joint in enumerate(self.joint_idx):
             p.resetJointState(self.robot_model, joint, joint_config[idx])
-        #FOR WAM
-        for i in range(11): # 23 for wam
-            if i not in ceva:
-                p.resetJointState(self.robot_model, i, 0)
+
+        if self.name == "wam":
+            active_indices = {1, 2, 3, 4, 5, 6, 7}    
+            for i in range(23):
+                if i not in active_indices:
+                    p.resetJointState(self.robot_model, i, 0)
+        
+        elif self.name == "franka":
+            active_indices = {0, 1, 2, 3, 4, 5, 6}
+            for i in range(11):
+                if i not in active_indices:
+                    p.resetJointState(self.robot_model, i, 0)
+
     def get_curr_config(self) -> np.ndarray:
         r"""
         Return joint position for each joint as a list
@@ -283,7 +292,7 @@ class Robot:
         """
         cur_pos = np.array(self.get_curr_config())
         delta = next_pos - cur_pos
-        eps = 0.2
+        eps = 0.05 # 0.2
         success = 1
         iteration = 0
         while np.max(np.abs(delta)) > eps:

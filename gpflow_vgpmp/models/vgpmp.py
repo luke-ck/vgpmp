@@ -209,12 +209,12 @@ class VGPMP(PathwiseSVGP, ABC):
             `q_sqrt` is two dimensional and only holds the square root of the
             covariance diagonal elements. If False, `q_sqrt` is three dimensional.
         """
-        q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else q_mu
-            # else \
-        #     # tf.repeat(self.likelihood.joint_sigmoid.inverse(
-        #     #     q_mu), num_inducing, axis=0)
+        # q_mu = np.zeros((num_inducing, self.num_latent_gps)) if q_mu is None else q_mu
+        #     # else \
+        # #     # tf.repeat(self.likelihood.joint_sigmoid.inverse(
+        # #     #     q_mu), num_inducing, axis=0)
 
-        # q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
+        q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
         self.cached_q_mu = q_mu
         np_q_sqrt: np.ndarray = np.array(
@@ -316,7 +316,7 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        # uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
+        # uncertainty = np.array([[robot.compute_joint_positions(np.array(time).reshape(-1, 1),
         #                                                                                self.likelihood.sampler.craig_dh_convention)[
         #                              0][-1] for time in sample] for sample in samples])
         # uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)

@@ -97,11 +97,10 @@ if __name__ == '__main__':
     total_runs = 3
     failed_indices = []
     for _ in range(total_runs):
-        for i, (start_joints, end_joints) in enumerate(queries[4:]):
+        for i, (start_joints, end_joints) in enumerate(queries):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
-            # env.loop()
             # env.loop()
             robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()

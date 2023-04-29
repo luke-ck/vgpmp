@@ -82,7 +82,7 @@ class Problemset(AbstractProblemset, ABC):
             return {
                 "sigma_obs": 0.0001,
                 "epsilon": 0.08,
-                "lengthscales": [600, 600, 600, 600, 600, 600],
+                "lengthscales": [6, 6, 6, 6, 6, 6],
                 "variance": 0.1,
                 "alpha": 100,
                 "num_samples": 7,
@@ -96,7 +96,7 @@ class Problemset(AbstractProblemset, ABC):
             return {
                 "sigma_obs": 0.002, # 0.05
                 "epsilon": 0.03,
-                "lengthscales": [400] * 6, #[500, 500, 500, 500, 500, 500],
+                "lengthscales": [4] * 6, #[500, 500, 500, 500, 500, 500],
                 "variance": 0.05,
                 "alpha": 100.0,
                 "num_samples": 7,
