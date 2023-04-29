@@ -43,9 +43,9 @@ if __name__ == '__main__':
                      benchmark=True)
 
     # env.loop()
-    # DEBUGING CODE FOR VISUALIZING JOINTS
+    # DEBUGGING CODE FOR VISUALIZING JOINTS
 
-    # This part of the code takes the start_joints confuguration that is above
+    # This part of the code takes the start_joints configuration that is above
     # and visualizes the joint positions by drawing a blue line from the joint position to 
     # +0.15 in the z direction. Change this to a lower value if you want to see the joint positions better.
     # If you are debugging the sphere positions also, make sure to match this with the
@@ -73,12 +73,12 @@ if __name__ == '__main__':
         # press the "a" key.
         # If you are also debugging the sphere positions, you can skip this.
 
-    # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
+    # ENDING DEBUGGING CODE FOR VISUALIZING JOINTS
 
     # Writing the queries to a file
     # with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
-    #     for querry in queries:
-    #         f.write(f"{list(querry)}\n")
+    #     for query in queries:
+    #         f.write(f"{list(query)}\n")
 
     # sys.exit()
     
