@@ -251,9 +251,6 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     # SAVE THE BEST SAMPLE
     
-
-    # SAVE THE BEST SAMPLE
-    
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
