@@ -102,6 +102,7 @@ if __name__ == '__main__':
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
     # robot.set_curr_config(np.squeeze(states[14]))
     # env.loop()
+    failed_indices = []
     for _ in range(total_runs):
         for i, (start_joints, end_joints) in enumerate(queries[4:]):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
@@ -123,9 +124,9 @@ if __name__ == '__main__':
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
-                nono.append(i)
+                failed_indices.append(i)
             p.removeAllUserDebugItems()
-    print(nono)
+    print(failed_indices)
     print(f"Average total solved: {total_solved / total_runs} out of {len(queries)}")
     # reset the robot to the default position
     # print(trajectory)
