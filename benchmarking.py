@@ -118,8 +118,7 @@ if __name__ == '__main__':
     total_solved = 0
     total_runs = 5
     not_worked = []
-    nono = {32, 28, 29, 21, 22, 26, 16, 3}
-    for run in range(1, total_runs):
+    for run in range(1):
         for i, (start_joints, end_joints) in enumerate(queries):
             # if i not in nono:
             #     continue

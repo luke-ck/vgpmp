@@ -92,15 +92,15 @@ class Problemset(AbstractProblemset, ABC):
             }
         elif problemset == "bookshelves":
             return {
-                "sigma_obs": 0.005,
-                "epsilon": 0.05,
-                "lengthscales": [600, 600, 600, 600, 600, 600],
-                "variance": 0.5,
+                "sigma_obs": 0.002, # 0.05
+                "epsilon": 0.03,
+                "lengthscales": [400] * 6, #[500, 500, 500, 500, 500, 500],
+                "variance": 0.05,
                 "alpha": 100.0,
                 "num_samples": 7,
-                "num_inducing": 18,
-                "learning_rate": 0.09,
-                "num_steps": 130,
+                "num_inducing": 10,
+                "learning_rate": 0.02,
+                "num_steps": 100,
                 "time_spacing_X": 70,
                 "time_spacing_Xnew": 150
             }

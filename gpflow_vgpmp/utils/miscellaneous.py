@@ -319,8 +319,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     if res == 1:
         path = np.array([robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
                                                         robot_params["craig_dh_convention"])[0][-1] for joint_config in best_sample])
-        np.save("/home/freshpate/saved_paths/ur10/industrial/xyz/position_pair_{}_run_{}".format(k, run), path)
-        np.save("/home/freshpate/saved_paths/ur10/industrial/joint_angles/angles_pair_{}_run_{}".format(k, run), best_sample)
+        np.save("/home/freshpate/saved_paths/ur10/bookshelves/xyz/position_pair_{}_run_{}".format(k, run), path)
+        np.save("/home/freshpate/saved_paths/ur10/bookshelves/joint_angles/angles_pair_{}_run_{}".format(k, run), best_sample)
     return res
 
 
