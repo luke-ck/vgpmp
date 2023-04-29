@@ -75,9 +75,9 @@ if __name__ == '__main__':
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
 
     # Writing the queries to a file
-    with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
-        for querry in queries:
-            f.write(f"{list(querry)}\n")
+    # with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
+    #     for querry in queries:
+    #         f.write(f"{list(querry)}\n")
 
     # sys.exit()
     

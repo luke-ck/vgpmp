@@ -283,7 +283,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         t = np.linspace(0, 2 * np.pi, 50)
         cos = np.cos(t)
         sin = np.sin(t)
-        for joint_config in sample_mean:
+        for joint_config, unc in zip(sample_mean, uncertainties):
             link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
                                                         robot_params["craig_dh_convention"])
             link_pos = np.array(link_pos[-1])
