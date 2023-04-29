@@ -1,3 +1,4 @@
+import importlib
 import itertools
 import os
 import signal
@@ -161,7 +162,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
     q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
                      range(planner_params["num_inducing"])])  # all ish
-    
+
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],
@@ -188,7 +189,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                q_mu=q_mu,
                                whiten=False
                                )
-    
+
     assert (id(sdf) == id(planner.likelihood.sdf))
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
@@ -240,12 +241,13 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     disable_param_opt(planner, trainable_params)
     robot.set_joint_position(start_joints)
     training_loop(model=planner, num_steps=num_steps, data=X)
-    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot, graphics_params["visualize_ee_path_uncertainty"])
+    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot, graphics_params[
+        "visualize_ee_path_uncertainty"])
     robot.set_joint_position(start_joints)
     robot.enable_collision_active_links(-1)
 
     # SAVE THE BEST SAMPLE
-    
+
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
@@ -374,19 +376,15 @@ def draw_active_config(robot: object, config_array: np.ndarray, color: int, clie
 
 
 def import_problemsets(robot_name):
+    from data.problemsets import config
+
     sys.path.insert(0, os.path.abspath('data/problemsets'))
-    if robot_name == "franka":
-        from franka import Problemset
-    elif robot_name == "ur10":
-        from ur10 import Problemset
-    elif robot_name == "wam":
-        from wam import Problemset
-    elif robot_name == "kuka":
-        from kuka import Problemset
-    else:
+    if robot_name not in config.robot_modules:
         print("Robot not available. Check params file and try again... The simulator will now exit.")
         sys.exit(-1)
-    return Problemset
+    module_name = config.robot_modules[robot_name]
+    module = importlib.import_module(module_name)
+    return module.Problemset
 
 
 def decay_sigma(sigma_obs, num_latent_gps, decay_rate):

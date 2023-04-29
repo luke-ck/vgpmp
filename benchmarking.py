@@ -1,11 +1,12 @@
 from gpflow_vgpmp.utils.miscellaneous import *
 from gpflow_vgpmp.utils.simulator import RobotSimulator
+import os
+# set export TF_CPP_MIN_LOG_LEVEL=2 when running for your sanity
 
 gpflow.config.set_default_float(np.float64)
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 gpflow.config.Config(jitter=1e-6)
 
-signal.signal(signal.SIGINT, shutdown)
 
 if __name__ == '__main__':
     env = RobotSimulator()
@@ -42,9 +43,9 @@ if __name__ == '__main__':
                      benchmark=True)
 
     # env.loop()
-    # DEBUGING CODE FOR VISUALIZING JOINTS
+    # DEBUGGING CODE FOR VISUALIZING JOINTS
 
-    # This part of the code takes the start_joints confuguration that is above
+    # This part of the code takes the start_joints configuration that is above
     # and visualizes the joint positions by drawing a blue line from the joint position to 
     # +0.15 in the z direction. Change this to a lower value if you want to see the joint positions better.
     # If you are debugging the sphere positions also, make sure to match this with the
@@ -72,12 +73,12 @@ if __name__ == '__main__':
         # press the "a" key.
         # If you are also debugging the sphere positions, you can skip this.
 
-    # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
+    # ENDING DEBUGGING CODE FOR VISUALIZING JOINTS
 
     # Writing the queries to a file
     # with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
-    #     for querry in queries:
-    #         f.write(f"{list(querry)}\n")
+    #     for query in queries:
+    #         f.write(f"{list(query)}\n")
 
     # sys.exit()
     
@@ -96,7 +97,9 @@ if __name__ == '__main__':
     total_solved = 0
     total_runs = 3
     failed_indices = []
+
     for _ in range(total_runs):
+
         for i, (start_joints, end_joints) in enumerate(queries):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
@@ -104,6 +107,7 @@ if __name__ == '__main__':
             # env.loop()
             robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()
+
             solved, trajectory = solve_planning_problem(env=env,
                                                         robot=robot,
                                                         sdf=sdf,
@@ -114,6 +118,7 @@ if __name__ == '__main__':
                                                         scene_params=scene_params,
                                                         trainable_params=trainable_params,
                                                         graphics_params=graphics_params)
+            print(env.sim.check_simulation_thread_health())
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
