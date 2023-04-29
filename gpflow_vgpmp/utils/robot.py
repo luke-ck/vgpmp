@@ -57,7 +57,8 @@ class Robot:
                 self.urdf_path,
                 start_pos,
                 start_orientation,
-                useFixedBase=1
+                useFixedBase=1,
+                flags=p.URDF_USE_SELF_COLLISION
             )
 
         self.link_idx = self.get_link_idx()
@@ -282,7 +283,7 @@ class Robot:
         iteration = 0
         while np.max(np.abs(delta)) > eps:
 
-            self.set_joint_motor_control(next_pos, 300, 0.5)
+            self.set_joint_motor_control(next_pos, 500, 0.5)
             p.stepSimulation()
             cur_pos = np.array(self.get_curr_config())
 

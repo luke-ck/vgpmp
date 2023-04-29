@@ -55,6 +55,14 @@ class VGPMP(PathwiseSVGP, ABC):
         self.planner_parameters = parameters
         self.alpha = Parameter(alpha, transform=positive(1e-4))
 
+    def reinitialize(self):
+        """
+        Since optimization is stochastic it can happen that the optimization gets stuck in a local minimum.
+        This function reinitializes the mean and variance of the variational distribution.
+        """
+        self._q_mu.assign(self.cached_q_mu)
+        self._q_sqrt.assign(self.cached_q_sqrt)
+        self.optimizer = self.initialize_optimizer(self.optimizer.learning_rate)
     @classmethod
     def initialize(cls,
                    num_data=None,
@@ -218,7 +226,7 @@ class VGPMP(PathwiseSVGP, ABC):
             # tf.repeat(self.likelihood.joint_sigmoid.inverse(
             #     q_mu), num_inducing, axis=0)
         self._q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
-
+        self.cached_q_mu = q_mu
         np_q_sqrt: np.ndarray = np.array(
             [
                 np.eye(num_inducing, dtype=default_float())
@@ -226,6 +234,7 @@ class VGPMP(PathwiseSVGP, ABC):
             ]
         )
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
+        self.cached_q_sqrt = np_q_sqrt
 
     def prior_kl_separateindependent(self):
         """

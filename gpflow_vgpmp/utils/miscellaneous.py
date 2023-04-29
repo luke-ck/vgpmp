@@ -1,5 +1,6 @@
 import itertools
 import os
+import signal
 import sys
 import time
 from contextlib import contextmanager
@@ -97,6 +98,12 @@ def optimization_step(model, closure, optimizer):
     return loss
 
 
+def shutdown():
+    p.disconnect()
+    print("Shutting down the simulator")
+    sys.exit(0)
+
+
 def training_loop(model, data, num_steps):
     r"""
 
@@ -106,9 +113,19 @@ def training_loop(model, data, num_steps):
     tf_optimization_step = tf.function(optimization_step)
     closure = model.training_loss_closure(data)
     step_iterator = tqdm(range(num_steps))
+    improvement = 0
+    patience = 10
     for _ in step_iterator:
         loss = tf_optimization_step(model, closure, model.optimizer)
         step_iterator.set_postfix_str(f"ELBO: {-loss:.3e}")
+        if loss < improvement:
+            improvement = loss
+        elif np.abs(improvement - loss) < 1e-2:
+            patience -= 1
+            print(f"Patience: {patience}")
+            if patience == 0:
+                print("Local minimum reached, attempting reinitalization")
+                model.reinitialize()
 
 
 def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_joints, end_joints, scale=100,
@@ -155,7 +172,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                variance=planner_params["variance"],
                                learning_rate=planner_params["learning_rate"],
                                lengthscales=planner_params["lengthscales"],
-                               offset=scene_params["object_position"],
+                               offset=scene_params["position"],
                                joint_constraints=robot_params["joint_limits"],
                                velocity_constraints=robot_params["velocity_limits"],
                                rs=robot.rs,
@@ -172,7 +189,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                whiten=False
                                )
 
-    assert(id(sdf) == id(planner.likelihood.sdf))
+    assert (id(sdf) == id(planner.likelihood.sdf))
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     # This part of the code is used to visualize the spheres in the scene
@@ -207,10 +224,10 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
             aux_pos[2] += 0.1
             # if i >= 17 and i < 20:
             #     p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
-            #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
             # else:
             p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
 
@@ -238,7 +255,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                                         robot_params["craig_dh_convention"])
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
             prev = link_pos
 
@@ -246,7 +263,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                                     robot_params["craig_dh_convention"])
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
     # PLOT THE MEAN OF THE SAMPLES AND THE UNCERTAINTY in the path of the robot END EFFECTOR
     if graphics_params["visualize_ee_path_uncertainty"]:
@@ -262,7 +279,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                                         robot_params["craig_dh_convention"])
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
             prev = link_pos
             rx, ry, rz = unc[0], unc[1], unc[2]
             prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
@@ -273,11 +290,11 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                 yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
                 zz = [0, ry * cos[i], rz * sin[i]] + link_pos
                 p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
                 p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
                 p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
                 prev_xx = xx
                 prev_yy = yy
                 prev_zz = zz
@@ -286,7 +303,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                                     robot_params["craig_dh_convention"])
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
     # PLOT THE SAMPLES
     if graphics_params["visualize_drawn_samples"]:
@@ -300,14 +317,14 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                                             robot_params["craig_dh_convention"])
                 link_pos = np.array(link_pos[-1])
                 p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
                 prev = link_pos
             link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
                                                         robot_params["craig_dh_convention"])
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
     print(f" alpha {planner.alpha}")
     for kern in planner.kernel.kernels:

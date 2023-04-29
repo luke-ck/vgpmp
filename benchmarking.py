@@ -1,11 +1,11 @@
-import gpflow
-import numpy as np
 from gpflow_vgpmp.utils.miscellaneous import *
 from gpflow_vgpmp.utils.simulator import RobotSimulator
 
 gpflow.config.set_default_float(np.float64)
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 gpflow.config.Config(jitter=1e-6)
+
+signal.signal(signal.SIGINT, shutdown)
 
 if __name__ == '__main__':
     env = RobotSimulator()
@@ -16,10 +16,10 @@ if __name__ == '__main__':
     p.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=-75, cameraPitch=-45, cameraTargetPosition=[0, 0, 0])
 
     params = env.get_simulation_params()
-    robot_params = params.robot
-    scene_params = params.scene
+    robot_params = params.robot_params
+    scene_params = params.scene_params
     trainable_params = params.trainable_params
-    graphics_params = params.graphics
+    graphics_params = params.graphic_params
 
     sphere_links = robot_params["spheres_over_links"]
     active_joints = robot_params["active_joints"]
@@ -60,7 +60,7 @@ if __name__ == '__main__':
             aux_pos = np.array(pos).copy()
             aux_pos[2] += 0.05
             p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
 
     if graphics_params["debug_joint_positions"] and not graphics_params["debug_sphere_positions"]:
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
 
     total_solved = 0
-    total_runs = 5
+    total_runs = 3
     # query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
     #                  (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
     #                  (3, 9), (9, 4), (4, 13), (13, 8)]
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     # (6, 7)     fails # index 13
     # (7, 14)    fails # index 14
     # (9, 4)     fails # index 18
-
+    # 30, 49, 50, 51, 57, 58
     if robot_params["robot_name"] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
     # env.loop()
     for _ in range(total_runs):
-        for i, (start_joints, end_joints) in enumerate(queries[2:]):
+        for i, (start_joints, end_joints) in enumerate(queries[4:]):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
@@ -116,8 +116,6 @@ if __name__ == '__main__':
             if not solved:
                 print(f"Failed to solve problem {i}")
             p.removeAllUserDebugItems()
-            break
-        break
 
     print(f"Average total solved: {total_solved / total_runs} out of {len(queries)}")
     # reset the robot to the default position
@@ -135,7 +133,6 @@ if __name__ == '__main__':
     #     for link in range(p.getNumJoints(robot_id)):
     #         for joint_idx in range(trajectory[i].shape[0]):
     #             p.resetJointState(robot_id, link, trajectory[i, joint_idx])
-
 
     time.sleep(10)
     # Disconnect from the simulation

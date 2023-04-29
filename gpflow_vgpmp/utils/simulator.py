@@ -2,10 +2,9 @@ import sys
 
 from bunch import Bunch
 import tensorflow as tf
-from gpflow_vgpmp.utils.bullet_object import Object
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
-from gpflow_vgpmp.utils.simulation import Simulation
+from gpflow_vgpmp.utils.simulation import Simulation, ParameterLoader, Scene
 
 # ---------------Exports
 __all__ = 'simulator'
@@ -13,16 +12,24 @@ __all__ = 'simulator'
 
 class RobotSimulator:
     def __init__(self):
-        self.sim = Simulation()
-        self.plane = Object(name="plane")
-        self.robot = Robot(self.sim.robot_params)
-        self.sdf = SignedDensityField.from_sdf(self.sim.scene_params["sdf_path"])
-        self.scene = Object(name="scene",
-                            path=self.sim.scene_params["object_path"],
-                            position=self.sim.scene_params["object_position"])
+        self.scene = None
+        self.sdf = None
+        self.robot = None
+        self.plane = None
+        self.sim = None
+        self.config = ParameterLoader()
+
+        self.initialize()
+
+    def initialize(self):
+        self.sim = Simulation(self.config.graphic_params)
+        self.scene = Scene(self.config.scene_params)
+        # self.plane = Object(name="plane")
+        self.robot = Robot(self.config.robot_params)
+        self.sdf = SignedDensityField.from_sdf(self.config.scene_params["sdf_path"])
 
     def get_simulation_params(self) -> Bunch:
-        return self.sim.get_params()
+        return self.config.params
 
     def loop(self, planner=None):
         exit = False

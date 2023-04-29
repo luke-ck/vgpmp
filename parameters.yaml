@@ -1,18 +1,22 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "wam"
+    robot_name: "kuka"
 - scene:
-      object_position: [ 0.625, 0.275, 0.85 ] # [ 0.85, -0.15, 0.834] #  [-0.2, 0, -0.2] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.834] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] # [ 0.85, -0.15, 0.834] # [ 0.95, -0.15, 0.834]
-      object_name: "lab_mesh.urdf"
-      problemset: "lab"
-      sdf_name: "lab.sdf"
+      position: [ 0.62, -0.15, 0.834] # [-0.2, 0, -0.2] # [ 0.625, 0.275, 0.85 ] #  #   # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.834] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] # [ 0.85, -0.15, 0.834] # [ 0.95, -0.15, 0.834]
+      orientation: [ 0.0, 0.0, 0.0, 1.0 ]
+      environment_name: "bookshelves_mesh"
+      objects: []
+      objects_position: []
+      objects_orientation: []
+      problemset: "bookshelves"
+      sdf_name: "bookshelves_center_vgpmp"
 - trainable_parameters:
     q_mu: True
     q_sqrt: True
     lengthscales: True
     kernel_variance: True
     sigma_obs: False
-    inducing_variable: False
+    inducing_variable: True
     alpha: False
 - graphics:
     visuals: True
@@ -22,4 +26,4 @@
     debug_sphere_positions: False
     visualize_best_sample: True
     visualize_ee_path_uncertainty: False
-    visualize_drawn_samples: False
+    visualize_drawn_samples: True
