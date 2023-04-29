@@ -1,8 +1,8 @@
+import asyncio
+import queue
 import sys
 import threading
-from collections import defaultdict
 from typing import List, Optional, Tuple
-
 import pkg_resources
 import pybullet as p
 import yaml
@@ -13,6 +13,36 @@ from .bullet_object import BaseObject
 from .miscellaneous import get_root_package_path
 
 __all__ = 'simulation'
+
+
+def get_bullet_key_from_value():
+    """ Get the key from the value in the bullet dictionary """
+    return {value: key for key, value in p.__dict__.items() if key.startswith("B3G")}
+
+
+async def await_key_press(stop_event):
+    """ run the simulation """
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    # Wait for the ESC key to be pressed or the stop event to be set
+    while True:
+        keys = p.getKeyboardEvents()
+        if stop_event.is_set():
+            break
+        if 27 in keys and keys[27] & p.KEY_WAS_TRIGGERED:
+            break
+        if p.B3G_RETURN in keys and keys[p.B3G_RETURN] & p.KEY_WAS_TRIGGERED:
+            break
+
+        # Sleep for a short time to prevent the loop from running too fast
+        await asyncio.sleep(0.01)
+
+    # Set the future result with the pressed key code
+    future.set_result(keys.keys())
+
+    # Return the future object
+    return future
 
 
 def load_yaml_config(scene_config):
@@ -126,32 +156,134 @@ class ParameterLoader:
         return scene_path, sdf_path
 
 
-class Simulation:
-    def __init__(self, graphic_params):
-        self.scene = None
-        self.client = None
+class SimulationThread(threading.Thread):
+    def __init__(self, graphic_params, thread_ready_event, queue):
+        super().__init__()
         self.graphic_params = graphic_params
+        self.result_queue = queue
+        self.client = None
+        self.stop_event = threading.Event()
+        self.thread_ready_event = thread_ready_event
 
-        self.start_engine()
+    async def check_connection(self):
+        while not self.stop_event.is_set():
+            if p.getConnectionInfo(self.client)['isConnected'] == 0:
+                self.stop_event.set()
+                break
+            await asyncio.sleep(0.01)
 
-    def start_engine(self):
-        """ start pybullet with/without GUI """
+    async def wait_key_press(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        while True:
+            # Wait for a key press
+            key = await self.await_key_press()
+            self.result_queue.put(key)
+
+    async def await_key_press(self):
+        """ run the simulation """
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+
+        # Wait for the ESC key to be pressed or the stop event to be set
+        while True:
+            keys = p.getKeyboardEvents()
+            if self.stop_event.is_set():
+                break
+            if 27 in keys and keys[27] & p.KEY_WAS_TRIGGERED:
+                break
+            if p.B3G_RETURN in keys and keys[p.B3G_RETURN] & p.KEY_WAS_TRIGGERED:
+                break
+
+            # Sleep for a short time to prevent the loop from running too fast
+            await asyncio.sleep(0.01)
+
+        # Set the future result with the pressed key code
+        future.set_result(keys.keys())
+
+        # Return the future object
+        return future
+
+    def run(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        self.initialize()
+
+        tasks = [self.check_connection(), self.wait_key_press()]
+        try:
+            loop.run_until_complete(asyncio.gather(*tasks))
+        except asyncio.CancelledError:
+            pass
+        finally:
+            loop.close()
+            p.disconnect(self.client)
+
+    def initialize(self):
+
         gravity_constant = -9.81
 
         if self.graphic_params["visuals"]:
-            self.client = p.connect(p.GUI, options="--width=960 "
-                                                   "--height=540 ")
-            # "--mp4=\"video.mp4\"")
+            self.client = p.connect(p.GUI, options="--width=960 --height=540")
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
             p.setRealTimeSimulation(enableRealTimeSimulation=1)
-            # Start the window monitor thread
-            # monitor_thread = threading.Thread(target=window_monitor)
-            # monitor_thread.start()
+            p.configureDebugVisualizer(p.COV_ENABLE_KEYBOARD_SHORTCUTS, 1)
         else:
             self.client = p.connect(p.DIRECT)
-
         p.resetSimulation()
         p.setGravity(0, 0, gravity_constant)
+
+        self.thread_ready_event.set()  # Notify the main thread that the simulation thread is ready
+
+
+class Simulation:
+    def __init__(self, graphic_params):
+        self.result_queue = None
+        self.simulation_thread = None
+        self.scene = None
+        self.result_queue = queue.Queue()
+        self.graphic_params = graphic_params
+        self.thread_ready_event = threading.Event()  # Create a new event object
+        # self.start_engine()
+        self.start_simulation_thread()
+        # Wait for the SimulationThread instance to finish initializing
+        self.thread_ready_event.wait()
+
+        self.client = self.simulation_thread.client
+        if self.client is None:
+            raise Exception("Simulation thread failed to initialize")
+
+    def start_simulation_thread(self):
+        self.simulation_thread = SimulationThread(self.graphic_params, self.thread_ready_event, self.result_queue)
+        self.simulation_thread.start()
+        print("Simulation thread started")
+
+    def stop_simulation_thread(self):
+        self.simulation_thread.stop()
+        self.simulation_thread.join()
+        print("Simulation thread stopped")
+
+    def check_events(self):
+        """ TODO: do stuff with the simulation thread"""
+        # queue_result = self.result_queue.get().result()
+        # queue_size = self.result_queue.qsize()
+        # print("Queue size: ", queue_size)
+        # print("Queue result: ", queue_result)
+        # for key in queue_result:
+        #     if key == p.B3G_RETURN:
+        #         self.simulation_thread.stop()
+        #         self.simulation_thread.join()
+        #         print("Simulation thread stopped")
+        #     else:
+        #         print("Something went wrong with the simulation thread")
+        pass
+
+    def check_simulation_thread_health(self):
+        """ check if the simulation thread is still alive """
+        if self.simulation_thread.is_alive():
+            return True
+        else:
+            return False
 
 
 class Scene:

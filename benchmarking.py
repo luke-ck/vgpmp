@@ -1,5 +1,7 @@
 from gpflow_vgpmp.utils.miscellaneous import *
 from gpflow_vgpmp.utils.simulator import RobotSimulator
+import pyglet
+from pyglet.window import key
 
 gpflow.config.set_default_float(np.float64)
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -96,7 +98,9 @@ if __name__ == '__main__':
     total_solved = 0
     total_runs = 3
     failed_indices = []
+
     for _ in range(total_runs):
+
         for i, (start_joints, end_joints) in enumerate(queries):
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
@@ -104,6 +108,7 @@ if __name__ == '__main__':
             # env.loop()
             robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()
+
             solved, trajectory = solve_planning_problem(env=env,
                                                         robot=robot,
                                                         sdf=sdf,
@@ -114,6 +119,7 @@ if __name__ == '__main__':
                                                         scene_params=scene_params,
                                                         trainable_params=trainable_params,
                                                         graphics_params=graphics_params)
+            print(env.sim.check_simulation_thread_health())
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
