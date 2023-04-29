@@ -120,14 +120,7 @@ class VGPMP(PathwiseSVGP, ABC):
 
         if kernels is None:
             kernels = []
-            for i in range(num_latent_gps):
-                lower.append(max([lengthscales[i] - 100, 10]))
-                upper.append(min([lengthscales[i] + 100, 500]))
-            low = tf.constant(lower, dtype=default_float())
-            high = tf.constant(upper, dtype=default_float())
-            low = tf.constant([min(lengthscales) - 5] * num_output_dims, dtype=default_float())
-            high = tf.constant([max(lengthscales) + 100] * num_output_dims, dtype=default_float())
-
+            
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscales[i], variance=variance)
                 # kern = RBF(lengthscales=lengthscales[i], variance=variance)
