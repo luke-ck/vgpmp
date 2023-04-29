@@ -240,7 +240,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     disable_param_opt(planner, trainable_params)
     robot.set_joint_position(start_joints)
     training_loop(model=planner, num_steps=num_steps, data=X)
-    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot)
+    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot, graphics_params["visualize_ee_path_uncertainty"])
     robot.set_joint_position(start_joints)
     robot.enable_collision_active_links(-1)
 
