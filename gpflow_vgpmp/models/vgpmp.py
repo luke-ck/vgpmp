@@ -120,8 +120,6 @@ class VGPMP(PathwiseSVGP, ABC):
 
         if kernels is None:
             kernels = []
-            lower = []
-            upper = []
             for i in range(num_latent_gps):
                 lower.append(max([lengthscales[i] - 100, 10]))
                 upper.append(min([lengthscales[i] + 100, 500]))
@@ -136,9 +134,6 @@ class VGPMP(PathwiseSVGP, ABC):
                 # kern.lengthscales = bounded_param(low[i], high[i], kern.lengthscales)
                 # kern.variance = bounded_param(max([0.02, variance - 0.1]), min([0.5, variance + 0.1]), variance)
                 kernels.append(kern)
-            # kernel = Matern52(lengthscales=lengthscale, variance=0.05)
-            # kernel.lengthscales = bounded_param(80, 2 * 100, kernel.lengthscales)
-            # kernel.variance = bounded_param(0.1, 0.5, kernel.variance)
         kernel = SeparateIndependent(kernels)
 
         # Original inducing points

@@ -74,25 +74,16 @@ if __name__ == '__main__':
 
     # ENDING DEBUGING CODE FOR VISUALIZING JOINTS
 
-    # print(planner_params)
+    # Writing the queries to a file
     with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
         for querry in queries:
             f.write(f"{list(querry)}\n")
 
     # sys.exit()
-    total_solved = 0
-    total_runs = 3
+    
     # query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
     #                  (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
     #                  (3, 9), (9, 4), (4, 13), (13, 8)]
-    # (13, 12)   fails # index 4
-    # (8, 16)    fails # index 7
-    # (9, 5)     fails # index 9
-    # (12, 6)    fails # index 12
-    # (6, 7)     fails # index 13
-    # (7, 14)    fails # index 14
-    # (9, 4)     fails # index 18
-    # 30, 49, 50, 51, 57, 58
     if robot_params["robot_name"] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
         p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
@@ -102,6 +93,8 @@ if __name__ == '__main__':
         p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
     # robot.set_curr_config(np.squeeze(states[14]))
     # env.loop()
+    total_solved = 0
+    total_runs = 3
     failed_indices = []
     for _ in range(total_runs):
         for i, (start_joints, end_joints) in enumerate(queries[4:]):

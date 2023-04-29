@@ -39,6 +39,7 @@ class Problemset(AbstractProblemset, ABC):
             states[7] = [-1.65521238, 0.75530852, -2.8386648, 0.14505213, 0.00402573, -1.03228289, 0.29148176]
             states[8] = [1.2179725, 1.19623672, 0.73636572, 1.46116258, 1.54880835, -1.90864908, 2.67156503]
 <<<<<<< HEAD
+<<<<<<< HEAD
         elif problemset == "boxes":
             n_states = 2
             states = [list() for _ in range(n_states)]
@@ -46,6 +47,8 @@ class Problemset(AbstractProblemset, ABC):
             states[1] = [-2.88286637, -0.2759609, 0.23902162, -1.17246602, 1.19599294, 1.88570609, 0.58906756]
 =======
 >>>>>>> origin/test-kuka
+=======
+>>>>>>> origin/test-ur10
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
@@ -84,11 +87,15 @@ class Problemset(AbstractProblemset, ABC):
 =======
             sys.exit("Invalid problemset")
 
+<<<<<<< HEAD
 >>>>>>> origin/test-kuka
+=======
+>>>>>>> origin/test-ur10
     @staticmethod
     def planner_params(problemset):
         if problemset == "industrial":
             return {
+<<<<<<< HEAD
 <<<<<<< HEAD
                 "sigma_obs": 0.001,
                 "epsilon": 0.05,
@@ -121,6 +128,14 @@ class Problemset(AbstractProblemset, ABC):
                 "variance": 0.5,
                 "alpha": 100,
                 "num_samples": 14,
+=======
+                "sigma_obs": 0.0005,
+                "epsilon": 0.05,
+                "lengthscales": [200, 200, 200, 200, 200, 200, 200],
+                "variance": 0.1,
+                "alpha": 25,
+                "num_samples": 7,
+>>>>>>> origin/test-ur10
                 "num_inducing": 24,
                 "learning_rate": 0.09,
                 "num_steps": 100,

@@ -151,7 +151,7 @@ def detect_joint_limit_proximity(limits, q_mu):
 
 
 def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params,
-                           trainable_params, graphics_params):
+                           trainable_params, graphics_params, run=0, k=0):
     grid_spacing_X = planner_params["time_spacing_X"]
     grid_spacing_Xnew = planner_params["time_spacing_Xnew"]
     dof = robot_params["dof"]
@@ -159,16 +159,6 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints, scale=1)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
-    
-    # WAM
-    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[0.46260489, -0.46922615, -0.0054897, 2.30599862, -0.31814771, 1.5535092, 0.10524932] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
-    q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 2)], [y[1] for _ in range(planner_params["num_inducing"] // 2)]], axis=0)
-
-    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.79552928, -0.67950578, 0.36714378, -1.85928534, 1.2097811, 0.11837053, 0.50023788] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
-    # print(q_mu.shape)
-    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
-                     range(planner_params["num_inducing"])])  # all ish
-
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],

@@ -100,18 +100,10 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         r"""
         Args:
             f (tf.Tensor): [S x N x P x 3]
-
         Returns:
             [tf.Tensor]: [S x N]
         """
-        cost = self._hinge_loss(f)
-        # S, N, P = cost.shape
-        # delta = tf.expand_dims(cost, -1)
-        # var = tf.eye(P, batch_shape=(S, N), dtype=default_float()) / self.variance
-        #
-        # res = tf.matmul(delta, tf.matmul(var, delta), transpose_a=True)
-        # dist_list = tf.reshape(res, shape=(S, N))
-
+        cost = self._hinge_loss(f) 
         return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1)
 
     @tf.function

@@ -357,7 +357,7 @@ class Robot:
 
         T00 = self.base_pose
         angles = thetas + self.twist
-        transform_matrices = np.zeros((7, 4, 4))
+        transform_matrices = np.zeros((len(thetas), 4, 4))
         DH_mat = np.concatenate([angles, self.DH], axis=-1)
         for idx, params in enumerate(DH_mat):
             if craig:
@@ -366,7 +366,7 @@ class Robot:
                 transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
             transform_matrices[idx] = transform_matrix
 
-        homogenous_transforms = np.zeros((8, 4, 4), dtype=np.float64)
+        homogenous_transforms = np.zeros((len(thetas) + 1, 4, 4), dtype=np.float64)
         homogenous_transforms[0] = T00
         for i in range(len(transform_matrices)):
             homogenous_transforms[i + 1] = np.array(
