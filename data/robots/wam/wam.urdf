@@ -6,19 +6,19 @@
 <robot name="wam">
   <!-- Include all the WAM stuff -->
   <material name="WAMGrey">
-    <color rgba="0.7 0.7 0.7 1.0"/>
+    <color rgba="0.7 0.7 0.7 0.4"/>
   </material>
   <material name="Red">
-        <color rgba="0.8 0.0 0.0 1.0"/>
+        <color rgba="0.8 0.0 0.0 0.4"/>
     </material>
     <material name="Blue">
-        <color rgba="0.0 0.0 0.8 1.0"/>
+        <color rgba="0.0 0.0 0.8 0.4"/>
     </material>
     <material name="White">
-        <color rgba="1.0 1.0 1.0 1.0"/>
+        <color rgba="1.0 1.0 1.0 0.4"/>
     </material>
     <material name="Black">
-        <color rgba="0.0 0.0 0.0 1.0"/>
+        <color rgba="0.0 0.0 0.0 0.4"/>
     </material>
   <!-- Root link is in the world frame-->
   <link name="world"/>
@@ -35,9 +35,7 @@
       <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
     </inertial>
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 0.0"/>
-      </material>
+      <material name="WAMGrey" />
       <geometry>
         <mesh filename="package://sw_meshes/base_link_fine.stl"/>
       </geometry>
@@ -63,9 +61,7 @@
       <inertia ixx=".13488033" ixy="-0.00012485" ixz="0.00213041" iyy=".09046330" iyz="-.00068555" izz=".11328369"/>
     </inertial>
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="WAMGrey"/>
       <geometry>
         <mesh filename="package://sw_meshes/shoulder_link_fine.stl"/>
       </geometry>
@@ -86,9 +82,7 @@
   </joint>
   <link name="wam/shoulder_pitch_link">
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="WAMGrey"/>
       <geometry>
         <mesh filename="package://sw_meshes/shoulder_pitch_link_fine.stl"/>
       </geometry>
@@ -183,9 +177,7 @@
       <inertia ixx=".05911077" ixy="-0.00000738" ixz="-0.00249612" iyy="0.05927043" iyz="0.00001767" izz="0.0032455"/>
     </inertial>
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="WAMGrey"/>
       <geometry>
         <mesh filename="package://sw_meshes/upper_arm_link_fine.stl"/>
       </geometry>
@@ -211,6 +203,7 @@
       <inertia ixx="0.01491672" ixy="0.001506040000000" ixz="0.000017410000000" iyy="0.002944630000000" iyz="0.000021090000000" izz="0.014829880000000"/>
     </inertial>
     <visual>
+      <material name="WAMGrey"/>
       <geometry>
         <mesh filename="package://sw_meshes/elbow_link_fine.stl"/>
       </geometry>
@@ -249,6 +242,7 @@
       </geometry>
     </collision>
     <visual>
+      <material name="WAMGrey"/>
       <origin xyz="-0.045 -0.0730 0" rpy="1.5707963267948966 0 0"/>
       <geometry>
         <mesh filename="package://sw_meshes/forearm_link_fine.stl"/>
@@ -276,9 +270,7 @@
       <inertia ixx="0.00005029" ixy="0.00000020" ixz="0.00007582" iyy="0.00007582" iyz="-0.00000359" izz="0.00006270"/>
     </inertial>
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="WAMGrey"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="package://sw_meshes/wrist_yaw_link_fine.stl"/>
@@ -307,9 +299,7 @@
       <inertia ixx="0.00055516" ixy="0.00000061" ixz="-0.00000074" iyy="0.00024367" iyz="-0.00004590" izz="0.00045358"/>
     </inertial>
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="WAMGrey"/>
       <geometry>
         <mesh filename="package://sw_meshes/wrist_pitch_link_fine.stl"/>
       </geometry>
@@ -343,9 +333,7 @@
       <inertia ixx="0.00010859" ixy="0.00000000" ixz="-0.00000000" iyy="0.00020683" iyz="-0.0000000" izz="0.00010851"/>
     </inertial>
     <visual>
-      <material name="WAMGrey">
-        <color rgba="0.7 0.7 0.7 1.0"/>
-      </material>
+      <material name="WAMGrey"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="package://sw_meshes/wrist_palm_link_fine.stl"/>

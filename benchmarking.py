@@ -102,6 +102,7 @@ if __name__ == '__main__':
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
             # env.loop()
+            # env.loop()
             robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()
             solved, trajectory = solve_planning_problem(env=env,

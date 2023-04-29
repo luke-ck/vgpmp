@@ -255,6 +255,7 @@ class VGPMP(PathwiseSVGP, ABC):
         # Subtract prior mean from q_mu, then whiten
         p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
         
+        
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
 
         whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
@@ -282,9 +283,7 @@ class VGPMP(PathwiseSVGP, ABC):
         g = self.likelihood.joint_sigmoid(f)
         kl = self.prior_kl_separateindependent()
 
-
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
-        # print(self.likelihood.variance)
 
         return tf.reduce_sum(likelihood_obs) * self.alpha - kl # + tf.reduce_sum(( 1 / tf.squeeze(self.likelihood.variance) ) ** 2)
 

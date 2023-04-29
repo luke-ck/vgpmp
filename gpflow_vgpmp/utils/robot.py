@@ -250,6 +250,7 @@ class Robot:
             assert joint_config.shape[0] == 1
             joint_config = np.squeeze(joint_config)
         ceva = {1, 2, 3, 4, 5, 6, 7}
+        ceva = {1, 2, 3, 4, 5, 6, 7}
         for idx, joint in enumerate(self.joint_idx):
             p.resetJointState(self.robot_model, joint, joint_config[idx])
         #FOR WAM
@@ -282,7 +283,7 @@ class Robot:
         """
         cur_pos = np.array(self.get_curr_config())
         delta = next_pos - cur_pos
-        eps = 0.05
+        eps = 0.2
         success = 1
         iteration = 0
         while np.max(np.abs(delta)) > eps:

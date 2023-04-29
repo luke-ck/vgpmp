@@ -159,6 +159,13 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints, scale=1)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
+    
+    # WAM
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[0.46260489, -0.46922615, -0.0054897, 2.30599862, -0.31814771, 1.5535092, 0.10524932] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+    q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 2)], [y[1] for _ in range(planner_params["num_inducing"] // 2)]], axis=0)
+
+    # q_mu = np.concatenate([[y[0] for _ in range(planner_params["num_inducing"] // 3)], [[-0.79552928, -0.67950578, 0.36714378, -1.85928534, 1.2097811, 0.11837053, 0.50023788] for _ in range(planner_params["num_inducing"] // 3)], [y[1] for _ in range(planner_params["num_inducing"] // 3)]], axis=0)
+    # print(q_mu.shape)
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
                                num_spheres=robot_params["num_spheres"],
@@ -182,7 +189,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                no_frames_for_spheres=robot_params["no_frames_for_spheres"],
                                robot_name=robot_params["robot_name"],
                                epsilon=planner_params["epsilon"],
-                               q_mu=q_mu,
+                               q_mu=None,
                                whiten=False
                                )
     
@@ -244,6 +251,9 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     # SAVE THE BEST SAMPLE
     
+
+    # SAVE THE BEST SAMPLE
+    
     if graphics_params["visualize_best_sample"]:
         link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
@@ -273,7 +283,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         t = np.linspace(0, 2 * np.pi, 50)
         cos = np.cos(t)
         sin = np.sin(t)
-        for joint_config, unc in zip(sample_mean, uncertainties):
+        for joint_config in sample_mean:
             link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
                                                         robot_params["craig_dh_convention"])
             link_pos = np.array(link_pos[-1])
