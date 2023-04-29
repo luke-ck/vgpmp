@@ -2,12 +2,13 @@ from typing import List
 
 import numpy as np
 import pybullet as p
-import tensorflow as tf
 from gpflow.base import Parameter
 from gpflow.base import default_float
 from tensorflow_probability import bijectors as tfb
 from scipy.spatial.transform import Rotation as rot
+import tensorflow as tf
 import time
+
 
 # <---------------- utilities ----------------->
 def bounded_Z(low, high, Z):

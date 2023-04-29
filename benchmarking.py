@@ -1,13 +1,12 @@
 from gpflow_vgpmp.utils.miscellaneous import *
 from gpflow_vgpmp.utils.simulator import RobotSimulator
-import pyglet
-from pyglet.window import key
+import os
+# set export TF_CPP_MIN_LOG_LEVEL=2 when running for your sanity
 
 gpflow.config.set_default_float(np.float64)
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 gpflow.config.Config(jitter=1e-6)
 
-signal.signal(signal.SIGINT, shutdown)
 
 if __name__ == '__main__':
     env = RobotSimulator()
