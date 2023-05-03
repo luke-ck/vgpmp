@@ -106,7 +106,7 @@ class Problemset(AbstractProblemset, ABC):
                 "sigma_obs": 0.005,
                 "epsilon": 0.05,
                 "lengthscales": [5.0, 5.0, 5.0, 2.0, 5.0, 5.0, 5.0],
-                "variance": 0.5,
+                "variance": 0.25,
                 "alpha": 100,
                 "num_samples": 7,
                 "num_inducing": 24,
@@ -120,11 +120,11 @@ class Problemset(AbstractProblemset, ABC):
             return {
                 "sigma_obs": 0.005,
                 "epsilon": 0.05,
-                "lengthscales": [3] * 7,
+                "lengthscales": [6.0, 6.0, 6.0, 1, 6.0, 6.0, 6.0],
                 "variance": 0.05,
                 "alpha": 100,
                 "num_samples": 7,
-                "num_inducing": 10,
+                "num_inducing": 14,
                 "learning_rate": 0.09,
                 "num_steps": 130,
                 "time_spacing_X": 70,
@@ -133,15 +133,15 @@ class Problemset(AbstractProblemset, ABC):
 
         elif problemset == "bookshelves":
             return {
-                "sigma_obs": 0.0005,
+                "sigma_obs": 0.0001,
                 "epsilon": 0.05,
-                "lengthscales": [5.0, 5.0, 5.0, 2.0, 5.0, 5.0, 5.0],
-                "variance": 0.5,
-                "alpha": 100,
-                "num_samples": 7,
-                "num_inducing": 25,
-                "learning_rate": 0.09,
-                "num_steps": 200,
+                "lengthscales": [1.5, 4.0, 4.0, .7, 3.0, 3.0, 3.0],
+                "variance": .6,
+                "alpha": 0.2,
+                "num_samples": 25,
+                "num_inducing": 15,
+                "learning_rate": 0.04,
+                "num_steps": 170,
                 "time_spacing_X": 100,
                 "time_spacing_Xnew": 150
             }
