@@ -122,7 +122,7 @@ class VGPMP(PathwiseSVGP, ABC):
 
         if kernels is None:
             kernels = []
-            
+
             for i in range(num_latent_gps):
                 kern = Matern52(lengthscales=lengthscales[i], variance=variance)
                 kernels.append(kern)
@@ -183,7 +183,7 @@ class VGPMP(PathwiseSVGP, ABC):
         K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
         L = tf.linalg.cholesky(K)
         return L @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
-               1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
+            1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
 
     def _init_variational_parameters(
             self,
@@ -260,8 +260,7 @@ class VGPMP(PathwiseSVGP, ABC):
 
         # Subtract prior mean from q_mu, then whiten
         p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
-        
-        
+
         q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
 
         whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
@@ -291,7 +290,8 @@ class VGPMP(PathwiseSVGP, ABC):
 
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
 
-        return tf.reduce_sum(likelihood_obs) * self.alpha - kl # + tf.reduce_sum(( 1 / tf.squeeze(self.likelihood.variance) ) ** 2)
+        return tf.reduce_sum(
+            likelihood_obs) * self.alpha - kl  # + tf.reduce_sum(( 1 / tf.squeeze(self.likelihood.variance) ) ** 2)
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:
@@ -314,7 +314,7 @@ class VGPMP(PathwiseSVGP, ABC):
     #     if self.prior is not None:
     #         objective += self.prior(self)
     #     return objective
-
+    @tf.autograph.experimental.do_not_convert
     def sample_from_posterior(self, X, robot, compute_uncertainty=False):
 
         mu, sigma = map(tf.squeeze, self.posterior().predict_f(X))
@@ -322,20 +322,22 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
-        
+
         if compute_uncertainty:
-            uncertainty = np.array([[robot.compute_joint_positions(np.array(time).reshape(-1, 1),
-                                                                                        self.likelihood.sampler.craig_dh_convention)[
-                                        0][-1] for time in sample] for sample in samples])
+            uncertainty = tf.stack(
+                [tf.stack([robot.compute_joint_positions(tf.reshape(tf.constant(time, dtype=default_float()), shape=[-1, 1]),
+                                                         self.likelihood.sampler.craig_dh_convention)[0][-1] for time in
+                           sample]) for sample in samples])
             uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
         else:
-            uncertainty = 1.0
-        
+            uncertainty = tf.constant(1.0, dtype=default_float())
+
         return mu, samples[self.get_best_sample(samples)], samples[:7], 2 * tf.math.sqrt(uncertainty)
 
     def initialize_optimizer(self, learning_rate):
         return tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)
 
+    @tf.autograph.experimental.do_not_convert
     def get_best_sample(self, samples):
         cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
         # tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
