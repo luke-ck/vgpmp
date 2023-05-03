@@ -81,13 +81,13 @@ class Problemset(AbstractProblemset, ABC):
     def planner_params(problemset):
         if problemset == "industrial":
             return {
-                "sigma_obs": .1,
+                "sigma_obs": 0.005,
                 "epsilon": 0.05,
                 "lengthscales": [2] * 7,
                 "variance": 0.2,
                 "alpha": 100,
                 "num_samples": 20,
-                "num_inducing": 5,
+                "num_inducing": 10,
                 "learning_rate": 0.02,
                 "num_steps": 200,
                 "time_spacing_X": 50,
