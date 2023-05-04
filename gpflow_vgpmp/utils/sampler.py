@@ -189,10 +189,11 @@ class Sampler:
 
         # <------------- Computing Forward Kinematics ------------>
         # joint_config = self.check_gradients(joint_config)
-        fk_pos = tf.gather(self._compute_fk(joint_config), self.fk_slice, axis=0)
-        fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
+        matrices = tf.gather(self._compute_fk(joint_config), self.fk_slice, axis=0)
+        # print(fk_pos)
+        fk_pos = tf.repeat(matrices, repeats=self.num_spheres, axis=0)
         sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
-        return tf.squeeze(sphere_positions[:, :3, 3])
+        return tf.squeeze(sphere_positions[:, :3, 3]), matrices[-1]
 
     @tf.function
     def compute_joint_pos_uncertainty(self, joint_config, joint_config_uncertainty):

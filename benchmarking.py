@@ -57,8 +57,8 @@ if __name__ == '__main__':
     start_planner2 = [ 0.15984699, 0.9143245, -0.76890767, -0.38329052, 1.42599777, 1.90409489, -0.84829781]
 
     queries = [(start_planner1, end_planner1), (start_planner2, end_planner2)]
-    # robot.set_curr_config(np.squeeze(end))
-    # env.loop()
+    robot.set_curr_config(np.squeeze(end))
+    positions, matrices = robot.compute_joint_positions(np.array(end).reshape(-1, 1), robot_params["craig_dh_convention"])
 
     if graphics_params["debug_joint_positions"]:
         config = np.array(end_planner2)
@@ -127,6 +127,7 @@ if __name__ == '__main__':
                                             run=run,
                                             k=i)
             total_solved += solved
+            time.sleep(5)
             if not solved:
                 print(f"Failed to solve problem {i}")
                 failed.append(i)

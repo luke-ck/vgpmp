@@ -272,10 +272,12 @@ class VGPMP(PathwiseSVGP, ABC):
 
         kl = self.prior_kl_separateindependent()
 
-        collision_term, grasp_term = self.likelihood.log_prob(g)
+        collision_term, force_pos, force_or = self.likelihood.log_prob(g)
         likelihood_obs = tf.reduce_mean(collision_term, axis=0)  # log_prob produces S x N
-        grasp_likelihood = tf.reduce_mean(grasp_term, axis=0)  # N
-        return tf.reduce_sum(likelihood_obs) * self.alpha + tf.reduce_sum(grasp_likelihood) * 10 - kl
+        grasp_likelihood_pos = tf.reduce_mean(force_pos, axis=0)  # 
+        grasp_likelihood_or = tf.reduce_mean(force_or, axis=0)  # N
+        
+        return tf.reduce_sum(likelihood_obs) * self.alpha + tf.reduce_sum(grasp_likelihood_pos) * 10 + tf.reduce_sum(grasp_likelihood_or) * 10 - kl
 
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:

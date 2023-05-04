@@ -46,7 +46,11 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         self.normal = tf.constant([0., 0., 1.], dtype=default_float(), shape=(1, 1, 1, 3))
         self.epsilon = tf.constant(epsilon, dtype=default_float())
         self._p = num_spheres 
-        self.ee_pos_pringle = tf.constant([-0.00472223, 0.28439094, 0.98321232], dtype =default_float())
+        self.ee_position_pringles = tf.constant([-0.00472223, 0.28439094, 0.98321232], dtype =default_float())
+        self.ee_orientation_pringles = tf.reshape(tf.constant([[-0.04832382, 0.9886533, -0.1422303],
+                                        [-0.02910649, 0.14094235, 0.98958985],
+                                        [ 0.99840754, 0.05196058, 0.02196535]], dtype =default_float()), shape=[9])
+
         self.robot_pos_pringle = tf.constant([[-8.00000000e-02,  0.00000000e+00,  2.00000000e-02],
                                               [ 0.00000000e+00,  0.00000000e+00,  4.00000000e-02],
                                               [ 4.66474749e-02, -3.77360979e-02,  3.33000000e-01],
@@ -114,10 +118,10 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             logp (tf.Tensor): [S x N]
         """
-        L = self._sample_config_cost(F)  # S x N x P x 3
+        L, matrices = self._sample_config_cost(F)  # S x N x P x 3
         logp = self._scalar_log_prob(L)
-        grasp_logp = self._grasp_log_prob(L)
-        return logp, grasp_logp
+        force_pos, force_orientation  = self._grasp_log_prob(matrices)
+        return logp, force_pos, force_orientation
 
     @tf.function
     def _grasp_log_prob(self, f):
@@ -130,13 +134,25 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             [tf.Tensor]: [S]
         """
-        spheres = f[:, -1, 24, :]
-        spheres = f[:, -1, :, :]
-        mean = spheres - self.robot_pos_pringle[None, ...]
-        mean = tf.math.reduce_sum(mean * mean, axis=-1)
-        force_pos = mean / 0.00005
         
-        return - 0.5 * force_pos
+        ee_position = f[:, -1, :3, 3]
+        ee_orientation = f[:, -1, :3, :3]
+        ee_orientation = tf.reshape(ee_orientation, [-1, 9])
+        # tf.print(f[0, 0, ...])
+        # tf.print(f.shape)
+        # # print(tf.squeeze(matrices, axis=[0, 1]))
+        # tf.print(f[0, 0, :3, :3])
+        # tf.print(f[0, 0, :3, 3])
+        # spheres = f[:, -1, 24, :]
+        # spheres = f[:, -1, :, :]
+        
+        position_mean = ee_position - self.ee_position_pringles[None, ...]
+        orientation_mean = ee_orientation - self.ee_orientation_pringles[None, ...]
+        # mean = spheres - self.robot_pos_pringle[None, ...]
+        
+        force_position = tf.math.reduce_sum(position_mean * position_mean, axis=-1) / 0.0000005
+        force_orientation = tf.math.reduce_sum(orientation_mean * orientation_mean, axis=-1) / 0.00005
+        return - 0.5 * force_position, - 0.5 * force_orientation
 
     @tf.function
     def log_normalization_constant(self, sigma, k=0.2):
@@ -183,11 +199,11 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         f = tf.reshape(f, (s * n, d))
 
         # Compute forward kinematics for all configurations in parallel using tf.vectorized_map
-        k = tf.vectorized_map(self._fk_cost, f)
+        k, ee = tf.vectorized_map(self._fk_cost, f)
 
         # tf.print(k.shape)
         # Reshape the output back to the original shape
-        return tf.reshape(k, (s, n, self._p, 3))
+        return tf.reshape(k, (s, n, self._p, 3)), tf.reshape(ee, (s, n, 4, 4))
 
     @tf.function
     def _fk_cost(self, joint_config):
