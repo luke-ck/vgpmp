@@ -97,7 +97,7 @@ class Problemset(AbstractProblemset, ABC):
             }
         elif problemset == "bookshelves":
             return {
-                "sigma_obs": 0.001,
+                "sigma_obs": 0.0001,
                 "epsilon": 0.05,
                 "lengthscales": [3] * 7,
                 "variance": 0.3,
