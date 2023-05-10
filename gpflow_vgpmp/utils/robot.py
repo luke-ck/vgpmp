@@ -256,6 +256,10 @@ class Robot:
         for i in range(11): # 23 for wam
             if i not in ceva:
                 p.resetJointState(self.robot_model, i, 0)
+        #FOR FRANKA
+        p.resetJointState(self.robot_model, 9, 0.067)
+        p.resetJointState(self.robot_model, 10, -0.05)
+
     def get_curr_config(self) -> np.ndarray:
         r"""
         Return joint position for each joint as a list

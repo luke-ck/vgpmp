@@ -58,6 +58,7 @@ if __name__ == '__main__':
 
     queries = [(start_planner1, end_planner1), (start_planner2, end_planner2)]
     robot.set_curr_config(np.squeeze(end))
+    # env.loop()
     positions, matrices = robot.compute_joint_positions(np.array(end).reshape(-1, 1), robot_params["craig_dh_convention"])
 
     if graphics_params["debug_joint_positions"]:
@@ -105,7 +106,7 @@ if __name__ == '__main__':
     for run in range(total_runs):
 
         # for k, (i, j) in enumerate(query_indices):
-        for i, (start_joints, end_joints) in enumerate(queries):
+        for i, (start_joints, end_joints) in enumerate(queries[1:]):
 
             start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
             end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
@@ -127,7 +128,7 @@ if __name__ == '__main__':
                                             run=run,
                                             k=i)
             total_solved += solved
-            time.sleep(5)
+            time.sleep(100)
             if not solved:
                 print(f"Failed to solve problem {i}")
                 failed.append(i)

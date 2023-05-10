@@ -25,7 +25,7 @@ class RobotSimulator:
         if self.sim.scene_params["problemset"] == "lab":
             self.pringles = Object(name="pringles",
                                    path=os.path.expanduser('~') + "/vgpmp/data/scenes/lab/pringles/pringles.urdf",
-                                   position=[-0.03472223, 0.54439094, 0.85])
+                                   position=[-0.03472223, 0.46, 0.85])
         p.changeVisualShape(self.pringles.ID, -1, textureUniqueId=texture_id)
 
         

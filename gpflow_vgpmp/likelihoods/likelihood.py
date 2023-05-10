@@ -150,7 +150,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         orientation_mean = ee_orientation - self.ee_orientation_pringles[None, ...]
         # mean = spheres - self.robot_pos_pringle[None, ...]
         
-        force_position = tf.math.reduce_sum(position_mean * position_mean, axis=-1) / 0.0000005
+        force_position = tf.math.reduce_sum(position_mean * position_mean, axis=-1) / 0.00000005
         force_orientation = tf.math.reduce_sum(orientation_mean * orientation_mean, axis=-1) / 0.00005
         return - 0.5 * force_position, - 0.5 * force_orientation
 
