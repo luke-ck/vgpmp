@@ -12,6 +12,8 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         if problemset == 'industrial':
             return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        elif problemset == 'boxes':
+            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -56,6 +58,11 @@ class Problemset(AbstractProblemset, ABC):
             states[6] = [-0.89457144, -0.47499645, -0.6139825, -2.16674660, -0.134227, 2.89230967, 0.00972345]
             states[7] = [2.3741933, -0.91396071, 1.510302, -0.16472317, 1.88311249, 0.95135129, 2.52099306]
             states[8] = [-2.63212708, -0.79542704, -2.61988842, -0.42029416, -0.24882192, 1.3649156, -0.52094162]
+        elif problemset == 'boxes':
+            n_states = 2
+            states = [list() for _ in range(n_states)]
+            states[0] = [-1.88327995, 0.30243233, 1.88680381, -1.32331464, 1.3319037, 1.65225616, 0.5096332]
+            states[1] = [-2.88286637, -0.2759609, 0.23902162, -1.17246602, 1.19599294, 1.88570609, 0.58906756]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
@@ -75,6 +82,8 @@ class Problemset(AbstractProblemset, ABC):
             return [-0.2, 0.0, -0.2]
         elif problemset == "bookshelves":
             return [0.62, -0.15, 0.834]
+        elif problemset == "boxes":
+            return [0.0, 0.0, 0.522176]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
     @staticmethod
@@ -94,6 +103,20 @@ class Problemset(AbstractProblemset, ABC):
                 "time_spacing_Xnew": 100
             }
         elif problemset == "bookshelves":
+            return {
+                "sigma_obs": 0.0005,
+                "epsilon": 0.05,
+                "lengthscales": [4.0, 4.0, 4.0, 3.0, 3.0, 3.0, 3.0],
+                "variance": 0.5,
+                "alpha": 100.0,
+                "num_samples": 7,
+                "num_inducing": 24,
+                "learning_rate": 0.09,
+                "num_steps": 130,
+                "time_spacing_X": 70,
+                "time_spacing_Xnew": 150
+            }
+        elif problemset == "boxes":
             return {
                 "sigma_obs": 0.0005,
                 "epsilon": 0.05,
