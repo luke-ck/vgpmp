@@ -135,9 +135,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             [tf.Tensor]: [S]
         """
         
-        ee_position = f[:, -1, :3, 3]
-        ee_orientation = f[:, -1, :3, :3]
-        ee_orientation = tf.reshape(ee_orientation, [-1, 9])
+        ee_position = tf.reshape(f[:, -1, :3, 3], [f.shape[0], 1, 3])
+        ee_orientation = f[:, -20:, :3, :3]
+        ee_orientation = tf.reshape(ee_orientation, [f.shape[0], 20, 9])
         # tf.print(f[0, 0, ...])
         # tf.print(f.shape)
         # # print(tf.squeeze(matrices, axis=[0, 1]))
@@ -146,8 +146,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         # spheres = f[:, -1, 24, :]
         # spheres = f[:, -1, :, :]
         
-        position_mean = ee_position - self.ee_position_pringles[None, ...]
-        orientation_mean = ee_orientation - self.ee_orientation_pringles[None, ...]
+        position_mean = ee_position - self.ee_position_pringles[None, None, ...]
+        orientation_mean = ee_orientation - self.ee_orientation_pringles[None, None, ...]
         # mean = spheres - self.robot_pos_pringle[None, ...]
         
         force_position = tf.math.reduce_sum(position_mean * position_mean, axis=-1) / 0.00000005

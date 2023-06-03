@@ -308,6 +308,8 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=150, num_bases=self.num_bases):
             f = tf.squeeze(self.predict_f_samples(X))
         samples = self.likelihood.joint_sigmoid(f)
+        np.save('grasping_samples.npy', samples)
+        np.save('grasping_best_sample.npy', samples[self.get_best_sample(samples)])
         # uncertainty = np.array([[self.likelihood.sampler.robot.compute_joint_positions(np.array(time).reshape(-1, 1),
         #                                                                                self.likelihood.sampler.craig_dh_convention)[
         #                              0][-1] for time in sample] for sample in samples])
@@ -319,6 +321,6 @@ class VGPMP(PathwiseSVGP, ABC):
         return tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)
 
     def get_best_sample(self, samples):
-        cost = tf.reduce_sum(self.likelihood.log_prob(samples)[0], axis=-1)
+        cost = tf.reduce_sum(self.likelihood.log_prob(samples)[1], axis=-1)
         # tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
         return tf.math.argmax(cost)
