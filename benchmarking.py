@@ -52,15 +52,20 @@ if __name__ == '__main__':
     # The first element of the first tuple is the joint configuration that you visualize.
     end_planner1 = [0.31109301, -0.72880518, 0.75456588, -1.01347162, 0.92935332, 2.24804542, -0.33061236]
     end_planner2 = [0.86212819, -0.8842489, 0.31054139, -1.70539857, 1.08483577, 2.5299051, -0.64731048]
-    end = [0.89061377, -0.40183717, 0.48752105, -1.42820565, 0.75600404, 2.60547999, -0.52784457]
+    end = [0.89061377, -0.40183717, 0.48752105, -1.42820565, 0.75600404, 2.60547999, -0.42784457 + 0.7874]
     start_planner1 = [-0.19236134, 0.93622663, -0.8607566, -0.22610378, 0.74095531, 1.76073361, -0.95493156]
     start_planner2 = [ 0.15984699, 0.9143245, -0.76890767, -0.38329052, 1.42599777, 1.90409489, -0.84829781]
 
     queries = [(start_planner1, end_planner1), (start_planner2, end_planner2)]
-    robot.set_curr_config(np.squeeze(end))
-    # env.loop()
+    ready = [0, -0.7874, 0, -2.356, 0, 1.507, 0.7874]
+    robot.set_curr_config(np.squeeze(ready))
     positions, matrices = robot.compute_joint_positions(np.array(end).reshape(-1, 1), robot_params["craig_dh_convention"])
-
+    print(matrices[-1][0])
+    print(matrices[-1][1])
+    print(matrices[-1][2])
+    # env.loop()
+    end = [ 1.56147   , -1.12462116 , 0.03988601, -1.75616594, -0.03650418,  2.12262371,
+   0.79660154]
     if graphics_params["debug_joint_positions"]:
         config = np.array(end_planner2)
         start_pos, start_mat = robot.compute_joint_positions(config.reshape(robot.dof, -1),
@@ -108,8 +113,8 @@ if __name__ == '__main__':
         # for k, (i, j) in enumerate(query_indices):
         for i, (start_joints, end_joints) in enumerate(queries[1:]):
 
-            start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
-            end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
+            start_joints = np.array(ready, dtype=np.float64).reshape(1, robot.dof)
+            end_joints = np.array(end, dtype=np.float64).reshape(1, robot.dof)
             robot.set_curr_config(np.squeeze(start_joints))
             # print(end_joints)
             # env.loop()

@@ -545,13 +545,13 @@
     <parent link="panda_link7"/>
     <child link="panda_link8"/>
     <limit lower="0" upper="0" effort="0" velocity="0"/>
-    <origin xyz="0.0 4.845297921863539e-28 0.10700000000000003" rpy="0.0 -0.0 0.0"/>
+    <origin xyz="0.0 4.845297921863539e-28 0.10700000000000003" rpy="0.0 -0.0 -0.7874"/>
   </joint>
   <joint name="panda_hand_joint" type="fixed">
     <parent link="panda_link8"/>
     <child link="panda_hand"/>
     <limit lower="0" upper="0" effort="0" velocity="0"/>
-    <origin xyz="0.0 0.0 0.0" rpy="2.8683722064215544e-12 6.924822375381442e-12 0.0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0.0"/>
   </joint>
   <joint name="panda_finger_joint1" type="prismatic">
     <parent link="panda_hand"/>
