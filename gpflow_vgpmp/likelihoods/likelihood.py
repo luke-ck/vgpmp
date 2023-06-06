@@ -47,9 +47,9 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         self.epsilon = tf.constant(epsilon, dtype=default_float())
         self._p = num_spheres 
         self.ee_position_pringles = tf.constant([-0.00472223, 0.28439094, 0.98321232], dtype =default_float())
-        self.ee_orientation_pringles = tf.reshape(tf.constant([[-0.04832382, 0.9886533, -0.1422303],
-                                        [-0.02910649, 0.14094235, 0.98958985],
-                                        [ 0.99840754, 0.05196058, 0.02196535]], dtype =default_float()), shape=[9])
+        self.ee_orientation_pringles = tf.reshape(tf.constant([[0.73612093, 0.6617375, -0.1422303 ],
+                                        [0.09091258, 0.11156539, 0.98958985],
+                                        [0.67071669, -0.74138832, 0.02196535]], dtype =default_float()), shape=[9])
 
         self.robot_pos_pringle = tf.constant([[-8.00000000e-02,  0.00000000e+00,  2.00000000e-02],
                                               [ 0.00000000e+00,  0.00000000e+00,  4.00000000e-02],

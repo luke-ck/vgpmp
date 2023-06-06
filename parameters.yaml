@@ -15,7 +15,7 @@
 - trainable_parameters:
     q_mu: True
     q_sqrt: True
-    lengthscales: True
+    lengthscales: False
     kernel_variance: True
     sigma_obs: False
     inducing_variable: True

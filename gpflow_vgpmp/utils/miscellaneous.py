@@ -274,8 +274,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
         link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
                                                     robot_params["craig_dh_convention"])
         link_pos = np.array(link_pos[-1])
-        p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+        # p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+        #                    lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     # PLOT THE MEAN OF THE SAMPLES AND THE UNCERTAINTY in the path of the robot END EFFECTOR
     if graphics_params["visualize_ee_path_uncertainty"]:
@@ -335,8 +335,8 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
             link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
                                                         robot_params["craig_dh_convention"])
             link_pos = np.array(link_pos[-1])
-            p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
+            # p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
+            #                    lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.physicsClient)
 
     # print(f" alpha {planner.alpha}")
     # for kern in planner.kernel.kernels:
