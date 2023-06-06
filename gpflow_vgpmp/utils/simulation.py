@@ -79,7 +79,7 @@ class Simulation:
         gravity_constant = -9.81
 
         if self.graphic_params["visuals"]:
-            self.physicsClient = p.connect(p.GUI)
+            self.physicsClient = p.connect(p.GUI, options='--background_color_red=0.8 --background_color_green=0.9 --background_color_blue=1.0')
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
             p.setRealTimeSimulation(enableRealTimeSimulation=1)
         else:

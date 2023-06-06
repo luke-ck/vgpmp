@@ -10,6 +10,56 @@ import pybullet as p
 # ---------------Exports
 __all__ = 'simulator'
 
+class Mesh:
+    """Load a mesh into the simulation. Mass of the mesh is set to 0 so that it does not fall under gravity."""
+    def __init__(
+        
+        self, path = "/home/freshpate/vgpmp/data/scenes/lab/lab.obj", 
+        scale = [1, 1, 1], 
+        shift = [0, 0, 0],
+        positionXYZ = [0, 0, 1], 
+        rgbColor = [0.58, 0.29, 0.0],
+        orientationXYZ = [0, 0, 0],
+        alpha = 1
+        ):
+        self.path = path
+        self.scale = scale
+        self.position = positionXYZ
+        self.orientation = orientationXYZ
+        self.shift = shift
+        self.rgbColor = list(rgbColor)
+
+        self.visualShapeId = p.createVisualShape(
+            shapeType=p.GEOM_MESH, 
+            fileName=self.path,
+            rgbaColor=self.rgbColor+[alpha], 
+            specularColor=[0.0, 0.0, 0.0],
+            meshScale=self.scale, 
+            visualFramePosition=self.shift
+            )
+        
+        self.collisionShapeId = p.createCollisionShape(
+            shapeType=p.GEOM_MESH,
+            fileName=self.path, 
+            meshScale=self.scale
+            )
+        
+        self.bodyId = p.createMultiBody(
+            baseMass=0.0,
+            baseCollisionShapeIndex=self.collisionShapeId,
+            baseVisualShapeIndex=self.visualShapeId,
+            basePosition=self.position,
+            baseOrientation=p.getQuaternionFromEuler(self.orientation)
+            )
+    
+    def getVisualShapeId(self):
+        return self.visualShapeId
+
+    def getCollisionShapeId(self):
+        return self.collisionShapeId
+    
+    def getBodyId(self):
+        return self.bodyId
 
 class RobotSimulator:
     def __init__(self):
@@ -17,9 +67,10 @@ class RobotSimulator:
         self.plane = Object(name="plane")
         self.robot = Robot(self.sim.robot_params)
         self.sdf = SignedDensityField.from_sdf(self.sim.scene_params["sdf_path"])
-        self.scene = Object(name="scene",
-                            path=self.sim.scene_params["object_path"],
-                            position=self.sim.scene_params["object_position"])
+        self.scene = Mesh(positionXYZ=self.sim.scene_params["object_position"])
+        # self.scene = Object(name="scene",
+        #                     path=self.sim.scene_params["object_path"],
+        #                     position=self.sim.scene_params["object_position"])
         texture_id = p.loadTexture(os.path.expanduser('~') + "/vgpmp/data/scenes/lab/pringles/textured.png")
 
         if self.sim.scene_params["problemset"] == "lab":
@@ -27,7 +78,7 @@ class RobotSimulator:
                                    path=os.path.expanduser('~') + "/vgpmp/data/scenes/lab/pringles/pringles.urdf",
                                    position=[-0.005, 0.485, 0.85])
         p.changeVisualShape(self.pringles.ID, -1, textureUniqueId=texture_id)
-
+        # p.connect(self.sim.ph)
         
         self.sett = set([i for i in range(100)])
     def get_simulation_params(self) -> Bunch:

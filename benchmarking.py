@@ -20,7 +20,7 @@ if __name__ == '__main__':
     scene_params = params.scene
     trainable_params = params.trainable_params
     graphics_params = params.graphics
-
+    
     sphere_links = robot_params["spheres_over_links"]
     active_joints = robot_params["active_joints"]
     problemset = scene_params["problemset"]
@@ -30,7 +30,7 @@ if __name__ == '__main__':
         problemset=problemset, robot_name=robot_name)
 
     num_steps = planner_params["num_steps"]
-
+    
     position, orientation = default_robot_pos_and_orn
     robot.initialise(position=position,
                      orientation=orientation,
