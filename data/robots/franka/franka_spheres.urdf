@@ -34,9 +34,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link0.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="-0.08 0.0 0.02" rpy="0.0 -0.0 0.0"/>
@@ -68,9 +66,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link1.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="0.0 -0.06 0.0" rpy="0.0 -0.0 0.0"/>
@@ -108,9 +104,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link2.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="0.0 0.0 0.05" rpy="0.0 -0.0 0.0"/>
@@ -148,9 +142,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link3.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="0.0 0.0 -0.1" rpy="0.0 -0.0 0.0"/>
@@ -194,9 +186,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link4.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="-0.085 0.11 0.0" rpy="0.0 -0.0 0.0"/>
@@ -240,9 +230,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link5.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="0.0 0.04 0.0" rpy="0.0 -0.0 0.0"/>
@@ -304,9 +292,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link6.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="0.0 0.0 0.01" rpy="0.0 -0.0 0.0"/>
@@ -344,9 +330,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/link7.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_0">
       <origin xyz="0.0 0.0 0.08" rpy="0.0 -0.0 0.0"/>
@@ -361,67 +345,67 @@
       </geometry>
     </visual>
     <visual name="ball_2">
-      <origin xyz="0.0 -0.005 0.225" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.005 -0.005 0.225" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.015"/>
       </geometry>
       <material name="Red"/>
     </visual>
     <visual name="ball_3">
-      <origin xyz="0.0 -0.015 0.21" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.015 -0.015 0.21" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.015"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_4">
-      <origin xyz="0.0 -0.015 0.19" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.015 -0.015 0.19" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.0175"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_5">
-      <origin xyz="0.0 0.005 0.225" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.005 0.005 0.225" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.015"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_6">
-      <origin xyz="0.0 0.015 0.21" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.015 0.015 0.21" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.015"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_7">
-      <origin xyz="0.0 0.015 0.19" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.015 0.015 0.19" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.0175"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <visual name="ball_8">
-      <origin xyz="0.0 -0.06 0.137" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="-0.06 -0.06 0.137" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.06"/>
       </geometry>
-      <material name="White"/>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_9">
       <origin xyz="0.0 0.0 0.137" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.05"/>
       </geometry>
-      <material name="White"/>
+      <material name="LightGrey"/>
     </visual>
     <visual name="ball_10">
-      <origin xyz="0.0 0.06 0.137" rpy="0.0 -0.0 0.0"/>
+      <origin xyz="0.06 0.06 0.137" rpy="0.0 -0.0 0.0"/>
       <geometry>
         <sphere radius="0.06"/>
       </geometry>
-      <material name="White"/>
+      <material name="Blue"/>
     </visual>
     <collision name="collision">
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -449,7 +433,7 @@
         <mesh filename="package://franka/meshes/visual/hand.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="">
-        <color rgba="0 0 0 1"/>
+        <material name="LightGrey"/>
       </material>
     </visual>
     
@@ -471,9 +455,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/finger.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="White"/>
     </visual>
     <collision name="collision">
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -493,9 +475,7 @@
       <geometry>
         <mesh filename="package://franka/meshes/visual/finger.dae" scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="">
-        <color rgba="0 0 0 1"/>
-      </material>
+      <material name="White"/>
     </visual>
     
     <collision name="collision">
@@ -565,13 +545,13 @@
     <parent link="panda_link7"/>
     <child link="panda_link8"/>
     <limit lower="0" upper="0" effort="0" velocity="0"/>
-    <origin xyz="0.0 4.845297921863539e-28 0.10700000000000003" rpy="0.0 -0.0 0.0"/>
+    <origin xyz="0.0 4.845297921863539e-28 0.10700000000000003" rpy="0.0 -0.0 -0.7874"/>
   </joint>
   <joint name="panda_hand_joint" type="fixed">
     <parent link="panda_link8"/>
     <child link="panda_hand"/>
     <limit lower="0" upper="0" effort="0" velocity="0"/>
-    <origin xyz="0.0 0.0 0.0" rpy="2.8683722064215544e-12 6.924822375381442e-12 0.0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0.0"/>
   </joint>
   <joint name="panda_finger_joint1" type="prismatic">
     <parent link="panda_hand"/>
