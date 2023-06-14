@@ -10,7 +10,8 @@ from gpflow.config import default_float
 from gpflow.covariances import Kuf
 from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables
 from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52, RBF, Matern12)
-from gpflow.kullback_leiblers import prior_kl, gauss_kl
+# from gpflow.kullback_leiblers import prior_kl, gauss_kl
+from gpflow_vgpmp.kullback_leiblers.prior_kl import prior_kl
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
 from gpflow_vgpmp.inducing_variables.inducing_variables import VariableInducingPoints
@@ -24,19 +25,10 @@ __all__ = "vgpmp"
 from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 
 
-# =========================================
-# ---------------GP Planner----------------
-# =========================================
+# ============================================
+# ---------------vGPMP Planner----------------
+# ============================================
 
-# @prior_kl.register(VariableInducingPoints, Kernel, object, object)
-# def _(inducing_variable, kernel, q_mu, q_sqrt, whiten=False):
-#     if whiten:
-#         return gauss_kl(q_mu, q_sqrt, None)
-#     else:
-#         K = kernel.kernel(inducing_variable._Z)
-#         K += default_jitter() * tf.eye(inducing_variable.num_inducing, dtype=K.dtype)# [P, M, M] or [M, M]
-#
-#         return gauss_kl(q_mu, q_sqrt, K)
 
 class VGPMP(PathwiseSVGP, ABC):
     def __init__(self, *args, prior: Callable = None, alpha, query_states, num_samples, num_bases, num_inducing,
@@ -232,39 +224,6 @@ class VGPMP(PathwiseSVGP, ABC):
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
         self.cached_q_sqrt = np_q_sqrt
 
-    def prior_kl_separateindependent(self):
-        """
-        Computes the KL divergence between the variational posterior and the prior.
-        Shift the mean of the variational posterior to the mean of the prior.
-        For SeparateIndependent kernel.
-        """
-        n = len(self.inducing_variable.inducing_variable.ny)
-        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
-        L = tf.linalg.cholesky(K)
-
-        # Subtract prior mean from q_mu, then whiten
-        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(self.query_states)[..., None])
-        q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
-
-        whitened_diff = tf.transpose(tf.squeeze(tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)))[
-                        n:, ...]
-        return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
-
-    def prior_kl_sharedindependent(self):
-        """
-        Functionally equivalent to prior_kl_separateindependent, but for SharedIndependent kernel
-        """
-        n = len(self.inducing_variable.inducing_variable.ny)
-        K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter())
-        L = tf.linalg.cholesky(K)
-
-        # Subtract prior mean from q_mu, then whiten
-        p_mu = K[..., :n] @ tf.linalg.cholesky_solve(L[..., :n, :n], self.query_states)
-
-        q_mu = tf.concat([self.query_states, self._q_mu], axis=0)
-
-        whitened_diff = tf.linalg.triangular_solve(L, q_mu - p_mu)[n:, ...]
-        return kullback_leiblers.gauss_kl(whitened_diff, self._q_sqrt)
 
     @tf.function
     def elbo(self, data: tf.Tensor) -> tf.Tensor:
@@ -286,7 +245,7 @@ class VGPMP(PathwiseSVGP, ABC):
         with self.temporary_paths(num_samples=self.num_samples, num_bases=self.num_bases):
             f = self.predict_f_samples(data)  # S x N x D
         g = self.likelihood.joint_sigmoid(f)
-        kl = self.prior_kl_separateindependent()
+        kl = prior_kl(self.inducing_variable, self.kernel, self._q_mu, self._q_sqrt, self.query_states)
 
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
 

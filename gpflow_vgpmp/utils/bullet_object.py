@@ -133,8 +133,7 @@ class BaseObject:
                                      useMaximalCoordinates=1)
             else:
                 self.ID = p.loadURDF(object_path)
-        print(f"Set ID to {self.ID}")
-        print(f"Created a {name}")
+        print(f"Set {self.name} ID to {self.ID}")
 
     def set_position(self, pos):
         self.position = pos

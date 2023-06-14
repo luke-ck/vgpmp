@@ -1,4 +1,5 @@
 import asyncio
+import os
 import queue
 import sys
 import threading
@@ -153,6 +154,8 @@ class ParameterLoader:
         scenes_data_dir_path = self.data_dir_path + "/scenes/"
         scene_path = scenes_data_dir_path + problemset + '/' + environment_name + '.urdf'
         sdf_path = scenes_data_dir_path + problemset + '/' + sdf_name + '.sdf'
+        assert os.path.exists(scene_path), f"Scene file {scene_path} does not exist"
+        assert os.path.exists(sdf_path), f"SDF file {sdf_path} does not exist"
         return scene_path, sdf_path
 
 
