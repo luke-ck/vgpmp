@@ -43,6 +43,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
         self.sampler = Sampler(parameters, robot_name)
         self.sdf = sdf
+        self.sigma_obs = sigma_obs
+
         sigma_obs_joints = tf.broadcast_to(sigma_obs, [no_frames_for_spheres, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=robot.num_spheres, axis=0), (1, num_spheres))
         self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=train_sigma)
@@ -98,7 +100,18 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             [tf.Tensor]: [S x N]
         """
         cost = self._hinge_loss(f) 
-        return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1)
+        main_diag = 1 / self.variance
+        super_diag = tf.ones(self.variance.shape, dtype=tf.float64) * (1 / self.sigma_obs) * 0.9
+        # super_diag = super_diag[None, ...]
+        sub_diag = tf.ones(self.variance.shape, dtype=tf.float64) * (1 / self.sigma_obs) * 0.9
+        # sub_diag = sub_diag[None, ...]
+        main_diag = tf.reshape(tf.broadcast_to(main_diag, (cost.shape[0], 1, cost.shape[2])), (cost.shape[0], cost.shape[2]))
+        super_diag = tf.reshape(tf.broadcast_to(super_diag, (cost.shape[0], 1, cost.shape[2])), (cost.shape[0], cost.shape[2]))
+        sub_diag = tf.reshape(tf.broadcast_to(sub_diag, (cost.shape[0], 1, cost.shape[2])), (cost.shape[0], cost.shape[2]))
+        diags = [super_diag, main_diag, sub_diag]
+        rhs = tf.linalg.tridiagonal_matmul(diags, tf.transpose(cost, perm=(0, 2, 1)), diagonals_format='sequence')
+        # return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1)
+        return -0.5 * tf.reduce_sum(cost * tf.transpose(rhs, perm=(0, 2, 1)), axis=-1)
 
     @tf.function
     def _sample_config_cost(self, f):

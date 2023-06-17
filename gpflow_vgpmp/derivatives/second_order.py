@@ -15,13 +15,12 @@ def second_order_derivative_se(inducing_variable_ny_scalar, inducing_variable_ny
     return second_derivative
 
 
-@K_grad_grad.register(Tensor, Matern52)
+@K_grad_grad.register(Tensor, SquaredExponential)
 def k_grad_grad_se_fallback(
         inducing_location_ny: Tensor,
-        kernel: Matern52,
+        kernel: SquaredExponential,
 ):
-    iterator = tf.range(inducing_location_ny.shape[0])
-    block = tf.map_fn(lambda i: second_order_derivative_se(inducing_location_ny[i], inducing_location_ny, kernel),
-                      iterator, fn_output_signature=tf.float64, parallel_iterations=8)
-
-    return block
+    norm = kernel.lengthscales ** 2
+    inducing_diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_ny, 0)
+    second_derivative = norm - inducing_diff ** 2
+    return second_derivative / kernel.lengthscales ** 4

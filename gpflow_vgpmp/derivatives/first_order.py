@@ -5,8 +5,15 @@ from tensorflow import Tensor
 from .dispatch import K_grad
 
 
-@tf.function
-def first_order_derivative_se(inducing_variable_ny, inducing_variable_Zy, kernel):
+@K_grad.register(Tensor, Tensor, SquaredExponential)
+def k_grad_se_fallback(inducing_variable_ny, inducing_variable_Zy, kernel):
+    norm = 1 / (kernel.lengthscales ** 2)
+    partial_derivative = norm * tf.subtract(tf.expand_dims(inducing_variable_ny, 1), inducing_variable_Zy)
+    return partial_derivative
+
+
+@K_grad.register(Tensor, Tensor, Matern52)
+def k_grad_matern52_fallback(inducing_variable_ny, inducing_variable_Zy, kernel):
     funcs2 = tf.range(inducing_variable_Zy.shape[0])
     norm = 1 / (kernel.lengthscales ** 2)
     partial_derivative = tf.map_fn(
@@ -14,15 +21,13 @@ def first_order_derivative_se(inducing_variable_ny, inducing_variable_Zy, kernel
         funcs2, fn_output_signature=tf.float64, parallel_iterations=8)
     return norm * partial_derivative
 
+@tf.function
+def kernel_derivative(ny, Zy, kernel):
+    ny_block = K_grad(ny, ny, kernel)
+    nyZy_block = K_grad(ny, Zy, kernel)
+    Zy_block = K_grad(Zy, Zy, kernel)
+    upper_block = tf.concat([ny_block, nyZy_block], axis=1)
+    lower_block = tf.concat([-tf.transpose(nyZy_block), Zy_block], axis=1)
+    return tf.concat([upper_block, lower_block], axis=0)
 
-@K_grad.register(Tensor, Tensor, Matern52)
-def k_grad_se_fallback(
-        inducing_location_ny: Tensor,
-        inducing_location_Zy: Tensor,
-        kernel: Matern52,
-):
-    iterator = tf.range(inducing_location_ny.shape[0])
-    block = tf.map_fn(lambda i: first_order_derivative_se(inducing_location_ny[i], inducing_location_Zy, kernel),
-                      iterator, fn_output_signature=tf.float64, parallel_iterations=8)
 
-    return block
