@@ -18,9 +18,11 @@ def k_grad_se_fallback(inducing_variable_ny, inducing_variable_Zy, kernel):
 @K_grad.register(Tensor, Tensor, Matern52)
 def k_grad_matern52_fallback(inducing_variable_ny, inducing_variable_Zy, kernel):
     # TODO: implement this
-    r2 = kernel.scaled_squared_euclid_dist(inducing_variable_ny[..., None], inducing_variable_Zy[..., None])
-    dkernel_dr_over_r = -FIVE_THIRDS * (1 + SQRT_5 * tf.sqrt(r2)) * tf.exp(-SQRT_5 * tf.sqrt(r2))
-    return dkernel_dr_over_r * tf.subtract(tf.expand_dims(inducing_variable_ny, 1), inducing_variable_Zy) / kernel.variance
+    diff = tf.subtract(tf.expand_dims(inducing_variable_ny, 1), inducing_variable_Zy)
+    s5r = SQRT_5 * tf.math.abs(diff) / kernel.lengthscales
+    dr_dXn_times_r = diff / kernel.lengthscales ** 2
+    dkernel_dr_over_r = - FIVE_THIRDS * (1 + s5r) * tf.math.exp(-s5r)
+    return -dkernel_dr_over_r * dr_dXn_times_r * kernel.variance
     # return norm * partial_derivative
 
 @K_grad.register(Tensor, Tensor, Kernel)

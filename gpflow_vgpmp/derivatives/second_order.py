@@ -17,35 +17,34 @@ def second_order_derivative_se(inducing_variable_ny_scalar, inducing_variable_ny
     return second_derivative
 
 
-@K_grad_grad.register(Tensor, Matern52)
+@K_grad_grad.register(Tensor, Tensor, Matern52)
 def k_grad_grad_matern52_fallback(
         inducing_location_ny: Tensor,
+        inducing_location_nz: Tensor,
         kernel: Matern52,
 ):
-    r2 = kernel.scaled_squared_euclid_dist(inducing_location_ny[..., None], inducing_location_ny[..., None])
-    r = tf.sqrt(r2)
-    diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_ny, 0)
-    dr_dXn = diff / (r[:, tf.newaxis] * kernel.variance)
-    dr_dYm = -diff / (r[:, tf.newaxis] * kernel.variance)
-    d2r_dXndYm_times_r3 = diff[:, :, tf.newaxis] * diff[:, tf.newaxis, :] / (kernel.variance * kernel.variance)
-    d2r_dXndYm_times_r3 -= tf.eye(d2r_dXndYm_times_r3.shape[1]) * (r ** 2 / kernel.variance)
+    diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_nz, 0)
+    r = tf.math.abs(diff) / kernel.lengthscales
+    dr_dXn = tf.math.divide_no_nan(diff, r * kernel.lengthscales ** 2)
+    dr_dYm = -dr_dXn
+    r2 = r ** 2
     s5r = SQRT_5 * r
-    exp_minus_s5r = tf.exp(-s5r)
-    dkernel_dr_over_r = -FIVE_THIRDS * (1 + s5r) * exp_minus_s5r
-    d2kernel_dr2 = FIVE_THIRDS * (5 * r2 - s5r - 1) * exp_minus_s5r
-    term1 = dkernel_dr_over_r[:, tf.newaxis, tf.newaxis] * d2r_dXndYm_times_r3 / r2[:, tf.newaxis, tf.newaxis]
-    term2 = d2kernel_dr2[:, tf.newaxis, tf.newaxis] * dr_dXn[:, :, tf.newaxis] * dr_dYm[:, tf.newaxis, :]
-    return term1 + term2
+    exp_minus_s5r = tf.math.exp(-s5r)
+    d2kernel_dr2 = FIVE_THIRDS * (5*r2 - s5r - 1) * exp_minus_s5r
+    term2 = d2kernel_dr2 * dr_dXn * dr_dYm
+    res = kernel.variance * term2
+    return tf.where(res == 0, 5 / 3 / kernel.lengthscales ** 2, res)
 
-@K_grad_grad.register(Tensor, SquaredExponential)
+@K_grad_grad.register(Tensor, Tensor, SquaredExponential)
 def k_grad_grad_se_fallback(
         inducing_location_ny: Tensor,
+        inducing_location_nz: Tensor,
         kernel: SquaredExponential,
 ):
     norm = kernel.lengthscales ** 2
-    inducing_diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_ny, 0)
+    inducing_diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_nz, 0)
     second_derivative = norm - inducing_diff ** 2
-    return second_derivative / kernel.lengthscales ** 4 * kernel(inducing_location_ny[..., None], inducing_location_ny[..., None])
+    return second_derivative / kernel.lengthscales ** 4 * kernel(inducing_location_ny[..., None], inducing_location_nz[..., None])
 
 
 @tf.function

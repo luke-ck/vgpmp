@@ -11,7 +11,7 @@ from ..dispatch import K_grad_grad
 def k_grad_grad_fallback_shared(Z: TensorLike,
                                 kernel: Union[SeparateIndependent, IndependentLatent]) -> tf.Tensor:
     K = tf.stack(
-        [K_grad_grad(Z[..., idx], k) for idx, k in enumerate(kernel.kernels)], axis=0
+        [K_grad_grad(Z[..., idx], Z[..., idx], k) for idx, k in enumerate(kernel.kernels)], axis=0
     )  # [L, 2, 2]
     
     return K
