@@ -15,9 +15,9 @@ def Kuf_fallback_shared_separate(
     kuf = tf.stack(
         [Kuf(inducing_variable.inducing_variable, k, Xnew) for k in kernel.kernels], axis=0
     )  # [L, M+2, P]
-    # ny_x_block = K_grad(inducing_variable.inducing_variable.ny, Xnew, kernel)  # [L, 2, P]
+    ny_x_block = K_grad(inducing_variable.inducing_variable.ny, Xnew, kernel)  # [L, 2, P]
     # kuf = tf.pad(kuf, [[0, 0], [2, 0], [0, 0]])
-    return kuf # tf.concat([ny_x_block, kuf], axis=1)  # [L, M+4, P]
+    return tf.concat([ny_x_block, kuf], axis=1)  # [L, M+4, P]
     # return kuf
 
 

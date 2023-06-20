@@ -19,17 +19,17 @@ def Kuu_fallback_shared_separate(
         [Kuu(inducing_variable.inducing_variable, k) for k in kernel.kernels], axis=0
     )  # [L, M+2, M+2]
     # Kzz = tf.pad(Kmm, [[0, 0], [2, 0], [2, 0]])
-    # zy_ny_block = K_grad(inducing_variable.inducing_variable.Zy,
-    #                      inducing_variable.inducing_variable.ny, kernel)  # [L, M+2, 2]
-    # ny_zy_block = K_grad(inducing_variable.inducing_variable.ny,
-    #                      inducing_variable.inducing_variable.Zy, kernel)  # [L, 2, M+2]
-    #
-    # ny_ny_block = K_grad_grad(inducing_variable.inducing_variable.ny, kernel)  # [L, 2, 2]
-    # down_block = tf.concat([zy_ny_block, Kmm], axis=-1)  # [L, M+2, M+4]
-    # up_block = tf.concat([ny_ny_block, ny_zy_block], axis=-1)  # [L, 2, M+4]
-    # Kzz = tf.concat([up_block, down_block], axis=1)  # [L, M+4, M+4]
+    zy_ny_block = K_grad(inducing_variable.inducing_variable.Zy,
+                         inducing_variable.inducing_variable.ny, kernel)  # [L, M+2, 2]
+    ny_zy_block = K_grad(inducing_variable.inducing_variable.ny,
+                         inducing_variable.inducing_variable.Zy, kernel)  # [L, 2, M+2]
 
-    jittermat = tf.eye(inducing_variable.num_inducing + 2, dtype=Kmm.dtype)[None, :, :] * jitter
+    ny_ny_block = K_grad_grad(inducing_variable.inducing_variable.ny, kernel)  # [L, 2, 2]
+    Kmm = tf.concat([zy_ny_block, Kmm], axis=-1)  # [L, M+2, M+4] (down block)
+    up_block = tf.concat([ny_ny_block, ny_zy_block], axis=-1)  # [L, 2, M+4]
+    Kmm = tf.concat([up_block, Kmm], axis=1)  # [L, M+4, M+4]
+
+    jittermat = tf.eye(inducing_variable.num_inducing + 4 , dtype=Kmm.dtype)[None, :, :] * jitter
     return Kmm + jittermat
 
 

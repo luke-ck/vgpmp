@@ -22,6 +22,7 @@ from ..inducing_variables.inducing_variables import InducingVariables
 @Kfu.register(InducingVariables, kernels.MultioutputKernel, TensorLike)
 def _Kfu_fallback_multioutput(Z, kern, X, **kwargs):
     Kuf = Kuf_dispatch(Z, kern, X, **kwargs)
+    print("dupa mizerie", Kuf.shape)
     # Assume features of x and z are 1-dimensional
     ndims_x = X.shape.ndims - 1  # assume x lives in 1d space
     ndims_z = 1  # shared Z live in 1d space, separate Z are 2d but 1-to-1 with L
@@ -30,5 +31,5 @@ def _Kfu_fallback_multioutput(Z, kern, X, **kwargs):
     # Swap the batch axes of x and z
     axes = list(range(1, ndims_x + ndims_z + 1))  # keep L output-features first
     perm = [0] + axes[ndims_z: ndims_z + ndims_x] + axes[:ndims_z]
-    # new_Kuf = tf.concat([-Kuf[:, :2], Kuf[:, 2:]], axis=1)
-    return tf.transpose(Kuf, perm)
+    new_Kuf = tf.concat([-Kuf[:, :2], Kuf[:, 2:]], axis=1)
+    return tf.transpose(new_Kuf, perm)

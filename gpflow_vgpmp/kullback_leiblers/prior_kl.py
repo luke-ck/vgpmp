@@ -1,3 +1,5 @@
+import sys
+
 import tensorflow as tf
 from gpflow.base import TensorLike
 from gpflow.covariances import Kuu
@@ -19,10 +21,9 @@ def prior_kl_separateindependent(inducing_variable, kernel, q_mu, q_sqrt, query_
     For SeparateIndependent kernel.
     """
 
-    n = len(inducing_variable.inducing_variable.ny)
+    n = 4
     K = Kuu(inducing_variable, kernel, jitter=default_jitter())
     L = tf.linalg.cholesky(K)
-
     # Subtract prior mean from q_mu, then whiten
     p_mu = tf.linalg.cholesky_solve(L[..., :n, :n], tf.transpose(query_states)[..., None])
     p_mu = tf.matmul(K[..., :n], p_mu)
@@ -30,6 +31,7 @@ def prior_kl_separateindependent(inducing_variable, kernel, q_mu, q_sqrt, query_
 
     whitened_diff = tf.linalg.triangular_solve(L, tf.transpose(q_mu)[..., None] - p_mu)
     whitened_diff = tf.transpose(tf.squeeze(whitened_diff))[n:, ...]
+
     return gauss_kl(whitened_diff, q_sqrt)
 
 
