@@ -50,6 +50,11 @@ class Robot:
         self.base = params["basename"]
         self.wrist_test = params["wrist_test"]
         self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
+        self.active_joints = params["active_joints"]
+
+        self.joint_limits = params["joint_limits"]
+        self.velocity_limits = params["velocity_limits"]
+
 
         start_pos = [0, 0, 0]
         start_orientation = [0.0, 0.0, 0.0, 1.0]
@@ -61,8 +66,8 @@ class Robot:
                 useFixedBase=1
                 # flags=p.URDF_USE_SELF_COLLISION # for some reason it makes wam's fingers to constantly move
             )
-
         self.link_idx = self.get_link_idx()
+        assert self.active_joints is not None and self.active_joints != [], "No active joints specified"
         assert self.link_idx is not None
         assert self.link_idx[self.base] is not None, "Base link not found. Check config file"
         assert self.link_idx[self.wrist_test] is not None, "Wrist link not found. Check config file"
@@ -70,27 +75,25 @@ class Robot:
         self.wrist_idx = self.link_idx[self.wrist_test]
 
     def initialise(self,
-                   position,
-                   orientation,
+                   default_robot_pos_and_orn,
                    start_config,
-                   active_joints,
-                   sphere_links,
                    joint_names,
                    default_pose,
                    benchmark: bool
                    ):
 
-        assert active_joints is not None and active_joints != [], "No active joints specified"
+        try:
+            position, orientation = default_robot_pos_and_orn
+        except TypeError:
+            position, orientation = None, None
 
         if position and orientation:
             self.reset_pos_and_orn(position, orientation)
 
-        self.set_active_joints(active_joints)
-
         if benchmark:
             self.set_scene(joint_names, default_pose)
-        self.set_active_links(sphere_links)
-        self.set_active_link_idx()
+        # self.set_active_links(sphere_links)
+        # self.set_active_link_idx()
 
         self.set_joint_idx()
         self.set_joint_names()
@@ -203,9 +206,6 @@ class Robot:
 
     def get_joint_names(self):
         return self.joints
-
-    def set_active_joints(self, active_joints):
-        self.active_joints = active_joints
 
     def set_joint_limits(self, joint_limits):
         self.joint_limits = joint_limits

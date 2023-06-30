@@ -52,29 +52,6 @@ def write_parameter_to_file(model_parameter, filepath):
     param = tf.strings.format("{}\n", model_parameter, summarize=-1)
     tf.io.write_file(f"{filepath}.txt", param)
 
-
-def create_problems(problemset, robot_name):
-    r"""
-    For the given problemset and robot names, returns the combination of all possible problems,
-    the planner parameters for the given environment and robot, and the
-    robot joint names, their default pose and the robot position in world coordinates.
-    """
-    # Start and end joint angles
-    Problemset = import_problemsets(robot_name)
-    n_states, states = Problemset.states(problemset)
-    print('There are %s total robot positions' % n_states)
-    # all possible combinations of 2 pairs
-    benchmark = list(itertools.combinations(states, 2))
-    print('And a total of %d problems in the %s problemset' %
-          (len(benchmark), problemset))
-    names = Problemset.joint_names(problemset)
-    pose = Problemset.default_pose(problemset)
-    planner_params = Problemset.planner_params(problemset)
-    robot_pos_and_orn = Problemset.pos_and_orn(problemset)
-
-    return benchmark, planner_params, names, pose, robot_pos_and_orn
-
-
 def set_scene(robot, active_joints, initial_config_joints, initial_config_names, initial_config_pose):
     r"""
 
@@ -176,7 +153,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                                offset=scene_params["position"],
                                joint_constraints=robot_params["joint_limits"],
                                velocity_constraints=robot_params["velocity_limits"],
-                               rs=robot.rs,
+                               rs=robot_params['radius'],
                                query_states=y,
                                sdf=sdf,
                                robot=robot,
@@ -375,16 +352,7 @@ def draw_active_config(robot: object, config_array: np.ndarray, color: int, clie
         prev = cur
 
 
-def import_problemsets(robot_name):
-    from data.problemsets import config
 
-    sys.path.insert(0, os.path.abspath('data/problemsets'))
-    if robot_name not in config.robot_modules:
-        print("Robot not available. Check params file and try again... The simulator will now exit.")
-        sys.exit(-1)
-    module_name = config.robot_modules[robot_name]
-    module = importlib.import_module(module_name)
-    return module.Problemset
 
 
 def decay_sigma(sigma_obs, num_latent_gps, decay_rate):

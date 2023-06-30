@@ -11,13 +11,13 @@ __all__ = 'simulator'
 
 
 class RobotSimulator:
-    def __init__(self):
+    def __init__(self, parameter_file_path=None):
         self.scene = None
         self.sdf = None
         self.robot = None
         self.plane = None
         self.sim = None
-        self.config = ParameterLoader()
+        self.config = ParameterLoader(parameter_file_path)
 
         self.initialize()
 

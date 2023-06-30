@@ -34,14 +34,21 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
                  **kwargs):
         super().__init__(**kwargs)
 
-        parameters["robot_name"] = robot_name
-        parameters["sphere_offsets"] = robot.sphere_offsets
-        parameters["num_spheres_list"] = robot.num_spheres
-        parameters["dof"] = robot.dof
-        parameters["sphere_link_interval"] = robot.sphere_link_interval
-        parameters["base_pose"] = robot.base_pose
+        # parameters["robot_name"] = robot_name
+        # parameters["sphere_offsets"] = robot.sphere_offsets
+        # parameters["num_spheres_list"] = robot.num_spheres
+        # parameters["dof"] = robot.dof
+        # parameters["sphere_link_interval"] = robot.sphere_link_interval
+        # parameters["base_pose"] = robot.base_pose
+        #
+        robot_config = {"sphere_offsets": robot.sphere_offsets,
+                        "num_spheres_list": robot.num_spheres,
+                        "dof": robot.dof,
+                        "sphere_link_interval": robot.sphere_link_interval,
+                        "base_pose": robot.base_pose,
+                        'robot_name': robot_name}
 
-        self.sampler = Sampler(parameters, robot_name)
+        self.sampler = Sampler(parameters, robot_config)
         self.sdf = sdf
         sigma_obs_joints = tf.broadcast_to(sigma_obs, [no_frames_for_spheres, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=robot.num_spheres, axis=0), (1, num_spheres))

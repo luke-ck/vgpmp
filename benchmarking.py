@@ -1,3 +1,4 @@
+from data.problemsets.problemset import create_problems
 from gpflow_vgpmp.utils.miscellaneous import *
 from gpflow_vgpmp.utils.simulator import RobotSimulator
 import os
@@ -9,7 +10,7 @@ gpflow.config.Config(jitter=1e-6)
 
 
 if __name__ == '__main__':
-    env = RobotSimulator()
+    env = RobotSimulator(parameter_file_path='./parameters.yaml')
     robot = env.robot
     scene = env.scene
     sdf = env.sdf
@@ -18,17 +19,19 @@ if __name__ == '__main__':
 
     params = env.get_simulation_params()
     robot_params = params.robot_params
+    print(robot_params)
+    sys.exit(0)
     scene_params = params.scene_params
     trainable_params = params.trainable_params
     graphics_params = params.graphic_params
 
     sphere_links = robot_params["spheres_over_links"]
     active_joints = robot_params["active_joints"]
-    problemset = scene_params["problemset"]
+    problemset_name = scene_params["problemset"]
     robot_name = robot_params["robot_name"]
 
     queries, planner_params, joint_names, default_pose, default_robot_pos_and_orn = create_problems(
-        problemset=problemset, robot_name=robot_name)
+        problemset_name=problemset_name, robot_name=robot_name)
 
     num_steps = planner_params["num_steps"]
 

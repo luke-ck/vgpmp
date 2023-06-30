@@ -1,0 +1,26 @@
+- robot:
+    robot_name: "wam"
+- scene:
+      position: [-0.2, 0.0, 0.08]
+      orientation: [ 0.0, 0.0, 0.0, 1.0 ]
+      environment_name: "industrial"
+      objects: []
+      objects_position: []
+      objects_orientation: []
+      problemset: "industrial"
+      sdf_name: "industrial_vgpmp"
+- trainable_parameters:
+    q_mu: True
+    q_sqrt: True
+    lengthscales: True
+    kernel_variance: True
+    sigma_obs: False
+    inducing_variable: False
+    alpha: False
+- graphics:
+    visuals: false
+    debug_joint_positions: False
+    debug_sphere_positions: False
+    visualize_best_sample: True
+    visualize_ee_path_uncertainty: False
+    visualize_drawn_samples: False

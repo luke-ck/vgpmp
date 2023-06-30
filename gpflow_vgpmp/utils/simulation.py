@@ -65,7 +65,8 @@ class ParameterLoader:
                - self.graphic_params = graphic_params["graphics"]
    """
 
-    def __init__(self):
+    def __init__(self, parameter_file_path=None):
+        self.params = None
         self.trainable_params = None
         self.graphic_params = None
         self.robot_params = None
@@ -73,25 +74,14 @@ class ParameterLoader:
         self.data_dir_path = get_root_package_path() + "/data/"
 
         try:
-            with open('requirements.txt', 'r') as req:
+            with open(get_root_package_path() + '/requirements.txt', 'r') as req:
                 pkg_resources.require(req)
         except DistributionNotFound:
             print('[Warning]: Missing packages ')
             sys.exit(
                 '[EXIT]: System will exit, please install all requirements and run the simulator again')
 
-        try:
-            stream = open("parameters.yaml", 'r')
-        except IOError:
-            print("[Error]: parameters file could not be found ")
-            sys.exit('[EXIT]: System will exit, please provide a parameter file and try again')
-
-        try:
-            self.params = yaml.safe_load(stream)
-        except yaml.constructor.ConstructorError as e:
-            print(e)
-
-        self.load_params(self.params)
+        self.load_parameter_file(parameter_file_path)
 
     def load_params(self, params):
         """ Load and extract data from parameter file """
@@ -130,7 +120,7 @@ class ParameterLoader:
         self.robot_params = {**config_dict, **robot_params}
 
     def get_scene_config(self, scene_params):
-        """Load scene paths required for SDF and URDF files """
+        """Load scene paths requireparameter_file_pathd for SDF and URDF files """
 
         problemset = scene_params["problemset"]
         environment_name = scene_params["environment_name"]
@@ -157,6 +147,22 @@ class ParameterLoader:
         assert os.path.exists(scene_path), f"Scene file {scene_path} does not exist"
         assert os.path.exists(sdf_path), f"SDF file {sdf_path} does not exist"
         return scene_path, sdf_path
+
+    def load_parameter_file(self, parameter_file_path: str):
+        """ Load parameter file """
+        try:
+            stream = open(parameter_file_path, 'r')
+        except IOError:
+            print("[Error]: parameters file could not be found ")
+            sys.exit('[EXIT]: System will exit, please provide a parameter file and try again')
+
+        try:
+            self.params = yaml.safe_load(stream)
+        except yaml.constructor.ConstructorError as e:
+            print(e)
+        finally:
+            self.load_params(self.params)
+            stream.close()
 
 
 class SimulationThread(threading.Thread):

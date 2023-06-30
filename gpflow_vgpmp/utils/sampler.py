@@ -58,15 +58,15 @@ class Sampler:
 
     """
 
-    def __init__(self, parameters, robot_name):
-        sphere_offsets = parameters["sphere_offsets"]
-        num_spheres = parameters["num_spheres_list"]
-        dof = parameters["dof"]
-        sphere_link_interval = parameters["sphere_link_interval"]
-        base_pose = parameters["base_pose"]
+    def __init__(self, parameters, robot_config):
+        sphere_offsets = robot_config["sphere_offsets"]
+        num_spheres = robot_config["num_spheres_list"]
+        dof = robot_config["dof"]
+        sphere_link_interval = robot_config["sphere_link_interval"]
+        base_pose = robot_config["base_pose"]
         sphere_offsets = sphere_offsets
-        self.DH = tf.constant(parameters["dh_parameters"], shape=(dof, 3), dtype=default_float())
-        self.pi = tf.reshape(tf.constant(parameters["twist"], dtype=default_float()), (dof, 1))
+        self.DH = tf.constant(robot_config["dh_parameters"], shape=(dof, 3), dtype=default_float())
+        self.pi = tf.reshape(tf.constant(robot_config["twist"], dtype=default_float()), (dof, 1))
         self.arm_base = tf.expand_dims(tf.constant(base_pose), axis=0)
         self.spheres_to_links = np.array(sphere_link_interval)
         self.num_spheres = num_spheres
@@ -75,7 +75,7 @@ class Sampler:
         self.fk_slice = parameters["fk_slice"]
 
         for index, offset in enumerate(sphere_offsets):
-            mat = self.get_mat(robot_name, index, offset)
+            mat = self.get_mat(parameters['robot_name'], index, offset)
 
             self.sphere_offsets[index] = mat
 
@@ -202,6 +202,37 @@ class Sampler:
         position_uncertainties = tf.squeeze(position_uncertainties ** 2)
         return tf.math.sqrt(tf.reduce_sum(position_uncertainties, axis=-1))
 
+    @tf.function
+    def get_idx(self, link, link_array):
+        return tf.squeeze(tf.where(tf.equal(link, link_array)))
+
+    # @tf.custom_gradient
+    # def link_fk_to_spheres(self, links):
+    #     r"""Computes the sphere location for the links found previously
+    #
+    #     Args:
+    #         links ([tf.tensor]): Q x 3
+    #
+    #     Returns:
+    #         spheres_loc [tf.tensor]: P x 3, grad [Tensor("gradients/...")]: Q x 3
+    #     """
+    #     spheres_loc = tf.py_function(self.robot.get_sphere_transform, [tf.py_function(self.robot._get_link_world_pos, [
+    #         self.robot.sphere_idx], default_float())], default_float())
+    #
+    #     def grad(upstream):
+    #         func = tf.range(self.spheres_to_links.shape[0])
+    #         gr = tf.map_fn(
+    #             lambda i: tf.reduce_sum(
+    #                 upstream[
+    #                 tf.gather_nd(self.spheres_to_links, [i, 0]): tf.gather_nd(self.spheres_to_links, [i, 1])
+    #                 ], axis=0
+    #             ), func, fn_output_signature=default_float(), parallel_iterations=8
+    #         )
+    #
+    #         return gr
+    #
+    #     return tf.reshape(spheres_loc, (-1, 3)), grad
+
     # @tf.custom_gradient
     # def joint_to_spheres(self, joints):
     #     spheres_loc = tf.py_function(self.robot.get_sphere_transform, [joints], default_float())
@@ -255,34 +286,3 @@ class Sampler:
     #         )
     #
     #     return tf.reshape(links, (-1, 3)), grad
-
-    @tf.function
-    def get_idx(self, link, link_array):
-        return tf.squeeze(tf.where(tf.equal(link, link_array)))
-
-    # @tf.custom_gradient
-    # def link_fk_to_spheres(self, links):
-    #     r"""Computes the sphere location for the links found previously
-    #
-    #     Args:
-    #         links ([tf.tensor]): Q x 3
-    #
-    #     Returns:
-    #         spheres_loc [tf.tensor]: P x 3, grad [Tensor("gradients/...")]: Q x 3
-    #     """
-    #     spheres_loc = tf.py_function(self.robot.get_sphere_transform, [tf.py_function(self.robot._get_link_world_pos, [
-    #         self.robot.sphere_idx], default_float())], default_float())
-    #
-    #     def grad(upstream):
-    #         func = tf.range(self.spheres_to_links.shape[0])
-    #         gr = tf.map_fn(
-    #             lambda i: tf.reduce_sum(
-    #                 upstream[
-    #                 tf.gather_nd(self.spheres_to_links, [i, 0]): tf.gather_nd(self.spheres_to_links, [i, 1])
-    #                 ], axis=0
-    #             ), func, fn_output_signature=default_float(), parallel_iterations=8
-    #         )
-    #
-    #         return gr
-    #
-    #     return tf.reshape(spheres_loc, (-1, 3)), grad
