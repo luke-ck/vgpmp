@@ -83,7 +83,7 @@ class ParameterLoader:
 
         self.load_parameter_file(parameter_file_path)
 
-    def load_params(self, params):
+    def set_params(self, params):
         """ Load and extract data from parameter file """
         robot_params, scene_params, trainable_params, graphic_params = params
         self.scene_params = scene_params["scene"]
@@ -94,11 +94,11 @@ class ParameterLoader:
         self.get_robot_config(self.robot_params)
         self.get_scene_config(self.scene_params)
 
-        self.params = Bunch(
-            scene_params=self.scene_params,
-            robot_params=self.robot_params,
-            trainable_params=self.trainable_params,
-            graphic_params=self.graphic_params
+        return (
+            self.scene_params,
+            self.robot_params,
+            self.trainable_params,
+            self.graphic_params
         )
 
     def get_robot_config(self, robot_params):
@@ -109,7 +109,7 @@ class ParameterLoader:
             are saved in the robot specific parameter file.
          """
         robot_name = robot_params["robot_name"]  # specify which robot to load
-        robots_data_dir_path = self.data_dir_path + "/robots/"  # TODO: make data dir path a parameter?
+        robots_data_dir_path = self.data_dir_path + "/robots/"
         robot_path = robots_data_dir_path + robot_name + "/"
         robot_config = robot_path + "config.yaml"
         config_dict = load_yaml_config(robot_config)
@@ -120,7 +120,7 @@ class ParameterLoader:
         self.robot_params = {**config_dict, **robot_params}
 
     def get_scene_config(self, scene_params):
-        """Load scene paths requireparameter_file_pathd for SDF and URDF files """
+        """Load scene paths require parameter_file_path for SDF and URDF files """
 
         problemset = scene_params["problemset"]
         environment_name = scene_params["environment_name"]
@@ -151,18 +151,15 @@ class ParameterLoader:
     def load_parameter_file(self, parameter_file_path: str):
         """ Load parameter file """
         try:
-            stream = open(parameter_file_path, 'r')
-        except IOError:
-            print("[Error]: parameters file could not be found ")
+            with open(parameter_file_path, 'r') as stream:
+                params = yaml.safe_load(stream)
+        except FileNotFoundError:
+            print("[Error]: Parameters file could not be found")
             sys.exit('[EXIT]: System will exit, please provide a parameter file and try again')
-
-        try:
-            self.params = yaml.safe_load(stream)
         except yaml.constructor.ConstructorError as e:
             print(e)
-        finally:
-            self.load_params(self.params)
-            stream.close()
+        else:
+            self.params = self.set_params(params)
 
 
 class SimulationThread(threading.Thread):
@@ -175,45 +172,41 @@ class SimulationThread(threading.Thread):
         self.thread_ready_event = thread_ready_event
 
     async def check_connection(self):
+        assert self.client is not None, "Client is not initialized"
         while not self.stop_event.is_set():
             if p.getConnectionInfo(self.client)['isConnected'] == 0:
                 self.stop_event.set()
-                break
+                return
+            if self.stop_event.is_set():
+                return
             await asyncio.sleep(0.01)
+        self.client = None
 
     async def wait_key_press(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        while True:
-            # Wait for a key press
-            key = await self.await_key_press()
+        async for key, is_return_pressed in self.await_key_press():
             self.result_queue.put(key)
+            if is_return_pressed:
+                self.stop_event.set()
+                return
 
     async def await_key_press(self):
-        """ run the simulation """
-        loop = asyncio.get_running_loop()
-        future = loop.create_future()
-
-        # Wait for the ESC key to be pressed or the stop event to be set
         while True:
             keys = p.getKeyboardEvents()
-            if self.stop_event.is_set():
-                break
             if 27 in keys and keys[27] & p.KEY_WAS_TRIGGERED:
-                break
-            if p.B3G_RETURN in keys and keys[p.B3G_RETURN] & p.KEY_WAS_TRIGGERED:
-                break
+                yield keys.keys(), False
+                return
 
-            # Sleep for a short time to prevent the loop from running too fast
+            if p.B3G_RETURN in keys and keys[p.B3G_RETURN] & p.KEY_WAS_TRIGGERED:
+                yield keys.keys(), True
+                return
+
+            if self.stop_event.is_set():
+                yield "STOP", True
+                return
+
             await asyncio.sleep(0.01)
 
-        # Set the future result with the pressed key code
-        future.set_result(keys.keys())
-
-        # Return the future object
-        return future
-
-    def run(self):
+    async def run(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -221,12 +214,11 @@ class SimulationThread(threading.Thread):
 
         tasks = [self.check_connection(), self.wait_key_press()]
         try:
-            loop.run_until_complete(asyncio.gather(*tasks))
+            await asyncio.gather(*[asyncio.create_task(task) for task in tasks])
         except asyncio.CancelledError:
             pass
         finally:
             loop.close()
-            p.disconnect(self.client)
 
     def initialize(self):
 
@@ -289,10 +281,7 @@ class Simulation:
 
     def check_simulation_thread_health(self):
         """ check if the simulation thread is still alive """
-        if self.simulation_thread.is_alive():
-            return True
-        else:
-            return False
+        return self.simulation_thread.is_alive()
 
 
 class Scene:
