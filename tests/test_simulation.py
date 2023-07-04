@@ -1,25 +1,47 @@
 import asyncio
+from pathlib import Path
 import pybullet as p
 import pytest
 from unittest.mock import MagicMock
-from gpflow_vgpmp.utils.simulation import SimulationThread
+from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
 
 
-def test_parameter_loader_load_parameter_file(mock_parameter_loader, mock_input_config, mock_final_config):
+def compare_dicts(dict1, dict2, ignore_keys):
+    # Create copies of the dictionaries to avoid modifying the original ones
+    dict1_copy = dict1.copy()
+    dict2_copy = dict2.copy()
+
+    # Remove the keys containing sensitive information from the copies
+    for key in ignore_keys:
+        dict1_copy.pop(key, None)
+        dict2_copy.pop(key, None)
+
+    # Perform the equality check
+    return dict1_copy == dict2_copy
+
+
+def test_parameter_loader_load_parameter_file(mock_parameter_loader, mock_final_config):
     # Test loading a parameter file
-    parameter_file_path = "./test_params.yaml"
-
-    # Ensure the initial params are set correctly
-    assert mock_parameter_loader.params == mock_input_config
+    parameter_file_path = "tests/test_params.yaml"
+    root_package_path = Path(get_root_package_path())
+    parameter_file_path = root_package_path / parameter_file_path
 
     # Call the load_parameter_file method
     mock_parameter_loader.load_parameter_file(parameter_file_path)
 
-    # Verify that the set_params method is called with mock_input_config
-    mock_parameter_loader.set_params.assert_called_with(mock_input_config)
-
-    # Ensure that the params attribute is updated with mock_final_config
-    assert mock_parameter_loader.params == mock_final_config
+    sensitive_keys = ['object_path', 'urdf_path', 'sdf_path', 'environment_path']
+    # Ensure the initial params are set correctly
+    is_equal = compare_dicts(mock_parameter_loader.params['robot_params'], mock_final_config['robot_params'],
+                             sensitive_keys)
+    assert is_equal
+    is_equal = compare_dicts(mock_parameter_loader.params['scene_params'], mock_final_config['scene_params'],
+                             sensitive_keys)
+    assert is_equal
+    is_equal = compare_dicts(mock_parameter_loader.params['trainable_params'], mock_final_config['trainable_params'],
+                             [])
+    assert is_equal
+    is_equal = compare_dicts(mock_parameter_loader.params['graphics_params'], mock_final_config['graphics_params'], [])
+    assert is_equal
 
 
 @pytest.mark.asyncio
@@ -39,8 +61,6 @@ async def test_initialize(mock_simulation_thread):
 
 @pytest.mark.asyncio
 async def test_check_connection(mock_simulation_thread):
-
-
     mock_simulation_thread.stop_event = MagicMock()
     mock_simulation_thread.initialize()
 
@@ -56,7 +76,6 @@ async def test_check_connection(mock_simulation_thread):
 
 @pytest.mark.asyncio
 async def test_await_key_press(mock_simulation_thread):
-
     mock_simulation_thread.initialize()
 
     # Create a mock stop_event
@@ -65,10 +84,10 @@ async def test_await_key_press(mock_simulation_thread):
 
     # Mock the p.getKeyboardEvents() function
     keys = {
-            27: p.KEY_WAS_TRIGGERED,
-            32: p.KEY_WAS_RELEASED,
-            p.B3G_RETURN: p.KEY_WAS_TRIGGERED
-            }
+        27: p.KEY_WAS_TRIGGERED,
+        32: p.KEY_WAS_RELEASED,
+        p.B3G_RETURN: p.KEY_WAS_TRIGGERED
+    }
     p.getKeyboardEvents = MagicMock(return_value=keys)
 
     # Call the await_key_press method
@@ -90,7 +109,6 @@ async def test_await_key_press(mock_simulation_thread):
 
 @pytest.mark.asyncio
 async def test_wait_key_press(mock_simulation_thread):
-
     # Create a mock stop_event
     mock_simulation_thread.stop_event = MagicMock()
     mock_simulation_thread.initialize()
@@ -126,15 +144,10 @@ async def test_wait_key_press(mock_simulation_thread):
 
 
 @pytest.mark.asyncio
-async def test_run(mock_input_config):
-    graphic_params = mock_input_config[-1]['graphics']
-
-    # Create an instance of the SimulationThread class
-    simulation_thread = SimulationThread(graphic_params, thread_ready_event=MagicMock(), queue=MagicMock())
-
+async def test_run(mock_input_config, mock_simulation_thread):
     # Create a mock stop_event
-    simulation_thread.stop_event = MagicMock()
-    simulation_thread.initialize()
+    mock_simulation_thread.stop_event = MagicMock()
+    mock_simulation_thread.initialize()
 
     # Create a mock keys dictionary
     keys = {p.B3G_RETURN: p.KEY_WAS_TRIGGERED}
@@ -146,18 +159,14 @@ async def test_run(mock_input_config):
     result_queue = MagicMock()
 
     # Assign the mock result_queue to the simulation_thread
-    simulation_thread.result_queue = result_queue
+    mock_simulation_thread.result_queue = result_queue
 
     # Use a context manager to handle exceptions and ensure the loop is properly closed
     try:
-        await simulation_thread.run()
+        await mock_simulation_thread.run()
 
         # Ensure that stop_event.is_set() is called
-        simulation_thread.stop_event.set.assert_called_once()
+        mock_simulation_thread.stop_event.set.assert_called_once()
     finally:
         # Clean up any resources and cancel the pending tasks
         asyncio.get_running_loop().stop()
-
-
-
-

@@ -5,34 +5,10 @@ from unittest.mock import MagicMock
 import pytest
 import pybullet as p
 import numpy as np
-from data.problemsets.problemset import create_problems
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sampler import Sampler
 from gpflow_vgpmp.utils.simulation import ParameterLoader, Simulation, SimulationThread
 from gpflow_vgpmp.utils.simulator import RobotSimulator
-
-
-@pytest.fixture(scope="session")
-def pybullet_session_fixture():
-    env = RobotSimulator(parameter_file_path='./test_params.yaml')
-
-    robot = env.robot
-
-    params = env.get_simulation_params()
-    robot_params = params.robot_params
-    print(robot_params['robot_name'])
-    queries, planner_params, joint_names, default_pose, default_robot_pos_and_orn = create_problems(
-        problemset_name=params.scene_params["problemset"], robot_name=robot_params['robot_name'])
-
-    default_pose = np.array([0] * robot_params['dof']).reshape(1, robot_params['dof'])
-    start_config = np.array([0] * robot_params['dof']).reshape(1, robot_params['dof'])
-    robot.initialise(default_robot_pos_and_orn=default_robot_pos_and_orn,
-                     start_config=start_config,
-                     joint_names=joint_names,
-                     default_pose=default_pose,
-                     benchmark=False)
-
-    return env, planner_params
 
 
 @pytest.fixture
@@ -56,7 +32,7 @@ def mock_input_config():
             }
         },
         {
-            "trainable_parameters": {
+            "trainable_params": {
                 "q_mu": True,
                 "q_sqrt": True,
                 "lengthscales": True,
@@ -105,7 +81,6 @@ def mock_final_config():
             'no_frames_for_spheres': 4,
             'fk_slice': [3, 5, 6, 7],
             'q_mu': 'None',
-            'urdf_path': '/home/lucasc/git/vgpmp/data//robots/wam/wam.urdf',
             'robot_name': 'wam'
         },
         'planner_params': {
@@ -130,11 +105,8 @@ def mock_final_config():
             'objects_orientation': [],
             'problemset': 'industrial',
             'sdf_name': 'industrial_vgpmp',
-            'object_path': [],
-            'sdf_path': '/home/lucasc/git/vgpmp/data//scenes/industrial/industrial_vgpmp.sdf',
-            'environment_path': '/home/lucasc/git/vgpmp/data//scenes/industrial/industrial.urdf'
         },
-        "trainable_parameters": {
+        "trainable_params": {
             'q_mu': True,
             'q_sqrt': True,
             'lengthscales': True,
@@ -143,7 +115,7 @@ def mock_final_config():
             'inducing_variable': False,
             'alpha': False
         },
-        "graphics": {
+        "graphics_params": {
             'visuals': False,
             'debug_joint_positions': False,
             'debug_sphere_positions': False,
@@ -157,8 +129,13 @@ def mock_final_config():
 @pytest.fixture
 def mock_parameter_loader(mock_input_config, mock_final_config):
     # Create a mock parameter loader with the given configuration
-    parameter_loader = ParameterLoader('./test_params.yaml')
-    parameter_loader.params = mock_input_config
+    parameter_loader = ParameterLoader('tests/test_params.yaml')
+    robot_params, scene_params, trainable_params, graphic_params = mock_input_config
+    parameter_loader.scene_params = scene_params["scene"]
+    parameter_loader.robot_params = robot_params["robot"]
+    parameter_loader.trainable_params = trainable_params["trainable_params"]
+    parameter_loader.graphics_params = graphic_params["graphics"]
+
     parameter_loader.set_params = MagicMock(return_value=mock_final_config)
     return parameter_loader
 
@@ -168,7 +145,7 @@ def mock_simulation_thread(mock_input_config):
     graphic_params = mock_input_config[-1]['graphics']
 
     # Create a mock simulation thread
-    simulation_thread = SimulationThread(graphic_params, thread_ready_event=threading.Event(), queue=queue.Queue())
+    simulation_thread = SimulationThread(graphic_params)
     yield simulation_thread
 
 
@@ -177,13 +154,29 @@ def mock_simulation(mock_input_config, mock_simulation_thread):
     graphic_params = mock_input_config[-1]['graphics']
     # Create a mock simulation with the mock simulation thread
     simulation = Simulation(graphic_params)
+    simulation.simulation_thread = mock_simulation_thread
 
-    # Modify the start_simulation_thread method to invoke the run method of mock_simulation_thread
-    def start_simulation_thread_mock():
-        mock_simulation_thread.run()
+    yield simulation
 
-    simulation.start_simulation_thread = MagicMock(side_effect=start_simulation_thread_mock)
-    simulation.stop_simulation_thread = MagicMock()
-    simulation.check_events = MagicMock()
-    simulation.check_simulation_thread_health = MagicMock(return_value=True)
-    return simulation
+
+# @pytest.fixture(mock_simulation)
+# def pybullet_session_fixture():
+#     env = RobotSimulator(parameter_file_path='./test_params.yaml')
+#
+#     robot = env.robot
+#
+#     params = env.get_simulation_params()
+#     robot_params = params.robot_params
+#     print(robot_params['robot_name'])
+#     queries, planner_params, joint_names, default_pose, default_robot_pos_and_orn = create_problems(
+#         problemset_name=params.scene_params["problemset"], robot_name=robot_params['robot_name'])
+#
+#     default_pose = np.array([0] * robot_params['dof']).reshape(1, robot_params['dof'])
+#     start_config = np.array([0] * robot_params['dof']).reshape(1, robot_params['dof'])
+#     robot.initialise(default_robot_pos_and_orn=default_robot_pos_and_orn,
+#                      start_config=start_config,
+#                      joint_names=joint_names,
+#                      default_pose=default_pose,
+#                      benchmark=False)
+#
+#     return env, planner_params

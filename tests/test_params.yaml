@@ -9,7 +9,7 @@
       objects_orientation: []
       problemset: "industrial"
       sdf_name: "industrial_vgpmp"
-- trainable_parameters:
+- trainable_params:
     q_mu: True
     q_sqrt: True
     lengthscales: True
