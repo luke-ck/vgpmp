@@ -169,11 +169,7 @@ def mock_simulation_thread(mock_input_config):
 
     # Create a mock simulation thread
     simulation_thread = SimulationThread(graphic_params, thread_ready_event=threading.Event(), queue=queue.Queue())
-    simulation_thread.start = MagicMock()
-    simulation_thread.stop = MagicMock()
-    simulation_thread.join = MagicMock()
-    simulation_thread.is_alive = MagicMock(return_value=True)
-    return simulation_thread
+    yield simulation_thread
 
 
 @pytest.fixture
