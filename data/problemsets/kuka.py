@@ -7,10 +7,6 @@ from problemset import AbstractProblemset
 class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
-    def default_pose(problemset):
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    @staticmethod
     def states(problemset):
         if problemset == "bookshelves":
             n_states = 11
@@ -48,19 +44,6 @@ class Problemset(AbstractProblemset, ABC):
         return n_states, states
 
     @staticmethod
-    def joint_names(problemset):
-        return [
-            "iiwa_description_joint_1",
-            "iiwa_description_joint_2",
-            "iiwa_description_joint_3",
-            "iiwa_description_joint_4",
-            "iiwa_description_joint_5",
-            "iiwa_description_joint_6",
-            "iiwa_description_joint_7",
-            "iiwa_description_joint_ee"
-        ]
-
-    @staticmethod
     def pos_and_orn(problemset):
         if problemset == "industrial":
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
@@ -70,14 +53,13 @@ class Problemset(AbstractProblemset, ABC):
             raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
-    def object_position(problemset):
+    def object_positions(problemset):
         if problemset == "industrial":
-            return [-0.2, 0.0, -0.2]
+            return [[-0.2, 0.0, -0.2]]
         elif problemset == "bookshelves":
-            return [0.62, -0.15, 0.834]
+            return [[0.62, -0.15, 0.834]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
-            sys.exit("Invalid problemset")
 
     @staticmethod
     def planner_params(problemset):

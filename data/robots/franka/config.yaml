@@ -2,7 +2,35 @@ radius: [0.09, 0.11, 0.08, 0.06, 0.08, 0.08, 0.06, 0.08, 0.06, 0.06, 0.065, 0.06
          0.0625, 0.065, 0.065, 0.055, 0.055, 0.04, 0.04, 0.04, 0.05, 0.07, 0.06, 0.06,
          0.055, 0.055, 0.045, 0.015, 0.015, 0.0175, 0.015, 0.015, 0.0175, 0.06, 0.05, 0.06]
 num_spheres: 37 # should be dependent on robot
-spheres_over_links:
+joint_names:
+  [
+    'panda_joint1',
+    'panda_joint2',
+    'panda_joint3',
+    'panda_joint4',
+    'panda_joint5',
+    'panda_joint6',
+    'panda_joint7',
+    'panda_joint8',
+    'panda_hand_joint',
+    'panda_finger_joint1',
+    'panda_finger_joint2'
+  ]
+default_pose:
+  [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+active_links:
   [
        "panda_link1",
        "panda_link2",
@@ -22,8 +50,8 @@ active_joints:
      "panda_joint6",
      "panda_joint7"
   ]
-basename: "panda_link0"
-wrist_test: "panda_hand"
+link_name_base: "panda_link0"
+link_name_wrist: "panda_hand"
 path: "franka_spheres.urdf"
 joint_limits:
   [ # Values in radians

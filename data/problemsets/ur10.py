@@ -7,14 +7,6 @@ from problemset import AbstractProblemset
 class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
-    def default_pose(problemset):
-        return [0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
-
-    @staticmethod
-    def default_joint_values(problemset):
-        return [-1.507, -1.507, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    @staticmethod
     def states(problemset):
         if problemset == "bookshelves":
             n_states = 11
@@ -48,17 +40,6 @@ class Problemset(AbstractProblemset, ABC):
         return n_states, states
 
     @staticmethod
-    def joint_names(problemset):
-        return [
-            "shoulder_pan_joint", 
-            "shoulder_lift_joint", 
-            "elbow_joint", 
-            "wrist_1_joint", 
-            "wrist_2_joint",
-            "wrist_3_joint"
-        ]
-
-    @staticmethod
     def pos_and_orn(problemset):
         if problemset == "industrial":
             return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
@@ -68,11 +49,11 @@ class Problemset(AbstractProblemset, ABC):
             raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
-    def object_position(problemset):
+    def object_positions(problemset):
         if problemset == "industrial":
-            return [-0.2, 0.0, 0.08]
+            return [[-0.2, 0.0, 0.08]]
         elif problemset == "bookshelves":
-            return [0.95, -0.15, 0.834]
+            return [[0.95, -0.15, 0.834]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -96,7 +77,7 @@ class Problemset(AbstractProblemset, ABC):
             return {
                 "sigma_obs": 0.0005,
                 "epsilon": 0.05,
-                "lengthscales": [4] * 6, #[500, 500, 500, 500, 500, 500],
+                "lengthscales": [4] * 6,
                 "variance": 0.25,
                 "alpha": 100.0,
                 "num_samples": 7,

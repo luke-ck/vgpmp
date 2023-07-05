@@ -7,30 +7,6 @@ from problemset import AbstractProblemset
 class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
-    def default_pose(problemset):
-        if problemset == 'bookshelves':
-            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        if problemset == 'industrial':
-            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        elif problemset == 'boxes':
-            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        else:
-            raise ValueError("Unknown problem set: {}".format(problemset))
-
-    @staticmethod
-    def joint_names(problemset):
-        if problemset == 'bookshelves':
-            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
-                    'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
-                    'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
-        if problemset == 'industrial':
-            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
-                    'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
-                    'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
-        else:
-            raise ValueError("Unknown problem set: {}".format(problemset))
-
-    @staticmethod
     def states(problemset):
         if problemset == 'bookshelves':
             n_states = 11
@@ -77,15 +53,16 @@ class Problemset(AbstractProblemset, ABC):
             raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
-    def object_position(problemset):
+    def object_positions(problemset):
         if problemset == "industrial":
-            return [-0.2, 0.0, -0.2]
+            return [[-0.2, 0.0, -0.2]]
         elif problemset == "bookshelves":
-            return [0.62, -0.15, 0.834]
+            return [[0.62, -0.15, 0.834]]
         elif problemset == "boxes":
-            return [0.0, 0.0, 0.522176]
+            return [[0.0, 0.0, 0.522176]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
+
     @staticmethod
     def planner_params(problemset):
         if problemset == "industrial":

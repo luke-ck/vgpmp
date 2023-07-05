@@ -7,14 +7,6 @@ from problemset import AbstractProblemset
 class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
-    def default_pose(problemset):
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    @staticmethod
-    def default_joint_values(problemset):
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    @staticmethod
     def states(problemset):
         if problemset == "lab":
             n_states = 14
@@ -66,18 +58,6 @@ class Problemset(AbstractProblemset, ABC):
         return n_states, states
 
     @staticmethod
-    def joint_names(problemset):
-        return [
-            "wam/base_yaw_joint",
-            "wam/shoulder_pitch_joint",
-            "wam/shoulder_yaw_joint",
-            "wam/elbow_pitch_joint",
-            "wam/wrist_yaw_joint",
-            "wam/wrist_pitch_joint",
-            "wam/palm_yaw_joint"
-            ]
-
-    @staticmethod
     def pos_and_orn(problemset):
         if problemset == "industrial":
             return [0.0, 0.0, 0.346], [0.0, 0.0, 0.0, 1.0]
@@ -89,13 +69,13 @@ class Problemset(AbstractProblemset, ABC):
             raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
-    def object_position(problemset):
+    def object_positions(problemset):
         if problemset == "industrial":
-            return [-0.2, 0.0, 0.08]
+            return [[-0.2, 0.0, 0.08]]
         elif problemset == "lab":
-            return [0.625, 0.275, 0.85]
+            return [[0.625, 0.275, 0.85]]
         elif problemset == "bookshelves":
-            return [0.85, -0.15, 0.834]
+            return [[0.85, -0.15, 0.834]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
