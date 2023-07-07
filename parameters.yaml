@@ -1,63 +1,51 @@
-benchmark_attributes: &benchmark_attributes
-  problemset: "industrial"
+- robot:
+    #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
+    robot_name: "ur10"
+- scene:
+      position: [-0.2, 0.0, 0.08] # [ 0.85, -0.15, 0.834] # [-0.2, 0, -0.2] # [ 0.625, 0.275, 0.85 ] #  #   # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.834] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] # [ 0.85, -0.15, 0.834] # [ 0.95, -0.15, 0.834]
+      orientation: [ 0.0, 0.0, 0.0, 1.0 ]
+      environment_name: "industrial"
+      environment_file_name: "industrial"
+      sdf_file_name: "industrial_vgpmp"
+      objects: []
+      objects_position: []
+      objects_orientation: []
+      benchmark: False
+      non_benchmark_attributes:
 
-non_benchmark_attributes: &non_benchmark_attributes
-  queries: [
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  ]
-  position: [0.0, 0.0, 0.0]
-  orientation: [0.0, 0.0, 0.0, 1.0]
-  planner_params:
-    {
-      "sigma_obs": 0.005,
-      "epsilon": 0.05,
-      "lengthscales": [ 5.0, 5.0, 5.0, 2.0, 5.0, 5.0, 5.0 ],
-      "variance": 0.25,
-      "alpha": 100,
-      "num_samples": 7,
-      "num_inducing": 24,
-      "learning_rate": 0.09,
-      "num_steps": 130,
-      "time_spacing_X": 70,
-      "time_spacing_Xnew": 150
-    }
-
-benchmark: &benchmark False
-
-parameters:
-  - robot:
-      #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-      robot_name: "ur10"
-  - scene:
-        position: [-0.2, 0.0, 0.08] # [ 0.85, -0.15, 0.834] # [-0.2, 0, -0.2] # [ 0.625, 0.275, 0.85 ] #  #   # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.834] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] # [ 0.85, -0.15, 0.834] # [ 0.95, -0.15, 0.834]
-        orientation: [ 0.0, 0.0, 0.0, 1.0 ]
-        environment_name: "industrial"
-        objects: []
-        objects_position: []
-        objects_orientation: []
-        sdf_name: "industrial_vgpmp"
-        if: *benchmark
-        then:
-          <<: *benchmark_attributes
-        else:
-          <<: *non_benchmark_attributes
-
-
-  - trainable_params:
-      q_mu: True
-      q_sqrt: True
-      lengthscales: True
-      kernel_variance: True
-      sigma_obs: False
-      inducing_variable: False
-      alpha: False
-  - graphics:
-      visuals: True
-      quality: high
-      GUI: True
-      debug_joint_positions: False
-      debug_sphere_positions: False
-      visualize_best_sample: True
-      visualize_ee_path_uncertainty: False
-      visualize_drawn_samples: False
+        states: [
+          [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+          [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+        ]
+        robot_pos_and_orn: [[ 0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0, 1.0 ]]
+        planner_params:
+            sigma_obs: 0.005
+            epsilon: 0.05
+            lengthscales: [ 5.0, 5.0, 5.0, 2.0, 5.0, 5.0, 5.0 ]
+            variance: 0.25
+            alpha: 100
+            num_samples: 7
+            num_inducing: 24
+            learning_rate: 0.09
+            num_steps: 130
+            time_spacing_X: 70
+            time_spacing_Xnew: 150
+      benchmark_attributes:
+        problemset_name: "industrial"
+- trainable_params:
+    q_mu: True
+    q_sqrt: True
+    lengthscales: True
+    kernel_variance: True
+    sigma_obs: False
+    inducing_variable: False
+    alpha: False
+- graphics:
+    visuals: True
+    quality: high
+    GUI: True
+    debug_joint_positions: False
+    debug_sphere_positions: False
+    visualize_best_sample: True
+    visualize_ee_path_uncertainty: False
+    visualize_drawn_samples: False

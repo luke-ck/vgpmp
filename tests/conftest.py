@@ -1,14 +1,9 @@
-import queue
-import threading
 from unittest.mock import MagicMock
-
 import pytest
-import pybullet as p
 import numpy as np
-from gpflow_vgpmp.utils.robot import Robot
-from gpflow_vgpmp.utils.sampler import Sampler
-from gpflow_vgpmp.utils.simulation import ParameterLoader, Simulation, SimulationThread
-from gpflow_vgpmp.utils.simulator import RobotSimulator
+from gpflow_vgpmp.utils.simulation import Simulation, SimulationThread
+from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
+from gpflow_vgpmp.utils.simulationmanager import SimulationManager
 
 
 @pytest.fixture
@@ -24,11 +19,35 @@ def mock_input_config():
                 "position": [-0.2, 0.0, 0.08],
                 "orientation": [0.0, 0.0, 0.0, 1.0],
                 "environment_name": "industrial",
+                "environment_file_name": "industrial",
+                "sdf_file_name": "industrial_vgpmp",
                 "objects": [],
                 "objects_position": [],
                 "objects_orientation": [],
                 "problemset": "industrial",
-                "sdf_name": "industrial_vgpmp"
+                "sdf_name": "industrial_vgpmp",
+                "benchmark": False,
+                "non_benchmark_attributes": {
+                    "states": [
+                        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                    ],
+                    "robot_pos_and_orn": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]],
+                    "planner_params":
+                        {
+                            "sigma_obs": 0.005,
+                            "epsilon": 0.05,
+                            "lengthscales": [5.0, 5.0, 5.0, 2.0, 5.0, 5.0, 5.0],
+                            "variance": 0.25,
+                            "alpha": 100,
+                            "num_samples": 7,
+                            "num_inducing": 24,
+                            "learning_rate": 0.09,
+                            "num_steps": 130,
+                            "time_spacing_X": 70,
+                            "time_spacing_Xnew": 150
+                        }
+                }
             }
         },
         {
@@ -59,29 +78,43 @@ def mock_input_config():
 def mock_final_config():
     # Create a mock configuration dictionary
     return {
-        "robot_params": {
-            'radius': [0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.1, 0.0675, 0.0675, 0.0675, 0.0675,
-                       0.0675, 0.0675, 0.0675, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034],
-            'num_spheres': 25,
-            'active_links': ['wam/base_link', 'wam/shoulder_yaw_link', 'wam/shoulder_pitch_link', 'wam/upper_arm_link',
-                             'wam/forearm_link', 'wam/wrist_yaw_link', 'wam/wrist_pitch_link'],
-            'active_joints': ['wam/base_yaw_joint', 'wam/shoulder_pitch_joint', 'wam/shoulder_yaw_joint',
-                              'wam/elbow_pitch_joint', 'wam/wrist_yaw_joint', 'wam/wrist_pitch_joint',
-                              'wam/palm_yaw_joint'],
-            'link_name_base': 'wam/base_link',
-            'link_name_wrist': 'wam/wrist_pitch_link',
-            'path': 'wam.urdf',
-            'joint_limits': [2.6, -2.6, 2.0, -2.0, 2.8, -2.8, 3.1, -0.9, 1.24, -4.76, 1.6, -1.6, 3.0, -3.0],
-            'velocity_limits': [2.6, -2.6, 2.0, -2.0, 2.8, -2.8, 3.1, -0.9, 1.24, -4.76, 1.6, -1.6, 3.0, -3.0],
-            'dh_parameters': [0.0, 0.0, -1.5708, 0.0, 0.0, 1.5708, 0.55, 0.045, -1.5708, 0.0, -0.045, 1.5708, 0.3, 0.0,
-                              -1.5708, 0.0, 0.0, 1.5708, 0.06, 0.0, 0.0],
-            'twist': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            'dof': 7,
+        'robot_params': {
+            "radius": [0.15, 0.13, 0.085, 0.085, 0.085, 0.085, 0.13, 0.1, 0.07, 0.07, 0.07, 0.07, 0.07, 0.1, 0.08, 0.08,
+                       0.05],
+            'num_spheres': 17,
+            'joint_names': ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint',
+                            'wrist_2_joint', 'wrist_3_joint'],
+            'default_pose': [0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
+            'active_links': ['shoulder_link', 'upper_arm_link', 'forearm_link', 'wrist_1_link', 'wrist_2_link',
+                             'wrist_3_link'],
+            'active_joints': ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint',
+                              'wrist_2_joint', 'wrist_3_joint'],
+            'link_name_base': 'base_link', 'link_name_wrist': 'ee_link', 'path': 'ur10.urdf',
+            'joint_limits': [6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28],
+            'velocity_limits': [6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28, 6.28, -6.28],
+            'dh_parameters': [0.1273, 0.0, 1.5708, 0.0, -0.612, 0.0, 0.0, -0.5723, 0.0, 0.163941, 0.0, 1.5708, 0.1157,
+                              0.0, -1.5708, 0.0922, 0.0, 0.0],
+            'twist': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            'dof': 6,
             'craig_dh_convention': False,
-            'no_frames_for_spheres': 4,
-            'fk_slice': [3, 5, 6, 7],
-            'q_mu': 'None',
-            'robot_name': 'wam'
+            'no_frames_for_spheres': 5,
+            'fk_slice': [1, 2, 3, 4, 5],
+            'q_mu': [-1.507, -1.507, 0, 0, 0, 0],
+            'robot_name': 'ur10'
+        },
+        'scene_params': {
+            'position': [-0.2, 0.0, 0.08],
+            'orientation': [0.0, 0.0, 0.0, 1.0],
+            'environment_name': 'industrial',
+            'environment_file_name': 'industrial',
+            'sdf_file_name': 'industrial_vgpmp',
+            'objects': [],
+            'objects_position': [],
+            'objects_orientation': [],
+            'benchmark': False,
+            'object_path': [],
+            'queries': [([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])],
+            'robot_pos_and_orn': ([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]),
         },
         'planner_params': {
             'sigma_obs': 0.005,
@@ -96,17 +129,7 @@ def mock_final_config():
             'time_spacing_X': 70,
             'time_spacing_Xnew': 150
         },
-        "scene_params": {
-            'position': [-0.2, 0.0, 0.08],
-            'orientation': [0.0, 0.0, 0.0, 1.0],
-            'environment_name': 'industrial',
-            'objects': [],
-            'objects_position': [],
-            'objects_orientation': [],
-            'problemset': 'industrial',
-            'sdf_name': 'industrial_vgpmp',
-        },
-        "trainable_params": {
+        'trainable_params': {
             'q_mu': True,
             'q_sqrt': True,
             'lengthscales': True,
@@ -115,8 +138,10 @@ def mock_final_config():
             'inducing_variable': False,
             'alpha': False
         },
-        "graphics_params": {
-            'visuals': False,
+        'graphics_params': {
+            'visuals': True,
+            'quality': 'high',
+            'GUI': True,
             'debug_joint_positions': False,
             'debug_sphere_positions': False,
             'visualize_best_sample': True,
@@ -159,24 +184,11 @@ def mock_simulation(mock_input_config, mock_simulation_thread):
     yield simulation
 
 
-# @pytest.fixture(mock_simulation)
-# def pybullet_session_fixture():
-#     env = RobotSimulator(parameter_file_path='./test_params.yaml')
-#
-#     robot = env.robot
-#
-#     params = env.get_simulation_params()
-#     robot_params = params.robot_params
-#     print(robot_params['robot_name'])
-#     queries, planner_params, joint_names, default_pose, default_robot_pos_and_orn = create_problems(
-#         problemset_name=params.scene_params["problemset"], robot_name=robot_params['robot_name'])
-#
-#     default_pose = np.array([0] * robot_params['dof']).reshape(1, robot_params['dof'])
-#     start_config = np.array([0] * robot_params['dof']).reshape(1, robot_params['dof'])
-#     robot.initialise(default_robot_pos_and_orn=default_robot_pos_and_orn,
-#                      start_config=start_config,
-#                      joint_names=joint_names,
-#                      default_pose=default_pose,
-#                      benchmark=False)
-#
-#     return env, planner_params
+@pytest.fixture
+def mock_simulation_manager(mock_input_config, mock_parameter_loader):
+    robot_params, scene_params, trainable_params, graphic_params = mock_input_config
+    # Create a mock simulator with the mock simulation
+    simulation_manager = SimulationManager('tests/test_params.yaml')
+    simulation_manager._config = mock_parameter_loader
+
+    yield simulation_manager

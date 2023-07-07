@@ -42,6 +42,8 @@ def test_parameter_loader_load_parameter_file(mock_parameter_loader, mock_final_
     assert is_equal
     is_equal = compare_dicts(mock_parameter_loader.params['graphics_params'], mock_final_config['graphics_params'], [])
     assert is_equal
+    is_equal = compare_dicts(mock_parameter_loader.params['planner_params'], mock_final_config['planner_params'], [])
+    assert is_equal
 
 
 @pytest.mark.asyncio
