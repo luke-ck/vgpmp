@@ -16,9 +16,9 @@ def import_problemset(robot_name):
     if robot_name not in config.robot_modules:
         print("Robot not available. Check params file and try again... The simulator will now exit.")
         sys.exit(-1)
-    module_name = config.robot_modules[robot_name]
+
     sys.path.append(problemset_path)
-    module = importlib.import_module(module_name)
+    module = importlib.import_module(robot_name)
     return module.Problemset
 
 
