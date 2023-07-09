@@ -1,12 +1,9 @@
 import itertools
 import sys
 from pathlib import Path
-from typing import Tuple
-
+from typing import Tuple, Optional
 import yaml
-
 from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
-
 
 def load_yaml_config(scene_config):
     with open(scene_config, 'r') as stream:
@@ -28,7 +25,7 @@ class ParameterLoader:
     - self.trainable_params = parameters that are used to configure the GP model (whether to train q_mu, q_sqrt, etc.)
     """
 
-    def __init__(self, parameter_file_path=None):
+    def __init__(self):
 
         self._params = None
         self.trainable_params = None
@@ -37,15 +34,27 @@ class ParameterLoader:
         self.robot_params = None
         self.scene_params = None
         root_package_path = Path(get_root_package_path())
+        self.root_path = root_package_path
         self.data_dir_path = root_package_path / 'data'
-        if parameter_file_path is not None:
-            parameter_file_path = root_package_path / parameter_file_path
-
-        self.load_parameter_file(parameter_file_path)
 
     @property
     def params(self) -> dict:
+        assert self._params is not None, "Parameter Loader must be initialized before it can be accessed"
         return self._params
+
+    def initialize(self, parameter_file_path: Optional[dict] = None, params: Optional[dict] = None):
+        """
+        Initialize the parameter loader by loading the parameter file and extracting the data
+        or by directly passing the params dict (this is used for testing)
+
+        :param parameter_file_path: path to the parameter file
+        :param params: dict containing the parameters
+        """
+        if parameter_file_path is not None:
+            self.load_parameter_file(parameter_file_path)
+        else:
+            assert params is not None, "Either parameter_file_path or params must be specified"
+            self._params = self.set_params(params)
 
     def set_params(self, params):
         """ Load and extract data from parameter file """
@@ -60,7 +69,7 @@ class ParameterLoader:
         self.get_robot_config(self.robot_params)
         self.get_scene_config(self.scene_params)
 
-        self._params = {
+        return {
             'robot_params': self.robot_params,
             'scene_params': self.scene_params,
             'planner_params': self.planner_params,
@@ -123,9 +132,10 @@ class ParameterLoader:
 
         del scene_params["benchmark_attributes"]
         del scene_params["non_benchmark_attributes"]
+        del scene_params["problemset"]
         # all possible combinations of 2 pairs
         queries = list(itertools.combinations(states, 2))
-        print(f'There are {n_states} total robot positions and a total of {len(queries)} problems)')
+        print(f'There are {n_states} total robot positions and a total of {len(queries)} problems')
 
         scene_params["queries"] = queries
         scene_params["robot_pos_and_orn"] = robot_pos_and_orn
@@ -151,17 +161,18 @@ class ParameterLoader:
             with open(path, 'r') as stream:
                 params = yaml.safe_load(stream)
         except FileNotFoundError:
-            print("[Error]: Parameters file could not be found")
+            print(f"[Error]: Parameters file {path} could not be found")
             sys.exit('[EXIT]: System will exit, please provide a parameter file and try again')
         except yaml.constructor.ConstructorError as e:
             print(e)
-        else:
-            self.set_params(params)
+        finally:
+            self._params = self.set_params(params)
 
 
 if __name__ == "__main__":
     parameter_file_path = Path(get_root_package_path()) / "parameters.yaml"
     parameter_loader = ParameterLoader(parameter_file_path)
+    parameter_loader.initialize()
     print(parameter_loader.params)
     # print(parameter_loader.params["robot_params"])
     # print(parameter_loader.params["scene_params"])

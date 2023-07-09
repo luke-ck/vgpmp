@@ -20,34 +20,31 @@ def compare_dicts(dict1, dict2, ignore_keys):
     return dict1_copy == dict2_copy
 
 
-def test_parameter_loader_load_parameter_file(mock_parameter_loader, mock_final_config):
-    # Test loading a parameter file
-    parameter_file_path = "tests/test_params.yaml"
-    root_package_path = Path(get_root_package_path())
-    parameter_file_path = root_package_path / parameter_file_path
+def test_parameter_loader_load_parameter_file(mock_parameter_loader_with_paths, mock_input_config, mock_final_config):
 
-    # Call the load_parameter_file method
-    mock_parameter_loader.load_parameter_file(parameter_file_path)
+    # Test loading a parameter file
+    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
 
     sensitive_keys = ['object_path', 'urdf_path', 'sdf_path', 'environment_path']
     # Ensure the initial params are set correctly
-    is_equal = compare_dicts(mock_parameter_loader.params['robot_params'], mock_final_config['robot_params'],
+
+    is_equal = compare_dicts(mock_parameter_loader_with_paths.params['robot_params'], mock_final_config['robot_params'],
                              sensitive_keys)
     assert is_equal
-    is_equal = compare_dicts(mock_parameter_loader.params['scene_params'], mock_final_config['scene_params'],
+    is_equal = compare_dicts(mock_parameter_loader_with_paths.params['scene_params'], mock_final_config['scene_params'],
                              sensitive_keys)
     assert is_equal
-    is_equal = compare_dicts(mock_parameter_loader.params['trainable_params'], mock_final_config['trainable_params'],
+    is_equal = compare_dicts(mock_parameter_loader_with_paths.params['trainable_params'], mock_final_config['trainable_params'],
                              [])
     assert is_equal
-    is_equal = compare_dicts(mock_parameter_loader.params['graphics_params'], mock_final_config['graphics_params'], [])
+    is_equal = compare_dicts(mock_parameter_loader_with_paths.params['graphics_params'], mock_final_config['graphics_params'], [])
     assert is_equal
-    is_equal = compare_dicts(mock_parameter_loader.params['planner_params'], mock_final_config['planner_params'], [])
+    is_equal = compare_dicts(mock_parameter_loader_with_paths.params['planner_params'], mock_final_config['planner_params'], [])
     assert is_equal
 
 
 @pytest.mark.asyncio
-async def test_initialize(mock_simulation_thread):
+async def test_initialize_thread(mock_simulation_thread):
     mock_simulation_thread.thread_ready_event = MagicMock()
     # # Mock the pybullet methods and functions
     p = MagicMock()
@@ -59,6 +56,19 @@ async def test_initialize(mock_simulation_thread):
     # Assertions
     assert mock_simulation_thread.client == 0  # Ensure the client ID is set correctly
     mock_simulation_thread.thread_ready_event.set.assert_called_once()  # Ensure thread_ready_event.set() is called
+
+
+@pytest.mark.asyncio
+async def test_stop_thread(mock_simulation_thread):
+    mock_simulation_thread.stop_event = MagicMock()
+    mock_simulation_thread.initialize()
+    mock_simulation_thread.thread_ready_event.wait()
+
+    # Call the stop_thread() method
+    mock_simulation_thread.stop()
+
+    assert mock_simulation_thread.client is None  # Ensure the client ID is set to None
+    assert mock_simulation_thread.stop_event.is_set()  # Ensure stop_event.is_set() is called
 
 
 @pytest.mark.asyncio
@@ -172,3 +182,22 @@ async def test_run(mock_input_config, mock_simulation_thread):
     finally:
         # Clean up any resources and cancel the pending tasks
         asyncio.get_running_loop().stop()
+
+
+@pytest.mark.asyncio
+async def test_initialize_simulation(mock_simulation):
+    mock_simulation.initialize()
+
+    assert mock_simulation.simulation_thread.client == 0
+    assert mock_simulation.simulation_thread.thread_ready_event.is_set()
+
+
+@pytest.mark.asyncio
+async def test_stop_simulation(mock_simulation):
+    mock_simulation.initialize()
+    mock_simulation.simulation_thread.thread_ready_event.wait()
+
+    mock_simulation.stop_simulation_thread()
+
+    assert mock_simulation.simulation_thread.client is None
+    assert mock_simulation.simulation_thread.stop_event.is_set()

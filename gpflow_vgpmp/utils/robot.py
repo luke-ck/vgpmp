@@ -1,5 +1,3 @@
-import sys
-import time
 from collections import defaultdict
 from typing import List, Union, Tuple
 
@@ -10,7 +8,11 @@ __all__ = 'robot'
 
 
 # <---------------- robot class ----------------->
-class Robot:
+def are_all_elements_integers(tup):
+    return all(isinstance(elem, int) for elem in tup)
+
+
+class Robot(object):
     """
     Container class for the robot model which is rendered in the simulator.
     The class contains convenience methods for setting and getting the robot state,
@@ -20,63 +22,79 @@ class Robot:
     Currently we only support the URDF format for the robot model.
     """
 
-    def __init__(self, params):
-        """Initiates constants and a SerialManipulator object based on choosen robot"""
+    def __init__(self, params, client: int = 0):
 
-        self.dof = None
-        self.sphere_link_interval = None
+        urdf_path = params["urdf_path"]
+        assert client is not None, "Pybullet client not connected"
+        assert urdf_path.exists() and urdf_path.is_file(), "URDF file not found"
+
+        """Initiates constants and a SerialManipulator object based on choosen robot"""
+        # with suppress_stdout(): # this breaks tests. suppress annoying warnings from pybullet.
+        self.robot_model = p.loadURDF(
+            urdf_path.as_posix(),
+            useFixedBase=1,
+            # flags=p.URDF_USE_SELF_COLLISION # for some reason it makes wam's fingers to constantly move
+            physicsClientId=client
+        )
+        self._joint_names = None
+        self._link_names = None
+        self.active_link_names = None
+        self.active_link_indexes = None
+        self.active_joint_names = None
+        self.active_joint_indexes = None
+        self.joint_to_link_index_dict = None
+        self.joint_index_to_name_dict = None
+        self.joint_name_to_index_dict = None
+        self.link_name_to_index_dict = None
+        self.link_index_to_name_dict = None
+
+        self.velocity_limits = None
+        self.joint_limits = None
+
+        self.name = params["robot_name"]
+        self.link_name_base = params["link_name_base"]
+        self.link_name_wrist = params["link_name_wrist"]
+        self.base_pose = None
+        self.joint_link_offsets = None
+        self.curr_joint_config = None
+
+        self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
         self.sphere_link_idx = None
         self.sphere_offsets = None
-        self.base_pose = None
-        self.joint_to_link = None
-        self.joints = None
-        self.active_joints = None
-        self.joint_limits = None
-        self.joint_idx = None
-        self.num_spheres = None
-        self.active_links = None
-        self.neutral_config = None
-        self.joint_link_offsets = None
-        self.curr_config = None
+        self.sphere_radii = params['radius']
+        self.num_spheres = len(self.sphere_radii)
 
         self.DH = np.array(params["dh_parameters"]).reshape((-1, 3))
         self.twist = np.array(params["twist"]).reshape((-1, 1))
+        self.dof = params["dof"]
 
-        self.active_link_idx = []
-        self.name = params["robot_name"]
-        self.rs = params['radius']
-        self.link_names = params["spheres_over_links"]
-        self.urdf_path = params["urdf_path"]
-        self.base = params["basename"]
-        self.wrist_test = params["wrist_test"]
-        self.sphere_link_interval = []  # this is an array of the same size as sphere_link_idx
-        self.active_joints = params["active_joints"]
+        self.set_joint_names()
+        self.set_link_names()
 
-        self.joint_limits = params["joint_limits"]
-        self.velocity_limits = params["velocity_limits"]
+        self.set_joint_limits(params["joint_limits"])
+        self.set_velocity_limits(params["velocity_limits"])
 
+        self.set_link_name_to_index()
+        self.set_link_index_to_name()
+        self.set_joint_name_to_index()
+        self.set_joint_index_to_name()
 
-        start_pos = [0, 0, 0]
-        start_orientation = [0.0, 0.0, 0.0, 1.0]
-        with suppress_stdout():
-            self.robot_model = p.loadURDF(
-                self.urdf_path,
-                start_pos,
-                start_orientation,
-                useFixedBase=1
-                # flags=p.URDF_USE_SELF_COLLISION # for some reason it makes wam's fingers to constantly move
-            )
-        self.link_idx = self.get_link_idx()
-        assert self.active_joints is not None and self.active_joints != [], "No active joints specified"
-        assert self.link_idx is not None
-        assert self.link_idx[self.base] is not None, "Base link not found. Check config file"
-        assert self.link_idx[self.wrist_test] is not None, "Wrist link not found. Check config file"
-        self.base_idx = self.link_idx[self.base]
-        self.wrist_idx = self.link_idx[self.wrist_test]
+        self.set_active_joint_names(params["active_joints"])
+        self.set_active_link_names(params["active_links"])
+
+        assert self.active_joint_names is not None and self.active_joint_names != [], "No active joints specified"
+        assert self.joint_name_to_index_dict is not None
+        assert self.joint_name_to_index_dict.keys().isdisjoint(self.active_joint_names) is False, \
+            "Active joint names not found in joint name to index dict. Check config file"
+
+        assert self.link_name_to_index_dict is not None
+        assert self.link_name_to_index_dict[self.link_name_base] is not None, "Base link not found. Check config file"
+        assert self.link_name_to_index_dict[self.link_name_wrist] is not None, "Wrist link not found. Check config file"
+        self.base_index = self.link_name_to_index_dict[self.link_name_base]
+        self.wrist_index = self.link_name_to_index_dict[self.link_name_wrist]
 
     def initialise(self,
                    default_robot_pos_and_orn,
-                   start_config,
                    joint_names,
                    default_pose,
                    benchmark: bool
@@ -84,26 +102,22 @@ class Robot:
 
         try:
             position, orientation = default_robot_pos_and_orn
+            assert len(position) == 3
+            assert len(orientation) == 4 or len(orientation) == 3
         except TypeError:
             position, orientation = None, None
-
         if position and orientation:
             self.reset_pos_and_orn(position, orientation)
-
         if benchmark:
+            # print("blabla")
             self.set_scene(joint_names, default_pose)
-        # self.set_active_links(sphere_links)
-        # self.set_active_link_idx()
-
-        self.set_joint_idx()
-        self.set_joint_names()
-        self.init_mapping_links_to_spheres()
+        # self.init_mapping_links_to_spheres()
         self.enable_collision_active_links(0)
         time.sleep(1)  # wait for the robot to settle
-        if start_config is not None:
-            if isinstance(start_config, list):
-                start_config = np.array(start_config)
-            self.set_curr_config(start_config)
+        # if start_config is not None:
+        #     if isinstance(start_config, list):
+        #         start_config = np.array(start_config)
+        #     self.set_curr_joint_config(start_config)
         self.init_base_pose()
         time.sleep(1)
         self.set_joint_link_frame_offset()
@@ -115,105 +129,33 @@ class Robot:
         """
         armLinkIndex = []
         # this will disable collision for all links in the arm
-        for idx in self.link_idx.keys():
-            if "r_" in idx:
-                armLinkIndex.append(self.link_idx[idx])
+        for idx in self.link_name_to_index_dict.keys():
+            armLinkIndex.append(self.link_name_to_index_dict[idx])
 
         group = 0
         for idx in armLinkIndex:
             p.setCollisionFilterGroupMask(self.robot_model, idx, group, mask)
 
-    def init_mapping_links_to_spheres(self):
-        """
-        This function maps the links to the spheres. It is used when computing forward kinematics
-        """
-        self.sphere_link_idx, total_spheres = self.get_sphere_id()
-        assert total_spheres == len(self.rs)
-        assert self.num_spheres is None
-        # TODO: check if link indexes for spheres coincide with joint indexes
-
-        cumsum = 0
-        self.num_spheres = []
-        for k, v in self.sphere_link_idx.items():
-            # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
-            # link
-            self.sphere_link_interval.append([cumsum, len(v) + cumsum])
-            self.num_spheres.append(len(v))
-            cumsum += len(v)
-
     def init_base_pose(self):
-        base_pose = self.get_base_pos()
-        self.base_pose = base_pose
+        _base_pose = self.get_base_pose()
+        self.base_pose = _base_pose
 
-    def set_active_link_idx(self):
-        for link in self.active_links:
-            self.active_link_idx.append(self.link_idx[link])
-
-    def set_scene(self, initial_config_names, default_pose):
-        assert initial_config_names != [] and initial_config_names is not None
-        assert default_pose != [] and default_pose is not None
-        for (name, val) in zip(initial_config_names, default_pose):
-            idx = self.get_joint_idx_from_name(name)
-            assert idx != -1, "For some reason pybullet throws an error when trying to set joint state of the base"
-            self.set_joint_config(idx, val)
-
-    def set_active_links(self, sphere_links):
-        self.active_links = sphere_links
-
-    def get_base_pos(self) -> np.array:
+    def get_base_pose(self) -> np.array:
         base_pos, base_rot = p.getBasePositionAndOrientation(self.robot_model)
         base_rot = quat_to_rotmat(base_rot).reshape((-1, 1))
         return get_base(base_rot, base_pos)
 
+    def reset_pos_and_orn(self, pos, orn):
+        # TODO: implement checks on type of input orientation (as rotation matrix or quaternion or euler)
+
+        if len(orn) == 3:
+            orn = p.getQuaternionFromEuler(orn)
+        p.resetBasePositionAndOrientation(self.robot_model, pos, orn)
+
     def get_joints_info(self):
         return [p.getJointInfo(self.robot_model, i) for i in range(0, p.getNumJoints(self.robot_model))]
 
-    def set_curr_config(self, config: np.ndarray):
-        assert self.joint_idx is not None
-        if config.ndim == 2:
-            assert config.shape[0] == 1
-            config = np.squeeze(config)
-        self.curr_config = config
-
-        self.set_joint_position(self.curr_config)
-        p.stepSimulation()
-
-    def set_joint_idx(self):
-        self.joint_idx = []
-        for i in self.active_joints:
-            idx = self.get_joint_idx_from_name(i)
-            if idx == -1:
-                print(f"Could not find the corresponding index for joint name {i}. There is a mismatch between naming "
-                      f"given in the parameter file and actual robot joints. This can give rise to unexpected "
-                      f"behaviour, so please edit the parameter file such that this message doesn't appear.")
-                sys.exit(-1)
-            self.joint_idx.append(idx)
-
-        self.dof = len(self.joint_idx)
-        self.set_joints_to_links()
-
-    def set_joints_to_links(self):
-        # TODO: make map of joint ids to link ids
-        assert len(self.active_link_idx) == len(self.joint_idx)
-
-        self.joint_to_link = {}
-        for i in range(len(self.active_link_idx)):
-            self.joint_to_link[self.joint_idx[i]] = self.active_link_idx[i]
-
-    def set_joint_names(self):
-        self.joints = [p.getJointInfo(self.robot_model, joint)[
-                           1] for joint in range(p.getNumJoints(self.robot_model))]
-
-    def get_joint_names(self):
-        return self.joints
-
-    def set_joint_limits(self, joint_limits):
-        self.joint_limits = joint_limits
-
-    def get_active_joints(self):
-        return self.active_joints
-
-    def get_joint_idx_from_name(self, name: str) -> int:
+    def get_joint_index_from_name(self, name: str) -> int:
         """
         For a given joint name, return its index in the kinematic chain of the robot.
         Args:
@@ -221,28 +163,173 @@ class Robot:
         Returns:
             joint_idx(int): index of the joint. If not found returns -1
         """
-        joint_idx = -1
-        for j in range(p.getNumJoints(self.robot_model)):
-            joint_info = p.getJointInfo(self.robot_model, j)
-            if joint_info[1].decode('utf-8') == name:
-                joint_idx = joint_info[0]
+        assert self.joint_name_to_index_dict is not None, "Joint name to index dictionary not initialised"
+        return self.joint_name_to_index_dict.get(name, -1)
 
-        return joint_idx
-
-    def set_joint_config(self, idx, targets):
-        p.resetJointState(self.robot_model, idx, targets)
-
-    def get_link_idx(self):
-        _link_name_to_index = {p.getBodyInfo(
-            self.robot_model)[0].decode('UTF-8'): -1, }
-
+    def get_attr_name_to_index(self, attr_index=1):
+        attr_name_to_index_dict = {}
         for _id in range(p.getNumJoints(self.robot_model)):
-            _name = p.getJointInfo(self.robot_model, _id)[12].decode('UTF-8')
-            _link_name_to_index[_name] = _id
+            _name = self.decode_joint_info_attribute(_id, attr_index)
+            attr_name_to_index_dict[_name] = _id
+        return attr_name_to_index_dict
 
-        return _link_name_to_index
+    def decode_joint_info_attribute(self, id, attr_index):
+        return p.getJointInfo(self.robot_model, id)[attr_index].decode('UTF-8')
 
-    def set_joint_position(self, joint_config: Union[List[float], np.array]):
+    def set_scene(self, initial_config_joint_names, default_pose):
+        assert initial_config_joint_names != [] and initial_config_joint_names is not None
+        assert default_pose != [] and default_pose is not None
+        for (name, val) in zip(initial_config_joint_names, default_pose):
+            idx = self.get_joint_index_from_name(name)
+            assert idx != -1, "For some reason pybullet throws an error when trying to set joint state of the base"
+            self.set_joint_state(idx, val)
+
+    def set_curr_joint_config(self, config: np.ndarray):
+        assert self.active_joint_indexes is not None
+        if config.ndim == 2:
+            assert config.shape[0] == 1
+            config = np.squeeze(config)
+        self.curr_joint_config = config
+
+        self.set_current_joint_config(self.curr_joint_config)
+        p.stepSimulation()
+
+    # ---------------------- Getters and Setters ----------------------
+    def get_link_name_to_index(self):
+        return self.link_name_to_index_dict
+
+    def set_link_name_to_index(self):
+        self.link_name_to_index_dict = self.get_attr_name_to_index(12)
+
+    def get_joint_name_to_index(self):
+        return self.joint_name_to_index_dict
+
+    def set_joint_name_to_index(self):
+        self.joint_name_to_index_dict = self.get_attr_name_to_index(1)
+
+    def get_link_index_to_name(self):
+        return self.link_index_to_name_dict
+
+    def set_link_index_to_name(self):
+        assert self.link_name_to_index_dict is not None, "Link name to index dictionary not set"
+        self.link_index_to_name_dict = {v: k for k, v in self.link_name_to_index_dict.items()}
+
+    def get_joint_index_to_name(self):
+        return self.joint_index_to_name_dict
+
+    def set_joint_index_to_name(self):
+        assert self.joint_name_to_index_dict is not None, "Joint name to index dictionary not set"
+        self.joint_index_to_name_dict = {v: k for k, v in self.joint_name_to_index_dict.items()}
+
+    def set_active_joints_to_links(self):
+        assert len(self.active_link_indexes) == self.dof
+        assert len(self.active_joint_indexes) == self.dof
+
+        for joint_index, link_index in zip(self.active_joint_indexes, self.active_link_indexes):
+            self.joint_to_link_index_dict[joint_index] = link_index
+
+    def set_joint_state(self, idx: int, target: float):
+        p.resetJointState(self.robot_model, idx, target)
+
+    def get_joint_names(self):
+        return self._joint_names
+
+    def set_joint_names(self):
+        assert self._joint_names is None, "Joint names already set"
+        joint_names = [self.decode_joint_info_attribute(joint, 1) for joint in range(p.getNumJoints(self.robot_model))]
+        self._joint_names = tuple(joint_names)
+
+    def get_link_names(self):
+        return self._link_names
+
+    def set_link_names(self):
+        assert self._link_names is None, "Link names already set"
+        link_names = [self.decode_joint_info_attribute(joint, 12) for joint in range(p.getNumJoints(self.robot_model))]
+        self._link_names = tuple(link_names)
+
+    def get_active_joint_names(self):
+        return self.active_joint_names
+
+    def set_active_joint_names(self, active_joint_names=None, on_call=True):
+        if on_call:
+            assert active_joint_names is not None, "Active joint names not provided"
+            assert len(active_joint_names) == self.dof, "Number of active joints must be equal to the number of links"
+            self.active_joint_names = active_joint_names
+            self.dof = len(self.active_joint_names)
+            new_active_joint_indexes = list(map(self.joint_name_to_index_dict.get, active_joint_names))
+            self.set_active_joint_indexes(new_active_joint_indexes, on_call=False)
+        else:
+            self.active_joint_names = active_joint_names
+
+    def get_active_link_names(self):
+        return self.active_link_names
+
+    def set_active_link_names(self, active_link_names, on_call=True):
+        if on_call:
+            assert active_link_names is not None, "Active link names not provided"
+            self.active_link_names = active_link_names
+            self.dof = len(self.active_link_names)
+            new_active_link_indexes = list(map(self.link_name_to_index_dict.get, active_link_names))
+            self.set_active_link_indexes(new_active_link_indexes, on_call=False)
+        else:
+            self.active_link_names = active_link_names
+
+    def get_active_joint_indexes(self):
+        return self.active_joint_indexes
+
+    def set_active_joint_indexes(self, active_joint_indexes, on_call=True):
+        if on_call:
+            assert are_all_elements_integers(
+                active_joint_indexes) and active_joint_indexes is not None, "Invalid type of joint indexes. "
+            assert len(active_joint_indexes) == len(
+                set(active_joint_indexes)), "Duplicate joint indexes found in the list. "
+            assert -1 not in active_joint_indexes, "Invalid joint index found in the list of active joint indexes. "
+
+            self.dof = len(active_joint_indexes)
+            self.active_joint_indexes = tuple(active_joint_indexes)
+
+            new_active_joint_names = list(map(self.joint_index_to_name_dict.get, active_joint_indexes))
+            self.set_active_joint_names(new_active_joint_names, on_call=False)
+            self.set_active_joints_to_links()
+        else:
+            self.active_joint_indexes = active_joint_indexes
+
+    def get_active_link_indexes(self):
+        return self.active_link_indexes
+
+    def set_active_link_indexes(self, active_link_indexes=None, on_call=True):
+        if on_call:
+            assert active_link_indexes is not None, "Active link indexes not provided"
+            assert len(active_link_indexes) == self.dof, "Number of active links must be equal to the number of joints"
+            self.active_link_indexes = active_link_indexes
+            new_active_link_names = list(map(self.link_index_to_name_dict.get, active_link_indexes))
+            self.set_active_link_names(new_active_link_names, on_call=False)
+        else:
+            self.active_link_indexes = active_link_indexes
+
+    def set_joint_limits(self, joint_limits):
+        assert len(
+            joint_limits) == 2 * self.dof, "Cannot set joint limits for a different number than the total active " \
+                                           "joints"
+
+        self.joint_limits = joint_limits
+
+    def set_velocity_limits(self, param):
+        assert len(param) == 2 * self.dof, "Velocity limits must be of length {}".format(self.dof)
+        self.velocity_limits = param
+
+    def set_joint_link_frame_offset(self) -> None:
+        link_offset = self.compute_joint_link_frame_offset()
+        self.joint_link_offsets = link_offset.reshape((-1, 3))
+
+    def get_current_joint_config(self) -> np.ndarray:
+        r"""
+        Return joint position for each joint as a list
+        """
+        return np.array([joint[0] for joint in p.getJointStates(self.robot_model, self.active_joint_indexes)],
+                        dtype=np.float64).reshape((1, self.dof))
+
+    def set_current_joint_config(self, joint_config: Union[List[float], np.array]):
         r"""Set joint angles to active joints (overrides physics engine)
         Args:
             joint_config (array): joint angles to be set
@@ -251,31 +338,24 @@ class Robot:
             assert joint_config.shape[0] == 1
             joint_config = np.squeeze(joint_config)
 
-        for idx, joint in enumerate(self.joint_idx):
-            p.resetJointState(self.robot_model, joint, joint_config[idx])
+        for idx, joint in enumerate(self.active_joint_indexes):
+            self.set_joint_state(joint, joint_config[idx])
 
         if self.name == "wam":
-            active_indices = {1, 2, 3, 4, 5, 6, 7}    
+            active_indices = {1, 2, 3, 4, 5, 6, 7}
             for i in range(23):
                 if i not in active_indices:
-                    p.resetJointState(self.robot_model, i, 0)
-        
+                    self.set_joint_state(i, 0)
+
         elif self.name == "franka":
             active_indices = {0, 1, 2, 3, 4, 5, 6}
             for i in range(11):
                 if i not in active_indices:
-                    p.resetJointState(self.robot_model, i, 0)
+                    self.set_joint_state(i, 0)
 
-    def get_curr_config(self) -> np.ndarray:
-        r"""
-        Return joint position for each joint as a list
-        """
-        return np.array([joint[0] for joint in p.getJointStates(self.robot_model, self.joint_idx)],
-                        dtype=np.float64).reshape((1, len(self.joint_idx)))
-        
     def set_joint_motor_control(self, position, kp=300, kv=0.5):
 
-        for i, idx in enumerate(self.joint_idx):
+        for i, idx in enumerate(self.active_joint_indexes):
             p.setJointMotorControl2(self.robot_model,
                                     idx,
                                     controlMode=p.POSITION_CONTROL,
@@ -285,48 +365,68 @@ class Robot:
 
     def move_to_next_config(self, next_pos):
         r"""
-            Args:
-                next_pos(np.array):  (len(self.joint_idx), 1)
-            Return:
-                success(bool): Whether next joint config in trajectory has been reached or not
+        Move the robot from the current joint configuration to the specified next joint configuration.
+
+        Args:
+            next_pos (np.array): Target joint configuration to reach (shape: (dof,))
+
+        Returns:
+            success (bool): Whether the next joint configuration in the trajectory has been reached or not
         """
-        cur_pos = np.array(self.get_curr_config())
+        cur_pos = np.array(self.get_current_joint_config())
         delta = next_pos - cur_pos
-        eps = 0.05 # 0.2
-        success = 1
+        eps = 0.05  # Maximum allowable error (5 cm)
+
+        success = True
         iteration = 0
+
+        # Continue moving until the maximum error is below the threshold
         while np.max(np.abs(delta)) > eps:
+            # Set joint motor control to move towards the next joint configuration using position control
+            self.set_joint_motor_control(next_pos, kp=500, kv=0.5)
 
-            self.set_joint_motor_control(next_pos, 500, 0.5)
             p.stepSimulation()
-            cur_pos = np.array(self.get_curr_config())
 
+            cur_pos = np.array(self.get_current_joint_config())
             delta = next_pos - cur_pos
-            # if iteration % 100 == 0:
-            # print(cur_pos)
-            # print(f"delta at iter {iteration} is {np.max(np.abs(delta))}")
+
             iteration += 1
+
+            # Check if the iteration count exceeds a threshold
             if iteration > 2000:
-                success = 0
-                self.set_joint_motor_control(np.squeeze(self.get_curr_config()), 0, 0)
+                success = False
+                # Stop the joint motion if the maximum iteration count is reached
+                self.set_joint_motor_control(np.squeeze(self.get_current_joint_config()), kp=0, kv=0)
                 p.stepSimulation()
                 break
+
         return success
 
-    def move_to_ee_config(self, joint_config):
+    def move_to_ee_config(self, joint_config) -> bool:
         r"""
-            Args:
-            joint_config(np.array): (len(joint_config), len(self.joint_idx))
+        Move the robot to a sequence of joint configurations in order to reach the desired end-effector configuration.
+
+        Args:
+            joint_config (np.array): Sequence of joint configurations to reach (shape: (num_configs, len(self.joint_idx)))
+
+        Returns:
+            success (bool): Whether the end-effector configuration has been reached successfully or not
         """
-        success = 1
+        success = True
 
         for idx, next_pos in enumerate(joint_config):
+            # Print the current goal joint state index
             # print(f"Current goal joint state to be reached has index {idx}")
+
+            # Move to the next joint configuration in the sequence
             success = self.move_to_next_config(next_pos)
+
             if not success:
                 print(f"Next state was not reachable")
-                self.set_joint_motor_control(np.squeeze(self.get_curr_config()), 0, 0)
+                # Stop the joint motion if the desired configuration is not reachable
+                self.set_joint_motor_control(np.squeeze(self.get_current_joint_config()), kp=0, kv=0)
                 break
+
         return success
 
     def get_sphere_id(self) -> Tuple[defaultdict, int]:
@@ -390,16 +490,34 @@ class Robot:
 
     def compute_joint_link_frame_offset(self) -> np.array:
         r"""
-            Compute the link frame offset for each link in the robot.
+            Compute the link frame offset to the joint reference frame for each active link in the robot.
             Returns:
                 [np.array]: (len(self.link_idx), 3)
         """
-        assert self.active_link_idx is not None
+        assert self.active_link_indexes is not None
         return np.array(
             [
                 np.array(_coord[2]).astype(np.float64)
-                for _coord in p.getLinkStates(self.robot_model, self.active_link_idx, computeForwardKinematics=True)
+                for _coord in p.getLinkStates(self.robot_model, self.active_link_indexes, computeForwardKinematics=True)
             ], dtype=np.object).astype(np.float64)
+
+    def init_mapping_links_to_spheres(self):
+        """
+        This function maps the links to the spheres. It is used when computing forward kinematics
+        """
+        self.sphere_link_idx, total_spheres = self.get_sphere_id()
+        assert total_spheres == len(self.sphere_radii)
+        assert self.num_spheres is None
+        # TODO: check if link indexes for spheres coincide with joint indexes
+
+        cumsum = 0
+        self.num_spheres = []
+        for k, v in self.sphere_link_idx.items():
+            # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
+            # link
+            self.sphere_link_interval.append([cumsum, len(v) + cumsum])
+            self.num_spheres.append(len(v))
+            cumsum += len(v)
 
     def get_sphere_transform(self, joints):
         # Union[np.array, TensorLike]
@@ -410,32 +528,4 @@ class Robot:
             [np.array]: sphere cartesian coordinates
         """
         return np.array([list(get_world_transform(joint, sphere)[0]) for i, joint in enumerate(joints) for sphere in
-                         self.sphere_link_idx[self.joint_idx[i]].values()])
-
-    def _reset_joints_fk(self, joint_config):
-        r"""
-            Ugly. Possibly rewrite this. If x is the parameter joint_config, ▼x a
-            soft shift for x (in radians). This function calls set_joint_position(x) to
-            set desired joint_config to active joints (overrides pybullet physics),
-            and set_joint_motor_control(x + ▼x) to apply very small velocities
-            on each element of x (since the physics engine was disabled rotations
-            and velocities will be 0). Usually after this we query the link
-            (links are attached to joints x) states and compute forward kinematics
-            implicitly.
-            Args:
-                joint_config([np.array]):  [len(joint_idx) x 1]
-        """
-        self.set_joint_position(joint_config)
-        # end_target = [0.01 + x for x in joint_config]
-        # self.set_joint_motor_control(end_target)
-        p.stepSimulation()
-
-    def set_joint_link_frame_offset(self) -> None:
-        link_offset = self.compute_joint_link_frame_offset()
-        self.joint_link_offsets = link_offset.reshape((-1, 3))
-
-    def reset_pos_and_orn(self, pos, orn):
-        # TODO: implement checks on type of input orientation (as rotation matrix or quaternion or euler)
-        if len(orn) == 3:
-            orn = p.getQuaternionFromEuler(orn)
-        p.resetBasePositionAndOrientation(self.robot_model, pos, orn)
+                         self.sphere_link_idx[self.active_joint_indexes[i]].values()])

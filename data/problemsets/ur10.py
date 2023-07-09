@@ -35,6 +35,11 @@ class Problemset(AbstractProblemset, ABC):
             states[6] = [-0.9686162306332282, -1.3189068774339205, 0.8887329623521621, -1.2405571363715833, -1.677742012142283, -1.3952308744319266]
             states[7] = [0.6741154454678632, -1.1342007292487155, 0.3195164579915672, -0.7375459701998857, -1.604859458986322, -1.3194836642674819]
             states[8] = [-1.9249775378636007, -1.8529688610900832, 1.6358920957888212, -2.349581889702728, -1.0628525836094842, -0.13960430892749198]
+        elif problemset == "testing":
+            n_states = 2
+            states = [list() for _ in range(n_states)]
+            states[0] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            states[1] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
@@ -45,6 +50,8 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
+        elif problemset == "testing":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -54,6 +61,8 @@ class Problemset(AbstractProblemset, ABC):
             return [[-0.2, 0.0, 0.08]]
         elif problemset == "bookshelves":
             return [[0.95, -0.15, 0.834]]
+        elif problemset == "testing":
+            return [[0.0, 0.0, 0.0]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -86,6 +95,20 @@ class Problemset(AbstractProblemset, ABC):
                 "num_steps": 150,
                 "time_spacing_X": 70,
                 "time_spacing_Xnew": 150
+            }
+        elif problemset == "testing":
+            return {
+                "sigma_obs": 0,
+                "epsilon": 0,
+                "lengthscales": [0] * 7,
+                "variance": 0,
+                "alpha": 0,
+                "num_samples": 0,
+                "num_inducing": 0,
+                "learning_rate": 0,
+                "num_steps": 0,
+                "time_spacing_X": 0,
+                "time_spacing_Xnew": 0
             }
         else:
             sys.exit("Invalid problemset")

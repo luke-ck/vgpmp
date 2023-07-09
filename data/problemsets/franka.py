@@ -49,6 +49,8 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "testing":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -60,6 +62,8 @@ class Problemset(AbstractProblemset, ABC):
             return [[0.62, -0.15, 0.834]]
         elif problemset == "boxes":
             return [[0.0, 0.0, 0.522176]]
+        elif problemset == "testing":
+            return [[0.0, 0.0, 0.0]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -106,6 +110,20 @@ class Problemset(AbstractProblemset, ABC):
                 "num_steps": 130,
                 "time_spacing_X": 70,
                 "time_spacing_Xnew": 150
+            }
+        elif problemset == "testing":
+            return {
+                "sigma_obs": 0,
+                "epsilon": 0,
+                "lengthscales": [0] * 7,
+                "variance": 0,
+                "alpha": 0,
+                "num_samples": 0,
+                "num_inducing": 0,
+                "learning_rate": 0,
+                "num_steps": 0,
+                "time_spacing_X": 0,
+                "time_spacing_Xnew": 0
             }
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))

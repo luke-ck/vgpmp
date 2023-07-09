@@ -15,16 +15,19 @@ class BaseObject:
     Base class for instantiating objects in the simulator.
     """
 
-    def __init__(self, name: str, path: Optional[Path], position: List = None, orientation: List = None):
+    def __init__(self, name: str, path: Optional[Path], position: List = None, orientation: List = None,
+                 client: int = 0):
         """
         Args:
             name(str): name of the object. If path is not given, this is used to load the object from pybullet data.
             path(pathlib.Path): path to the URDF being loaded.
             position(List): len 3 array if given.
             orientation(List): len 3 or 4 depending on whether the orientation was given in Euler angles or quaternion.
+            client(int): pybullet client ID.
         """
         self.name = name
         pybullet_data_path = pybullet_data.getDataPath()
+        assert p.isConnected(client), "Pybullet client not connected"
         p.setAdditionalSearchPath(pybullet_data_path)  # optionally
         pybullet_data_path = Path(pybullet_data_path)
         if path is None:
@@ -42,23 +45,24 @@ class BaseObject:
                 raise ValueError("Path for object not specified. Currently supported objects are plane and table, or"
                                  "you can specify a path to a URDF file for a scene.")
 
-        with suppress_stdout():  # suppress annoying warnings from pybullet
-            if position is not None and orientation is not None:
-                assert len(position) == 3, "Position must be a len 3 array"
-                assert len(orientation) == 3 or len(orientation) == 4, "Orientation must be a len 3 or 4 array"
-                self.position = position
-                if len(orientation) == 3:
-                    self.orientation = p.getQuaternionFromEuler(orientation)
-                elif len(orientation) == 4:
-                    self.orientation = orientation
+        # with suppress_stdout():  # this breaks tests. suppress annoying warnings from pybullet.
+        if position is not None and orientation is not None:
+            assert len(position) == 3, "Position must be a len 3 array"
+            assert len(orientation) == 3 or len(orientation) == 4, "Orientation must be a len 3 or 4 array"
 
-                self.ID = p.loadURDF(object_path,
-                                     self.position,
-                                     self.orientation,
-                                     useFixedBase=1,
-                                     useMaximalCoordinates=1)
-            else:
-                self.ID = p.loadURDF(object_path)
+            if len(orientation) == 3:
+                orientation = p.getQuaternionFromEuler(orientation)
+        else:
+            position = [0, 0, 0]
+            orientation = [0, 0, 0, 1]
+        self.orientation = orientation
+        self.position = position
+        self.ID = p.loadURDF(object_path.as_posix(),
+                             self.position,
+                             self.orientation,
+                             useFixedBase=1,
+                             useMaximalCoordinates=1)
+
         print(f"Set {self.name} ID to {self.ID}")
 
     @property
@@ -95,4 +99,3 @@ class BaseObject:
 
     def remove(self):
         p.removeBody(self.ID)
-

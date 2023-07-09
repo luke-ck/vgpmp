@@ -40,7 +40,7 @@
     inducing_variable: False
     alpha: False
 - graphics:
-    visuals: True
+    visuals: False
     quality: high
     GUI: True
     debug_joint_positions: False

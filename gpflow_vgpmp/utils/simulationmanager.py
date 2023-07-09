@@ -1,12 +1,6 @@
-import itertools
-import sys
-from typing import Tuple, List
-
-import numpy as np
-from bunch import Bunch
+from pathlib import Path
 import tensorflow as tf
-
-from data.problemsets.problemset import import_problemset
+from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 from gpflow_vgpmp.utils.simulation import Simulation, Scene
@@ -17,25 +11,43 @@ __all__ = 'simulator'
 
 
 class SimulationManager:
-    def __init__(self, parameter_file_path=None):
-        self.scene = None
-        self.sdf = None
+    def __init__(self):
+        # Lazy initialization
         self.robot = None
-        self.sim = None
-        self._config = ParameterLoader(parameter_file_path)
-
-        self.initialize()
+        self.sdf = None
+        self.scene = None
+        self.simulation = None
+        self._config = None
+        self.client = None
 
     @property
     def config(self) -> dict:
+        assert self._config is not None, "Parameter Loader must be initialized before it can be accessed"
         return self._config.params
 
-    def initialize(self):
-        self.sim = Simulation(self.config['graphic_params'])
+    def initialize(self, parameter_file_path=None):
+        self._config = ParameterLoader(parameter_file_path)
+        self.initialize_parameter_loader()
+        self.simulation = Simulation(self.config['graphics_params'])
+        self.initialize_simulation()
         self.scene = Scene(self.config['scene_params'])
-        self.robot = Robot(self.config['robot_params'])
+        self.initialize_scene()
         self.sdf = SignedDensityField.from_sdf(self.config['scene_params']["sdf_path"])
+        self.robot = Robot(self.config['robot_params'], self.simulation.simulation_thread.client)
+        self.initialize_robot()
 
+    def initialize_parameter_loader(self):
+        self._config.initialize()
+
+    def initialize_simulation(self):
+        self.simulation.initialize()
+
+    def initialize_scene(self):
+        self.assert_backend_connection_is_alive()
+        self.scene.initialize(self.simulation.simulation_thread.client)
+
+    def initialize_robot(self):
+        self.assert_backend_connection_is_alive()
         robot_pos_and_orn = self.config['scene_params']['robot_pos_and_orn']
         joint_names = self.config['robot_params']['joint_names']
         default_pose = self.config['robot_params']['default_pose']
@@ -75,3 +87,12 @@ class SimulationManager:
         joints = self.robot.get_current_joint_config().reshape(7, 1)
         position = planner.likelihood.sampler._fk_cost(joints)
         print(planner.likelihood._signed_distance_grad(position))
+
+    def assert_backend_connection_is_alive(self):
+        assert self.simulation.simulation_thread.client is not None, "Client must be initialized before scene"
+        assert self.simulation.simulation_thread.thread_ready_event.is_set(), "Client must be initialized before scene"
+
+if __name__ == "__main__":
+    parameter_file_path = Path(get_root_package_path()) / "parameters.yaml"
+    env = SimulationManager()
+    env.initialize(parameter_file_path)
