@@ -5,10 +5,11 @@ import numpy as np
 
 from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
 from gpflow_vgpmp.utils.robot import Robot
+from gpflow_vgpmp.utils.sampler import Sampler
 from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 from gpflow_vgpmp.utils.simulation import Simulation, SimulationThread, Scene
 from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
-from gpflow_vgpmp.utils.simulationmanager import SimulationManager
+from gpflow_vgpmp.utils.simulation_manager import SimulationManager
 
 
 @pytest.fixture
@@ -270,3 +271,52 @@ def mock_robot_and_parameter_loader(mock_parameter_loader_with_paths, shared_moc
     robot = Robot(mock_parameter_loader_with_paths.robot_params, shared_mock_simulation.simulation_thread.client)
 
     yield robot, mock_parameter_loader_with_paths
+
+
+@pytest.fixture
+def mock_initialized_robot(mock_parameter_loader_with_paths, shared_mock_simulation, mock_input_config):
+    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
+
+    robot = Robot(mock_parameter_loader_with_paths.robot_params, shared_mock_simulation.simulation_thread.client)
+
+    robot_pos_and_orn = mock_parameter_loader_with_paths.scene_params['robot_pos_and_orn']
+    joint_names = mock_parameter_loader_with_paths.robot_params['joint_names']
+    default_pose = mock_parameter_loader_with_paths.robot_params['default_pose']
+    benchmark = mock_parameter_loader_with_paths.scene_params['benchmark']
+
+    robot.initialise(default_robot_pos_and_orn=robot_pos_and_orn,
+                     joint_names=joint_names,
+                     default_pose=default_pose,
+                     benchmark=benchmark)
+
+    yield robot
+
+
+@pytest.fixture
+def mock_sampler(mock_parameter_loader_with_paths, shared_mock_simulation, mock_input_config):
+    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
+
+    sampler = Sampler(mock_parameter_loader_with_paths.robot_params)
+
+    yield sampler
+
+
+@pytest.fixture
+def mock_sampler_with_robot(mock_parameter_loader_with_paths, shared_mock_simulation, mock_input_config):
+    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
+
+    robot = Robot(mock_parameter_loader_with_paths.robot_params, shared_mock_simulation.simulation_thread.client)
+
+    robot_pos_and_orn = mock_parameter_loader_with_paths.scene_params['robot_pos_and_orn']
+    joint_names = mock_parameter_loader_with_paths.robot_params['joint_names']
+    default_pose = mock_parameter_loader_with_paths.robot_params['default_pose']
+    benchmark = mock_parameter_loader_with_paths.scene_params['benchmark']
+
+    robot.initialise(default_robot_pos_and_orn=robot_pos_and_orn,
+                     joint_names=joint_names,
+                     default_pose=default_pose,
+                     benchmark=benchmark)
+
+    sampler = Sampler(mock_parameter_loader_with_paths.robot_params, robot.base_pose, robot.sphere_offsets)
+
+    yield robot, sampler

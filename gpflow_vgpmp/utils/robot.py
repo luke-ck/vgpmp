@@ -1,34 +1,34 @@
 from collections import defaultdict
-from typing import List, Union, Tuple
+from typing import Union, Tuple
 
-from .miscellaneous import suppress_stdout
+from .miscellaneous import suppress_stdout, are_all_elements_integers
 from .ops import *
+from .robot_mixin import RobotMixin
 
 __all__ = 'robot'
 
 
 # <---------------- robot class ----------------->
-def are_all_elements_integers(tup):
-    return all(isinstance(elem, int) for elem in tup)
 
 
-class Robot(object):
+class Robot(RobotMixin):
     """
-    Container class for the robot model which is rendered in the simulator.
-    The class contains convenience methods for setting and getting the robot state,
-    as well as methods for computing the forward kinematics. Joint state configs can be
-    get, set, as well as followed. FK here is used mostly for debugging purposes. For the
+    Class for the robot model which is rendered in the simulator (interfaces with pybullet).
+    As such, it contains convenience methods for setting and getting the robot state,
+    as well as methods for computing the forward kinematics, and making the robot follow a
+    certain trajectory. FK here is used mostly for debugging purposes. For the
     implementation used during optimization check the sampler.
-    Currently we only support the URDF format for the robot model.
+    Currently, we only support the URDF format for the robot model.
     """
 
     def __init__(self, params, client: int = 0):
-
+        super().__init__(**params)
+        # TODO: check the case where pybullet silently fails to load the urdf
+        self.num_spheres_per_link = None
         urdf_path = params["urdf_path"]
         assert client is not None, "Pybullet client not connected"
         assert urdf_path.exists() and urdf_path.is_file(), "URDF file not found"
 
-        """Initiates constants and a SerialManipulator object based on choosen robot"""
         # with suppress_stdout(): # this breaks tests. suppress annoying warnings from pybullet.
         self.robot_model = p.loadURDF(
             urdf_path.as_posix(),
@@ -51,7 +51,7 @@ class Robot(object):
         self.velocity_limits = None
         self.joint_limits = None
 
-        self.name = params["robot_name"]
+        # self.name = params["robot_name"]
         self.link_name_base = params["link_name_base"]
         self.link_name_wrist = params["link_name_wrist"]
         self.base_pose = None
@@ -64,15 +64,8 @@ class Robot(object):
         self.sphere_radii = params['radius']
         self.num_spheres = len(self.sphere_radii)
 
-        self.DH = np.array(params["dh_parameters"]).reshape((-1, 3))
-        self.twist = np.array(params["twist"]).reshape((-1, 1))
-        self.dof = params["dof"]
-
         self.set_joint_names()
         self.set_link_names()
-
-        self.set_joint_limits(params["joint_limits"])
-        self.set_velocity_limits(params["velocity_limits"])
 
         self.set_link_name_to_index()
         self.set_link_index_to_name()
@@ -109,9 +102,8 @@ class Robot(object):
         if position and orientation:
             self.reset_pos_and_orn(position, orientation)
         if benchmark:
-            # print("blabla")
             self.set_scene(joint_names, default_pose)
-        # self.init_mapping_links_to_spheres()
+        self.init_mapping_links_to_spheres()
         self.enable_collision_active_links(0)
         time.sleep(1)  # wait for the robot to settle
         # if start_config is not None:
@@ -127,13 +119,13 @@ class Robot(object):
         disable collisions for the arm so the simulator doesn't crash when sampling a joint configuration in collision
         params: mask[int]: boolean
         """
-        armLinkIndex = []
+        arm_link_index = []
         # this will disable collision for all links in the arm
         for idx in self.link_name_to_index_dict.keys():
-            armLinkIndex.append(self.link_name_to_index_dict[idx])
+            arm_link_index.append(self.link_name_to_index_dict[idx])
 
         group = 0
-        for idx in armLinkIndex:
+        for idx in arm_link_index:
             p.setCollisionFilterGroupMask(self.robot_model, idx, group, mask)
 
     def init_base_pose(self):
@@ -184,14 +176,14 @@ class Robot(object):
             assert idx != -1, "For some reason pybullet throws an error when trying to set joint state of the base"
             self.set_joint_state(idx, val)
 
-    def set_curr_joint_config(self, config: np.ndarray):
+    def set_current_joint_config(self, config: np.ndarray):
         assert self.active_joint_indexes is not None
         if config.ndim == 2:
-            assert config.shape[0] == 1
+            assert config.shape[1] == 1 and config.shape[0] == self.dof
             config = np.squeeze(config)
         self.curr_joint_config = config
 
-        self.set_current_joint_config(self.curr_joint_config)
+        self.set_gripper_current_joint_config(self.curr_joint_config)
         p.stepSimulation()
 
     # ---------------------- Getters and Setters ----------------------
@@ -307,17 +299,6 @@ class Robot(object):
         else:
             self.active_link_indexes = active_link_indexes
 
-    def set_joint_limits(self, joint_limits):
-        assert len(
-            joint_limits) == 2 * self.dof, "Cannot set joint limits for a different number than the total active " \
-                                           "joints"
-
-        self.joint_limits = joint_limits
-
-    def set_velocity_limits(self, param):
-        assert len(param) == 2 * self.dof, "Velocity limits must be of length {}".format(self.dof)
-        self.velocity_limits = param
-
     def set_joint_link_frame_offset(self) -> None:
         link_offset = self.compute_joint_link_frame_offset()
         self.joint_link_offsets = link_offset.reshape((-1, 3))
@@ -326,10 +307,10 @@ class Robot(object):
         r"""
         Return joint position for each joint as a list
         """
-        return np.array([joint[0] for joint in p.getJointStates(self.robot_model, self.active_joint_indexes)],
+        return np.array([p.getJointState(self.robot_model, idx)[0] for idx in self.active_joint_indexes],
                         dtype=np.float64).reshape((1, self.dof))
 
-    def set_current_joint_config(self, joint_config: Union[List[float], np.array]):
+    def set_gripper_current_joint_config(self, joint_config: Union[List[float], np.array]):
         r"""Set joint angles to active joints (overrides physics engine)
         Args:
             joint_config (array): joint angles to be set
@@ -406,8 +387,8 @@ class Robot(object):
         r"""
         Move the robot to a sequence of joint configurations in order to reach the desired end-effector configuration.
 
-        Args:
-            joint_config (np.array): Sequence of joint configurations to reach (shape: (num_configs, len(self.joint_idx)))
+        Args: joint_config (np.array): Sequence of joint configurations to reach (shape: (num_configs,
+        len(self.joint_idx)))
 
         Returns:
             success (bool): Whether the end-effector configuration has been reached successfully or not
@@ -463,28 +444,8 @@ class Robot(object):
                 for _coord in p.getLinkStates(self.robot_model, idx, computeForwardKinematics=True)
             ], dtype=np.object).astype(np.float64)
 
-    def forward_kinematics(self, thetas, craig) -> np.array:
-
-        T00 = self.base_pose
-        angles = thetas + self.twist
-        transform_matrices = np.zeros((len(thetas), 4, 4))
-        DH_mat = np.concatenate([angles, self.DH], axis=-1)
-        for idx, params in enumerate(DH_mat):
-            if craig:
-                transform_matrix = get_transform_matrix_craig(params[0], params[1], params[2], params[3])
-            else:
-                transform_matrix = get_transform_matrix(params[0], params[1], params[2], params[3])
-            transform_matrices[idx] = transform_matrix
-
-        homogenous_transforms = np.zeros((len(thetas) + 1, 4, 4), dtype=np.float64)
-        homogenous_transforms[0] = T00
-        for i in range(len(transform_matrices)):
-            homogenous_transforms[i + 1] = np.array(
-                homogenous_transforms[i] @ transform_matrices[i]).reshape(4, 4)
-        return homogenous_transforms
-
-    def compute_joint_positions(self, joint_config, craig) -> np.array:
-        pos_aux = self.forward_kinematics(joint_config, craig)
+    def compute_joint_positions(self, joint_config) -> np.array:
+        pos_aux = self.forward_kinematics(joint_config)
         pos = pos_aux[1:, :3, 3]
         return pos, pos_aux
 
@@ -507,16 +468,16 @@ class Robot(object):
         """
         self.sphere_link_idx, total_spheres = self.get_sphere_id()
         assert total_spheres == len(self.sphere_radii)
-        assert self.num_spheres is None
+        assert self.num_spheres_per_link is None
         # TODO: check if link indexes for spheres coincide with joint indexes
 
         cumsum = 0
-        self.num_spheres = []
+        self.num_spheres_per_link = []
         for k, v in self.sphere_link_idx.items():
             # for each link fitted with spheres build an interval denoting which sphere's indexes correspond to that
             # link
             self.sphere_link_interval.append([cumsum, len(v) + cumsum])
-            self.num_spheres.append(len(v))
+            self.num_spheres_per_link.append(len(v))
             cumsum += len(v)
 
     def get_sphere_transform(self, joints):

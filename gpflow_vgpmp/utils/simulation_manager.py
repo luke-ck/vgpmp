@@ -85,7 +85,7 @@ class SimulationManager:
         Get the signed distance gradient of the current robot configuration and print it
         """
         joints = self.robot.get_current_joint_config().reshape(7, 1)
-        position = planner.likelihood.sampler._fk_cost(joints)
+        position = planner.likelihood.sampler.forward_kinematics_cost(joints)
         print(planner.likelihood._signed_distance_grad(position))
 
     def assert_backend_connection_is_alive(self):

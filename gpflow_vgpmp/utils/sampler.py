@@ -1,54 +1,11 @@
 from gpflow_vgpmp.utils.ops import *
-
-
-@tf.function
-def get_transform_matrix(theta, d, a, alpha):
-    r"""
-    Returns 4x4 homogenous matrix from DH parameters
-    """
-    cTheta = tf.cos(theta)
-    sTheta = tf.sin(theta)
-    calpha = tf.cos(alpha)
-    salpha = tf.sin(alpha)
-
-    T = tf.stack([
-        [cTheta, -sTheta * calpha, sTheta * salpha, a * cTheta],
-        [sTheta, cTheta * calpha, -cTheta * salpha, a * sTheta],
-        [0., salpha, calpha, d],
-        [0., 0., 0., 1.]
-    ])
-
-    return T
-
-
-@tf.function
-def get_modified_transform_matrix(theta, d, a, alpha):
-    r"""
-    Returns 4x4 homogenous matrix from DH parameters
-    """
-    cTheta = tf.cos(theta)
-    sTheta = tf.sin(theta)
-    calpha = tf.cos(alpha)
-    salpha = tf.sin(alpha)
-
-    T = tf.stack([
-        [cTheta, -sTheta, 0., a],
-        [sTheta * calpha, cTheta * calpha, -salpha, -d * salpha],
-        [sTheta * salpha, cTheta * salpha, calpha, d * calpha],
-        [0., 0., 0., 1.]
-    ])
-
-    return T
-
-
-def translation_vector(position):
-    return np.concatenate([position, [1]]).reshape((4, 1))
+from gpflow_vgpmp.utils.robot_mixin import RobotMixin
 
 
 __all__ = "sampler"
 
 
-class Sampler:
+class Sampler(RobotMixin):
     r"""
         This class is the interface that enables communication
         between tensorflow and pybullet. Cost for samples generated
@@ -58,36 +15,42 @@ class Sampler:
 
     """
 
-    def __init__(self, parameters, robot_config):
-        sphere_offsets = robot_config["sphere_offsets"]
-        num_spheres = robot_config["num_spheres_list"]
-        dof = robot_config["dof"]
-        sphere_link_interval = robot_config["sphere_link_interval"]
-        base_pose = robot_config["base_pose"]
-        sphere_offsets = sphere_offsets
-        self.DH = tf.constant(robot_config["dh_parameters"], shape=(dof, 3), dtype=default_float())
-        self.pi = tf.reshape(tf.constant(robot_config["twist"], dtype=default_float()), (dof, 1))
-        self.arm_base = tf.expand_dims(tf.constant(base_pose), axis=0)
-        self.spheres_to_links = np.array(sphere_link_interval)
-        self.num_spheres = num_spheres
-        self.craig_dh_convention = parameters["craig_dh_convention"]
-        self.sphere_offsets = np.zeros((len(sphere_offsets), 4, 4))
-        self.fk_slice = parameters["fk_slice"]
+    def __init__(self, robot_config, base_pose, sphere_offsets):
+        assert sphere_offsets is not None
+        assert sphere_offsets is not []
+
+        super().__init__(**robot_config)
+        # sphere_offsets = robot_config["sphere_offsets"]
+        self.num_spheres = len(sphere_offsets)  # if robot is set up properly this will be = as sphere_radii
+
+        # dof = robot_config["dof"]
+        # base_pose = robot_config["base_pose"]
+        # self.craig_dh_convention = robot_config["craig_dh_convention"]
+        # self.fk_slice = robot_config["fk_slice"]
+        # self.dof = dof
+        self.DH = tf.constant(self.DH, shape=(self.dof, 3), dtype=default_float())
+        self.twist = tf.constant(self.twist, shape=(self.dof, 1), dtype=default_float())
+        self.base_pose = tf.expand_dims(tf.constant(base_pose), axis=0)
+
+        # sphere_link_interval = robot_config["sphere_link_interval"]
+        # self.spheres_to_links = np.array(sphere_link_interval)
+        # self.num_spheres = robot_config["num_spheres_list"]
+
+        self.sphere_offsets = np.zeros((self.num_spheres, 4, 4))
 
         for index, offset in enumerate(sphere_offsets):
-            mat = self.get_mat(parameters['robot_name'], index, offset)
+            mat = self.get_mat(self.name, index, offset)
 
             self.sphere_offsets[index] = mat
 
-        self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
-        self.joint_config_uncertainty = tf.constant([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], shape=(7, 1),
-                                                    dtype=default_float()) * 10
+        self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(self.num_spheres, 4, 4), dtype=default_float())
+        self.joint_config_uncertainty = tf.ones(shape=(self.dof, 1), dtype=default_float())
 
     @tf.custom_gradient
     def check_gradients(self, x):
         def grad(upstream):
             upstream_string = tf.strings.format("{}\n", upstream, summarize=-1)
-            tf.io.write_file("matrices.txt", upstream_string)
+            tf.io.write_file("check_grads.txt", upstream_string)
             return upstream
 
         return x, grad
@@ -128,17 +91,22 @@ class Sampler:
             return set_base(offset)
 
     @tf.function
-    def _compute_fk(self, joint_config):
-        DH = tf.concat([joint_config + self.pi, self.DH], axis=-1)
+    def forward_kinematics(self, thetas):
+        dh_mat = tf.concat([thetas + self.twist, self.DH], axis=-1)
 
         # Get the modified or standard transform matrix for each set of DH parameters
         transform_matrices = tf.map_fn(
-            lambda i: get_modified_transform_matrix(i[0], i[1], i[2], i[3])
-            if self.craig_dh_convention
-            else get_transform_matrix(i[0], i[1], i[2], i[3]),
-            DH, fn_output_signature=default_float(), parallel_iterations=None)
+            lambda i: self.get_transform_matrix_craig(i[0], i[1], i[2], i[3])
+            if self.craig_notation
+            else self.get_transform_matrix(i[0], i[1], i[2], i[3]),
+            dh_mat, fn_output_signature=default_float(), parallel_iterations=None)
 
-        homogeneous_transforms = tf.concat([self.arm_base, transform_matrices], axis=0)
+        # transform_fn = get_modified_transform_matrix if self.craig_dh_convention else get_transform_matrix
+        # transform_matrices = tf.cond(self.craig_dh_convention,
+        #                              lambda: transform_fn(DH),
+        #                              lambda: transform_fn(DH))
+
+        homogeneous_transforms = tf.concat([self.base_pose, transform_matrices], axis=0)
 
         # Compute the matrix product of all the homogeneous transforms
         out = tf.scan(tf.matmul, homogeneous_transforms)
@@ -146,7 +114,46 @@ class Sampler:
         return out
 
     @tf.function
-    def _fk_cost(self, joint_config):
+    def get_transform_matrix(self, theta, d, a, alpha):
+        r"""
+        Returns 4x4 homogenous matrix from DH parameters
+        """
+        # TODO: vectorize this
+        c_theta = tf.cos(theta)
+        s_theta = tf.sin(theta)
+        c_alpha = tf.cos(alpha)
+        s_alpha = tf.sin(alpha)
+
+        h = tf.stack([
+            [c_theta, -s_theta * c_alpha, s_theta * s_alpha, a * c_theta],
+            [s_theta, c_theta * c_alpha, -c_theta * s_alpha, a * s_theta],
+            [0., s_alpha, c_alpha, d],
+            [0., 0., 0., 1.]
+        ])
+
+        return h
+
+    @tf.function
+    def get_transform_matrix_craig(self, theta, d, a, alpha):
+        r"""
+        Returns 4x4 homogenous matrix from DH parameters
+        """
+        c_theta = tf.cos(theta)
+        s_theta = tf.sin(theta)
+        c_alpha = tf.cos(alpha)
+        s_alpha = tf.sin(alpha)
+
+        h = tf.stack([
+            [c_theta, -s_theta, 0., a],
+            [s_theta * c_alpha, c_theta * c_alpha, -s_alpha, -d * s_alpha],
+            [s_theta * s_alpha, c_theta * s_alpha, c_alpha, d * c_alpha],
+            [0., 0., 0., 1.]
+        ])
+
+        return h
+
+    @tf.function
+    def forward_kinematics_cost(self, joint_config):
         r""" Computes the cost for a given config. It is advised to
         only use this function with the autograph since the decorator
         will change the joint configuration of the robot. For other
@@ -162,13 +169,16 @@ class Sampler:
 
         # <------------- Computing Forward Kinematics ------------>
         # joint_config = self.check_gradients(joint_config)
-        fk_pos = self.compute_fk_joints(joint_config)
-        sphere_positions = fk_pos @ self.sphere_offsets  # hardcoded for now
-        return tf.squeeze(sphere_positions[:, :3, 3])
+        fk_pos = self._forward_kinematics_joints_to_spheres(joint_config)
+        sphere_positions = fk_pos @ self.sphere_offsets
+        return tf.squeeze(sphere_positions[:, :3, 3])  # just return the positions
 
     @tf.function
-    def compute_fk_joints(self, joint_config):
-        fk_pos = tf.gather(self._compute_fk(joint_config), self.fk_slice, axis=0)
+    def _forward_kinematics_joints_to_spheres(self, joint_config):
+        """
+        Compute the forward kinematics from joint to sphere positions
+        """
+        fk_pos = tf.gather(self.forward_kinematics(joint_config), self.fk_slice, axis=0)
         fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
         return fk_pos
 
@@ -188,9 +198,8 @@ class Sampler:
 
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(joint_config)
-            fk_pos = self._compute_fk(joint_config)
+            fk_pos = self.forward_kinematics(joint_config)
             xyz_positions = fk_pos[-1, :3, 3]
-            func1 = tf.range(xyz_positions.shape[0])
             x = xyz_positions[0]
             y = xyz_positions[1]
             z = xyz_positions[2]
@@ -213,11 +222,9 @@ class Sampler:
     #     Args:
     #         links ([tf.tensor]): Q x 3
     #
-    #     Returns:
-    #         spheres_loc [tf.tensor]: P x 3, grad [Tensor("gradients/...")]: Q x 3
-    #     """
-    #     spheres_loc = tf.py_function(self.robot.get_sphere_transform, [tf.py_function(self.robot._get_link_world_pos, [
-    #         self.robot.sphere_idx], default_float())], default_float())
+    # Returns: spheres_loc [tf.tensor]: P x 3, grad [Tensor("gradients/...")]: Q x 3 """ spheres_loc =
+    # tf.py_function(self.robot.get_sphere_transform, [tf.py_function(self.robot._get_link_world_pos,
+    # [ self.robot.sphere_idx], default_float())], default_float())
     #
     #     def grad(upstream):
     #         func = tf.range(self.spheres_to_links.shape[0])
