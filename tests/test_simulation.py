@@ -31,6 +31,8 @@ def test_parameter_loader_load_parameter_file(mock_parameter_loader_with_paths, 
     is_equal = compare_dicts(mock_parameter_loader_with_paths.params['robot_params'], mock_final_config['robot_params'],
                              sensitive_keys)
     assert is_equal
+    print(mock_parameter_loader_with_paths.params['scene_params'])
+    print(mock_final_config['scene_params'])
     is_equal = compare_dicts(mock_parameter_loader_with_paths.params['scene_params'], mock_final_config['scene_params'],
                              sensitive_keys)
     assert is_equal

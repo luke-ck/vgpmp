@@ -196,7 +196,6 @@ class SignedDensityField(object):
     def from_sdf(cls, sdf_file):
 
         with open(sdf_file, "r") as file:
-            axis = 2
             lines = file.readlines()
             nx, ny, nz = map(int, lines[0].split(" "))
             x0, y0, z0 = map(float, lines[1].split(" "))

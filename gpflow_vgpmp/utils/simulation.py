@@ -96,6 +96,7 @@ class SimulationThread(threading.Thread):
 
 class Simulation:
     def __init__(self, graphic_params):
+        self.is_initialized = None
         self.result_queue = None
         self.scene = None
         self.result_queue = queue.Queue()
@@ -107,6 +108,7 @@ class Simulation:
         self.simulation_thread.initialize()
         self.simulation_thread.thread_ready_event.wait()
         print("Connecton to pybullet backend started")
+        self.is_initialized = True
 
     def stop_simulation_thread(self):
         self.simulation_thread.stop()
@@ -143,6 +145,7 @@ class Scene:
         """
         Create a new Scene instance.
         """
+        self.is_initialized = None
         self.config = config
         self.client = None
         # FIFO queue for storing the objects
@@ -162,6 +165,7 @@ class Scene:
                                 path=obj_path,
                                 position=self.config["position"],
                                 orientation=self.config["orientation"])
+        self.is_initialized = True
 
     def add_object(self, name: str, path: Optional[str], position: Optional[List], orientation: Optional[List]):
         """

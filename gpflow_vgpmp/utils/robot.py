@@ -24,11 +24,12 @@ class Robot(RobotMixin):
     def __init__(self, params, client: int = 0):
         super().__init__(**params)
         # TODO: check the case where pybullet silently fails to load the urdf
+        self._orientation = None
+        self._position = None
         self.num_spheres_per_link = None
         urdf_path = params["urdf_path"]
-        assert client is not None, "Pybullet client not connected"
+        assert client == 0, "Only one client is supported at the moment"
         assert urdf_path.exists() and urdf_path.is_file(), "URDF file not found"
-
         # with suppress_stdout(): # this breaks tests. suppress annoying warnings from pybullet.
         self.robot_model = p.loadURDF(
             urdf_path.as_posix(),
@@ -74,7 +75,6 @@ class Robot(RobotMixin):
 
         self.set_active_joint_names(params["active_joints"])
         self.set_active_link_names(params["active_links"])
-
         assert self.active_joint_names is not None and self.active_joint_names != [], "No active joints specified"
         assert self.joint_name_to_index_dict is not None
         assert self.joint_name_to_index_dict.keys().isdisjoint(self.active_joint_names) is False, \
@@ -85,6 +85,7 @@ class Robot(RobotMixin):
         assert self.link_name_to_index_dict[self.link_name_wrist] is not None, "Wrist link not found. Check config file"
         self.base_index = self.link_name_to_index_dict[self.link_name_base]
         self.wrist_index = self.link_name_to_index_dict[self.link_name_wrist]
+        self.is_initialized = False
 
     def initialise(self,
                    default_robot_pos_and_orn,
@@ -100,6 +101,7 @@ class Robot(RobotMixin):
         except TypeError:
             position, orientation = None, None
         if position and orientation:
+            print("Setting robot position and orientation")
             self.reset_pos_and_orn(position, orientation)
         if benchmark:
             self.set_scene(joint_names, default_pose)
@@ -113,6 +115,25 @@ class Robot(RobotMixin):
         self.init_base_pose()
         time.sleep(1)
         self.set_joint_link_frame_offset()
+        self.is_initialized = True
+
+    @property
+    def orientation(self):
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, value):
+        assert len(value) == 4
+        self._orientation = value
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        assert len(value) == 3
+        self._position = value
 
     def enable_collision_active_links(self, mask: int = 0):
         """
@@ -143,6 +164,9 @@ class Robot(RobotMixin):
         if len(orn) == 3:
             orn = p.getQuaternionFromEuler(orn)
         p.resetBasePositionAndOrientation(self.robot_model, pos, orn)
+        print(pos, orn)
+        self.position = pos
+        self.orientation = orn
 
     def get_joints_info(self):
         return [p.getJointInfo(self.robot_model, i) for i in range(0, p.getNumJoints(self.robot_model))]

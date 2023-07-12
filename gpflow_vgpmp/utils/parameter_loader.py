@@ -27,6 +27,7 @@ class ParameterLoader:
 
     def __init__(self):
 
+        self.is_initialized = False
         self._params = None
         self.trainable_params = None
         self.planner_params = None
@@ -42,16 +43,16 @@ class ParameterLoader:
         assert self._params is not None, "Parameter Loader must be initialized before it can be accessed"
         return self._params
 
-    def initialize(self, parameter_file_path: Optional[dict] = None, params: Optional[dict] = None):
+    def initialize(self, file_path: Path = None, params: Optional[dict] = None):
         """
         Initialize the parameter loader by loading the parameter file and extracting the data
         or by directly passing the params dict (this is used for testing)
 
-        :param parameter_file_path: path to the parameter file
+        :param file_path: path to the parameter file
         :param params: dict containing the parameters
         """
-        if parameter_file_path is not None:
-            self.load_parameter_file(parameter_file_path)
+        if file_path is not None:
+            self.load_parameter_file(file_path)
         else:
             assert params is not None, "Either parameter_file_path or params must be specified"
             self._params = self.set_params(params)
@@ -69,6 +70,7 @@ class ParameterLoader:
         self.get_robot_config(self.robot_params)
         self.get_scene_config(self.scene_params)
 
+        self.is_initialized = True
         return {
             'robot_params': self.robot_params,
             'scene_params': self.scene_params,
@@ -132,7 +134,6 @@ class ParameterLoader:
 
         del scene_params["benchmark_attributes"]
         del scene_params["non_benchmark_attributes"]
-        del scene_params["problemset"]
         # all possible combinations of 2 pairs
         queries = list(itertools.combinations(states, 2))
         print(f'There are {n_states} total robot positions and a total of {len(queries)} problems')

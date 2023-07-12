@@ -96,9 +96,7 @@ class Sampler(RobotMixin):
 
         # Get the modified or standard transform matrix for each set of DH parameters
         transform_matrices = tf.map_fn(
-            lambda i: self.get_transform_matrix_craig(i[0], i[1], i[2], i[3])
-            if self.craig_notation
-            else self.get_transform_matrix(i[0], i[1], i[2], i[3]),
+            lambda i: self.transform_fn(i[0], i[1], i[2], i[3]),
             dh_mat, fn_output_signature=default_float(), parallel_iterations=None)
 
         # transform_fn = get_modified_transform_matrix if self.craig_dh_convention else get_transform_matrix
