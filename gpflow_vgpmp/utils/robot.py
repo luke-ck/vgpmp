@@ -49,10 +49,7 @@ class Robot(RobotMixin):
         self.link_name_to_index_dict = None
         self.link_index_to_name_dict = None
 
-        self.velocity_limits = None
-        self.joint_limits = None
-
-        # self.name = params["robot_name"]
+        self.num_frames_for_spheres = params["num_frames_for_spheres"]
         self.link_name_base = params["link_name_base"]
         self.link_name_wrist = params["link_name_wrist"]
         self.base_pose = None
@@ -85,6 +82,10 @@ class Robot(RobotMixin):
         assert self.link_name_to_index_dict[self.link_name_wrist] is not None, "Wrist link not found. Check config file"
         self.base_index = self.link_name_to_index_dict[self.link_name_base]
         self.wrist_index = self.link_name_to_index_dict[self.link_name_wrist]
+        assert self.joint_limits is not None, \
+            "Must pass joint constraints to initialize the planner. Even if there are no joint constraints, pass " \
+            "values such as -3.15, +3.15 for limits. This is because if q_mu is None, the model will initialize " \
+            "q_mu as the mean value of the sigmoid bounds."
         self.is_initialized = False
 
     def initialise(self,

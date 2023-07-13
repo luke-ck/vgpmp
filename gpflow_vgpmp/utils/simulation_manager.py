@@ -1,9 +1,11 @@
 from pathlib import Path
 import tensorflow as tf
+
+from gpflow_vgpmp.models.vgpmp import VGPMP
 from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sampler import Sampler
-from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
+from gpflow_vgpmp.utils.sdf_utils import SignedDistanceField
 from gpflow_vgpmp.utils.simulation import Simulation, Scene
 from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
 
@@ -23,7 +25,7 @@ class SimulationManager:
                  simulation: Simulation = None,
                  scene: Scene = None,
                  robot: Robot = None,
-                 sdf: SignedDensityField = None,
+                 sdf: SignedDistanceField = None,
                  sampler: Sampler = None):
         # Lazy initialization
         self.client = None
@@ -75,7 +77,7 @@ class SimulationManager:
             self.scene = Scene(self.config['scene_params'])
             self.initialize_scene()
         if self.robot is None:
-            self.sdf = SignedDensityField.from_sdf(self.config['scene_params']["sdf_path"])
+            self.sdf = SignedDistanceField.from_sdf(self.config['scene_params']["sdf_path"])
         if self.robot is None:
             self.robot = Robot(self.config['robot_params'], self.simulation.simulation_thread.client)
             self.initialize_robot()
@@ -103,6 +105,12 @@ class SimulationManager:
                               joint_names=joint_names,
                               default_pose=default_pose,
                               benchmark=benchmark)
+
+    def initialize_planner(self):
+        assert self.config is not None, "Config must be initialized before a planner can be initialized"
+        assert self.robot is not None, "Robot must be initialized before a planner can be initialized"
+        assert self.robot.is_initialized, "Robot must be initialized before a planner can be initialized"
+
 
     def loop(self, planner=None):
         exit = False
@@ -144,3 +152,6 @@ if __name__ == "__main__":
     parameter_file_path = Path(get_root_package_path()) / "parameters.yaml"
     env = SimulationManager()
     env.initialize(parameter_file_path)
+
+    y = tf.constant([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype=tf.float64)
+    planner = VGPMP.initialize(sdf=env.sdf, robot=env.robot, sampler=env.sampler, query_states=y, **env.config['planner_params'])

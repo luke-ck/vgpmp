@@ -77,6 +77,6 @@ dh_parameters: # d, a, alpha
 twist: [ 0., 0., 0., 0., 0., 0., 0. ]
 dof: 7
 craig_dh_convention: False
-no_frames_for_spheres: 4
+num_frames_for_spheres: 4
 fk_slice: [3, 5, 6, 7]
 q_mu: "None"

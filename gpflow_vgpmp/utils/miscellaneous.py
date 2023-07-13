@@ -13,7 +13,7 @@ from gpflow import set_trainable
 from tqdm import tqdm
 import tensorflow_probability as tfp
 import gpflow
-from gpflow_vgpmp.models.vgpmp import VGPMP
+
 
 # from gpflow_vgpmp.utils.simulator import RobotSimulator
 
@@ -125,11 +125,12 @@ def detect_joint_limit_proximity(limits, q_mu):
 
 def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params,
                            trainable_params, graphics_params, run=0, k=0):
-    grid_spacing_X = planner_params["time_spacing_X"]
-    grid_spacing_Xnew = planner_params["time_spacing_Xnew"]
+    from gpflow_vgpmp.models.vgpmp import VGPMP
+    time_spacing_x = planner_params["time_spacing_x"]
+    time_spacing_xnew = planner_params["time_spacing_Xnew"]
     dof = robot_params["dof"]
     num_steps = planner_params["num_steps"]
-    X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints, scale=1)
+    X, y, Xnew = init_trainset(time_spacing_x, time_spacing_xnew, dof, start_joints, end_joints, scale=1)
     num_data, num_output_dims = y.shape
     q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
     q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
@@ -137,29 +138,30 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
 
     planner = VGPMP.initialize(num_data=num_data,
                                num_output_dims=num_output_dims,
-                               num_spheres=robot_params["num_spheres"],
-                               num_inducing=planner_params["num_inducing"],
-                               num_samples=planner_params["num_samples"],
-                               sigma_obs=planner_params["sigma_obs"],
-                               alpha=planner_params["alpha"],
-                               variance=planner_params["variance"],
-                               learning_rate=planner_params["learning_rate"],
-                               lengthscales=planner_params["lengthscales"],
-                               offset=scene_params["position"],
-                               joint_constraints=robot_params["joint_limits"],
-                               velocity_constraints=robot_params["velocity_limits"],
-                               sphere_radii=robot_params['radius'],
+                               # num_spheres=robot_params["num_spheres"],
+                               # num_inducing=planner_params["num_inducing"],
+                               # num_samples=planner_params["num_samples"],
+                               # sigma_obs=planner_params["sigma_obs"],
+                               # alpha=planner_params["alpha"],
+                               # variance=planner_params["variance"],
+                               # learning_rate=planner_params["learning_rate"],
+                               # lengthscales=planner_params["lengthscales"],
+                               # epsilon=planner_params["epsilon"],
+                               # offset=scene_params["position"],
+                               # joint_constraints=robot_params["joint_limits"],
+                               # velocity_constraints=robot_params["velocity_limits"],
+                               # sphere_radii=robot_params['radius'],
                                query_states=y,
                                sdf=sdf,
                                robot=robot,
-                               num_latent_gps=dof,
-                               parameters=robot_params,
-                               train_sigma=trainable_params["sigma_obs"],
-                               no_frames_for_spheres=robot_params["no_frames_for_spheres"],
-                               robot_name=robot_params["robot_name"],
-                               epsilon=planner_params["epsilon"],
+                               sampler=sampler,
+                               # num_latent_gps=dof,
+                               # parameters=robot_params,
+                               # no_frames_for_spheres=robot_params["no_frames_for_spheres"],
+                               # robot_name=robot_params["robot_name"],
                                q_mu=q_mu,
-                               whiten=False
+                               whiten=False,
+                               **planner_params
                                )
 
     assert (id(sdf) == id(planner.likelihood.sdf))

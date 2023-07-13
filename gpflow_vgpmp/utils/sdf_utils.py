@@ -22,7 +22,7 @@ def timing(f):
     return wrap
 
 
-class SignedDensityField(object):
+class SignedDistanceField(object):
     """Data is stored in the following way
         data[x, y, z]
     update to integrate tensorflow
@@ -246,9 +246,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     filename = args.file
     if filename.endswith(".sdf"):
-        sdf = SignedDensityField.from_sdf(filename)
+        sdf = SignedDistanceField.from_sdf(filename)
     elif filename.endswith(".pkl"):
-        sdf = SignedDensityField.from_pkl(filename)
+        sdf = SignedDistanceField.from_pkl(filename)
 
     if sdf is not None:
         print(

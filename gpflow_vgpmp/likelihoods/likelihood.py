@@ -1,4 +1,6 @@
 from abc import ABC
+from typing import List
+
 import tensorflow as tf
 from gpflow.base import Parameter
 from gpflow.config import default_float
@@ -8,7 +10,9 @@ from tensorflow_probability import bijectors as tfb
 
 __all__ = "likelihood"
 
+from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sampler import Sampler
+from gpflow_vgpmp.utils.sdf_utils import SignedDistanceField
 
 
 class VariationalMonteCarloLikelihood(Gaussian, ABC):
@@ -17,54 +21,38 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
     """
 
     def __init__(self,
-                 sigma_obs,
-                 num_spheres,
-                 robot,
-                 parameters,
-                 robot_name,
-                 sdf,
-                 radius,
-                 offset,
-                 joint_constraints,
-                 velocity_constraints,
-                 train_sigma,
-                 no_frames_for_spheres,
-                 epsilon,
+                 sigma_obs: float,
+                 robot: Robot,
+                 sampler: Sampler,
+                 sdf: SignedDistanceField,
+                 offset: List[float],
+                 epsilon: float = 0.05,
                  DEFAULT_VARIANCE_LOWER_BOUND=1e-14,
                  **kwargs):
         super().__init__(**kwargs)
 
-        # parameters["robot_name"] = robot_name
-        # parameters["sphere_offsets"] = robot.sphere_offsets
-        # parameters["num_spheres_list"] = robot.num_spheres
-        # parameters["dof"] = robot.dof
-        # parameters["sphere_link_interval"] = robot.sphere_link_interval
-        # parameters["base_pose"] = robot.base_pose
-        #
-        robot_config = {"sphere_offsets": robot.sphere_offsets,
-                        "num_spheres_list": robot.num_spheres,
-                        "dof": robot.dof,
-                        "sphere_link_interval": robot.sphere_link_interval,
-                        "base_pose": robot.base_pose,
-                        'robot_name': robot_name}
-
-        self.sampler = Sampler(parameters, robot_config)
         self.sdf = sdf
-        sigma_obs_joints = tf.broadcast_to(sigma_obs, [no_frames_for_spheres, 1])
-        Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=robot.num_spheres, axis=0), (1, num_spheres))
-        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND), trainable=train_sigma)
+        self.sampler = sampler
+        Sigma_obs = tf.broadcast_to(sigma_obs, [robot.num_spheres, 1])
+        print(Sigma_obs)
+        print(robot.sphere_offsets.shape)
+        print(robot.sphere_offsets)
+        print(robot.num_spheres)
+        # Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=robot.sphere_offsets, axis=0),
+        #                        (1, robot.num_spheres))
+        self.Sigma_obs = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
-        self.radius = tf.constant(radius, dtype=default_float(), shape=(1, len(radius)))
-        self.joint_constraints = tf.constant(joint_constraints, shape=(len(joint_constraints) // 2, 2),
+        self.sphere_radii = tf.constant(robot.sphere_radii, dtype=default_float(), shape=(1, len(robot.sphere_radii)))
+        self.joint_constraints = tf.constant(robot.joint_limits, shape=(len(robot.joint_limits) // 2, 2),
                                              dtype=default_float())
-        self.velocity_constraints = tf.constant(velocity_constraints, shape=(len(velocity_constraints) // 2, 2),
+        self.velocity_constraints = tf.constant(robot.velocity_limits, shape=(len(robot.velocity_limits) // 2, 2),
                                                 dtype=default_float())
         self.joint_sigmoid = tfb.Sigmoid(
             low=self.joint_constraints[:, 1],
             high=self.joint_constraints[:, 0],
         )
         self.epsilon = tf.constant(epsilon, dtype=default_float())
-        self._p = num_spheres
+        self._p = robot.num_spheres
         # self.k = Parameter(tf.constant(10, dtype=default_float()), transform=positive())
 
     @tf.function
@@ -82,17 +70,17 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         return self._log_prob(F)
 
     @tf.function
-    def _log_prob(self, F):
+    def _log_prob(self, f):
         r"""
         Takes in a tensor of joint configs, computes the 3D world position of sphere coordinates
         and their signed distances for the respective joint configs, and returns the log likelihood for
         those configurations. Ideally shape checks should be done as well.
         Args:
-            F (tf.Tensor): [S x N x D]
+            f (tf.Tensor): [S x N x D]
         Returns:
             logp (tf.Tensor): [S x N]
         """
-        L = self._sample_config_cost(F)  # S x N x P x 3
+        L = self._sample_config_cost(f)  # S x N x P x 3
         logp = self._scalar_log_prob(L)
         return logp
 
@@ -104,8 +92,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             [tf.Tensor]: [S x N]
         """
-        cost = self._hinge_loss(f) 
-        return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1)
+        cost = self._hinge_loss(f)
+        return - 0.5 * tf.reduce_sum(cost / self.Sigma_obs[None, ...] * cost, axis=-1)
 
     @tf.function
     def _sample_config_cost(self, f):
@@ -118,7 +106,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         gradients associated with these operations.We do S iterations,
         one iteration per sample.
         Args:
-            F (tf.Tensor): [S x N x D]
+            f (tf.Tensor): [S x N x D]
         Returns:
             [tf.Tensor]: [S x N x P x 3]
         """
@@ -136,7 +124,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
     @tf.function
     def _fk_cost(self, joint_config):
-        return self.sampler._fk_cost(tf.expand_dims(joint_config, axis=1))
+        return self.sampler.forward_kinematics_cost(tf.expand_dims(joint_config, axis=1))
 
     @tf.function
     def _hinge_loss(self, data):
@@ -144,8 +132,6 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
             Penalise configurations where arm is too close to objects with negative cost -d + \epsilon
         Args:
             data ([tf.Tensor]): [N x P x 3]
-            epsilon (float, optional): Safety distance. Defaults to 0.5.
-
         Returns:
             [tf.Tensor]: [N x P]
         """
@@ -169,7 +155,7 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         norm_data = tf.math.subtract(data, self.offset)  # 'center' the data around the origin. This is because the
         # sdf is centered around the origin.
         dist = self.sdf.get_distance_tf(norm_data)
-        dist = tf.math.subtract(dist, self.radius)  # subtract radius from distance from the sphere centre to the
+        dist = tf.math.subtract(dist, self.sphere_radii)  # subtract radius from distance from the sphere centre to the
         # object body
         dist_grad = self.sdf.get_distance_grad_tf(norm_data)
 

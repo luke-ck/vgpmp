@@ -46,6 +46,8 @@ class Sampler(RobotMixin):
         self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(self.num_spheres, 4, 4), dtype=default_float())
         self.joint_config_uncertainty = tf.ones(shape=(self.dof, 1), dtype=default_float())
 
+
+
     @tf.custom_gradient
     def check_gradients(self, x):
         def grad(upstream):

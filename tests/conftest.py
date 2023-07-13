@@ -6,7 +6,7 @@ import numpy as np
 from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sampler import Sampler
-from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
+from gpflow_vgpmp.utils.sdf_utils import SignedDistanceField
 from gpflow_vgpmp.utils.simulation import Simulation, SimulationThread, Scene
 from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
 from gpflow_vgpmp.utils.simulation_manager import SimulationManager
@@ -110,7 +110,7 @@ def mock_input_config(request):
             'twist': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             'dof': 6,
             'craig_dh_convention': False,
-            'no_frames_for_spheres': 5,
+            'num_frames_for_spheres': 5,
             'fk_slice': [1, 2, 3, 4, 5],
             'q_mu': [-1.507, -1.507, 0, 0, 0, 0],
             'robot_name': 'ur10'
@@ -153,7 +153,7 @@ def mock_input_config(request):
                     True, {
                         'sigma_obs': 0,
                         'epsilon': 0,
-                        'lengthscales': [0] * 7,
+                        'lengthscales': [0] * 6,
                         'variance': 0,
                         'alpha': 0,
                         'num_samples': 0,
@@ -171,8 +171,7 @@ def mock_input_config(request):
                     False, {
                         'sigma_obs': 0.005,
                         'epsilon': 0.05,
-                        'lengthscales': [5.0, 5.0, 5.0, 2.0, 5.0, 5.0,
-                                         5.0],
+                        'lengthscales': [5.0, 5.0, 5.0, 2.0, 5.0, 5.0],
                         'variance': 0.25,
                         'alpha': 100,
                         'num_samples': 7,
