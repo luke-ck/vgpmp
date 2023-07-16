@@ -1,4 +1,6 @@
 from gpflow_vgpmp.utils.ops import *
+from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
+from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.robot_mixin import RobotMixin
 
 
@@ -15,11 +17,16 @@ class Sampler(RobotMixin):
 
     """
 
-    def __init__(self, robot_config, base_pose, sphere_offsets):
-        assert sphere_offsets is not None
-        assert sphere_offsets is not []
+    def __init__(self, config: ParameterLoader, robot: Robot):
+        robot_params = config.robot_params
+        sphere_offsets = robot.sphere_offsets
+        base_pose = robot.base_pose
 
-        super().__init__(**robot_config)
+        assert robot_params is not None
+        assert sphere_offsets is not None and sphere_offsets is not []
+        assert base_pose is not None and base_pose is not []
+
+        super().__init__(**robot_params)
         # sphere_offsets = robot_config["sphere_offsets"]
         self.num_spheres = len(sphere_offsets)  # if robot is set up properly this will be = as sphere_radii
 

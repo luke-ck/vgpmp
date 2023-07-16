@@ -10,6 +10,8 @@ from .bullet_object import BaseObject
 
 __all__ = 'simulation'
 
+from .parameter_loader import ParameterLoader
+
 
 def get_bullet_key_from_value():
     """ Get the key from the value in the bullet dictionary """
@@ -17,9 +19,8 @@ def get_bullet_key_from_value():
 
 
 class SimulationThread(threading.Thread):
-    def __init__(self, graphic_params: dict):
+    def __init__(self):
         super().__init__()
-        self.graphic_params = graphic_params
         self.result_queue = queue.Queue()
         self.stop_event = threading.Event()
         self.thread_ready_event = threading.Event()
@@ -34,7 +35,7 @@ class SimulationThread(threading.Thread):
             if self.stop_event.is_set():
                 return
             await asyncio.sleep(0.01)
-        self.client = None
+        # self.client = None
 
     async def wait_key_press(self):
         async for key, is_return_pressed in self.await_key_press():
@@ -61,22 +62,19 @@ class SimulationThread(threading.Thread):
             await asyncio.sleep(0.01)
 
     async def run(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        self.thread_ready_event.wait()
 
         tasks = [self.check_connection(), self.wait_key_press()]
         try:
-            await asyncio.gather(*[asyncio.create_task(task) for task in tasks])
+            await asyncio.gather(*tasks)
         except asyncio.CancelledError:
             pass
-        finally:
-            loop.close()
 
-    def initialize(self):
+    def initialize(self, graphics_params: dict):
 
         gravity_constant = -9.81
 
-        if self.graphic_params["visuals"]:
+        if graphics_params["visuals"]:
             self.client = p.connect(p.GUI, options="--width=960 --height=540")
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
             p.setRealTimeSimulation(enableRealTimeSimulation=1)
@@ -91,21 +89,27 @@ class SimulationThread(threading.Thread):
         self.stop_event.set()
         if self.client is not None:
             p.disconnect(self.client)
+            print(f"Disconnected client {self.client}")
             self.client = None
+
+        if self.is_alive():
+            self.join()
 
 
 class Simulation:
-    def __init__(self, graphic_params):
+    def __init__(self, config: ParameterLoader):
         self.is_initialized = None
         self.result_queue = None
+        # TODO: make the scene be managed by the simulation
         self.scene = None
         self.result_queue = queue.Queue()
-        self.graphic_params = graphic_params
-        self.simulation_thread = SimulationThread(graphic_params)
+        assert config.is_initialized, "ParameterLoader is not initialized"
+        self.graphics_params = config.graphics_params
+        self.simulation_thread = SimulationThread()
         # self.start_simulation_thread()
 
     def initialize(self):
-        self.simulation_thread.initialize()
+        self.simulation_thread.initialize(self.graphics_params)
         self.simulation_thread.thread_ready_event.wait()
         print("Connecton to pybullet backend started")
         self.is_initialized = True
@@ -141,12 +145,14 @@ class Scene:
     Class for managing a scene of BaseObjects.
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: ParameterLoader):
         """
         Create a new Scene instance.
         """
+        self.orientation = None
+        self.position = None
         self.is_initialized = None
-        self.config = config
+        self.config = config.scene_params
         self.client = None
         # FIFO queue for storing the objects
         self.objects = deque()
@@ -159,12 +165,17 @@ class Scene:
                         position=self.config["position"],
                         orientation=self.config["orientation"])
         if self.config["objects"] is not None and self.config["objects"] is not []:
-            # TODO: add support for multiple objects
-            for obj_path in self.config["object_path"]:
-                self.add_object(name="object",
+            for index, obj_path in enumerate(self.config["objects_path"]):
+                obj_position = self.config["objects_position"][index]
+                obj_orientation = self.config["objects_orientation"][index]
+                obj_name = self.config['objects_path'][index].stem  # get the name of the file without the extension
+                self.add_object(name=obj_name,
                                 path=obj_path,
-                                position=self.config["position"],
-                                orientation=self.config["orientation"])
+                                position=obj_position,
+                                orientation=obj_orientation)
+
+        self.position = self.config["position"]
+        self.orientation = self.config["orientation"]
         self.is_initialized = True
 
     def add_object(self, name: str, path: Optional[str], position: Optional[List], orientation: Optional[List]):

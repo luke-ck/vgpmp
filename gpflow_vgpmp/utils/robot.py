@@ -3,9 +3,12 @@ from typing import Union, Tuple
 
 from .miscellaneous import suppress_stdout, are_all_elements_integers
 from .ops import *
+from .parameter_loader import ParameterLoader
 from .robot_mixin import RobotMixin
 
 __all__ = 'robot'
+
+from .simulation import Simulation
 
 
 # <---------------- robot class ----------------->
@@ -21,14 +24,17 @@ class Robot(RobotMixin):
     Currently, we only support the URDF format for the robot model.
     """
 
-    def __init__(self, params, client: int = 0):
+    def __init__(self, config: ParameterLoader, simulation: Simulation):
+        params = config.robot_params
+        client = simulation.simulation_thread.client
+
         super().__init__(**params)
         # TODO: check the case where pybullet silently fails to load the urdf
         self._orientation = None
         self._position = None
         self.num_spheres_per_link = None
         urdf_path = params["urdf_path"]
-        assert client == 0, "Only one client is supported at the moment"
+        assert client == 0, "Only one client is supported at the moment. Undefined behavior for multiple clients."
         assert urdf_path.exists() and urdf_path.is_file(), "URDF file not found"
         # with suppress_stdout(): # this breaks tests. suppress annoying warnings from pybullet.
         self.robot_model = p.loadURDF(

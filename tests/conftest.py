@@ -1,3 +1,5 @@
+import threading
+import time
 from pathlib import Path
 from unittest.mock import MagicMock
 import pytest
@@ -11,13 +13,20 @@ from gpflow_vgpmp.utils.simulation import Simulation, SimulationThread, Scene
 from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
 from gpflow_vgpmp.utils.simulation_manager import SimulationManager
 
+def initialized_simulation(parameter_loader):
+    simulation = Simulation(parameter_loader)
+    simulation.initialize()
+    return simulation
 
-@pytest.fixture
-def test_params_path():
-    return Path(get_root_package_path()) / 'tests' / 'test_params.yaml'
+
+def initialized_parameter_loader(mock_input_config):
+    parameter_loader = ParameterLoader()
+    parameter_loader.initialize(params=mock_input_config)
+    return parameter_loader
 
 
-@pytest.fixture(scope='session', params=[
+
+@pytest.fixture(params=[
     [
         {
             'robot': {
@@ -45,7 +54,7 @@ def test_params_path():
                         {
                             "sigma_obs": 0.005,
                             "epsilon": 0.05,
-                            "lengthscales": [5.0, 5.0, 5.0, 2.0, 5.0, 5.0, 5.0],
+                            "lengthscales": [5.0, 5.0, 5.0, 2.0, 5.0, 5.0],
                             "variance": 0.25,
                             "alpha": 100,
                             "num_samples": 7,
@@ -89,7 +98,7 @@ def mock_input_config(request):
     return request.param
 
 
-@pytest.fixture(scope='session', params=[
+@pytest.fixture(params=[
     {
         'robot_params': {
             "radius": [0.15, 0.13, 0.085, 0.085, 0.085, 0.085, 0.13, 0.1, 0.07, 0.07, 0.07, 0.07, 0.07, 0.1, 0.08, 0.08,
@@ -125,7 +134,7 @@ def mock_input_config(request):
             'objects_position': [],
             'objects_orientation': [],
             'benchmark': benchmark,
-            'object_path': [],
+            'objects_path': [],
             'queries': queries,
             'robot_pos_and_orn': robot_pos_and_orn,
         },
@@ -187,114 +196,79 @@ def mock_input_config(request):
             )
     )
 ])
-def mock_final_config(request, mock_input_config):
-    # Create a mock configuration dictionary
-    if request.param['scene_params']['benchmark'] != mock_input_config[1]['scene']['benchmark']:
-        pytest.skip("Skipping incompatible combination")
+def mock_final_config(request):
     return request.param
 
 
-@pytest.fixture
-def mock_parameter_loader(test_params_path, mock_input_config, mock_final_config):
-    # Create a mock parameter loader with the given configuration
-    parameter_loader = ParameterLoader()
-    robot_params, scene_params, trainable_params, graphic_params = mock_input_config
-    parameter_loader.scene_params = scene_params["scene"]
-    parameter_loader.robot_params = robot_params["robot"]
-    parameter_loader.trainable_params = trainable_params["trainable_params"]
-    parameter_loader.graphics_params = graphic_params["graphics"]
+def valid_config(input_config, output_config):
+    if input_config[1]['scene']['benchmark'] != output_config['scene_params']['benchmark']:
+        return False
+    return True
 
-    parameter_loader.set_params = MagicMock(return_value=mock_final_config)
+
+@pytest.fixture
+def mock_configs(mock_input_config, mock_final_config):
+    if valid_config(mock_input_config, mock_final_config):
+        return mock_input_config, mock_final_config
+    else:
+        pytest.skip("Skipping incompatible combination")
+
+
+@pytest.fixture
+def mock_parameter_loader():
+    parameter_loader = ParameterLoader()
     return parameter_loader
 
 
 @pytest.fixture
-def mock_parameter_loader_with_paths(test_params_path, mock_input_config, mock_final_config):
-    parameter_loader = ParameterLoader()
-    robot_params, scene_params, trainable_params, graphic_params = mock_input_config
-    parameter_loader.scene_params = scene_params["scene"]
-    parameter_loader.robot_params = robot_params["robot"]
-    parameter_loader.trainable_params = trainable_params["trainable_params"]
-    parameter_loader.graphics_params = graphic_params["graphics"]
+def mock_simulation_thread():
+    simulation_thread = SimulationThread()
 
-    return parameter_loader
-
-
-@pytest.fixture(scope='session')
-def mock_simulation_thread(mock_input_config):
-    graphic_params = mock_input_config[-1]['graphics']
-
-    # Create a mock simulation thread
-    simulation_thread = SimulationThread(graphic_params)
-    yield simulation_thread
+    # Return the simulation thread
+    return simulation_thread
 
 
 @pytest.fixture
-async def cleanup_simulation_thread(mock_simulation_thread):
-    yield mock_simulation_thread
-
-    mock_simulation_thread.stop()
-
-
-@pytest.fixture(scope='session')
-def mock_simulation(mock_input_config, mock_simulation_thread):
-    graphic_params = mock_input_config[-1]['graphics']
-    # Create a mock simulation with the mock simulation thread
-    simulation = Simulation(graphic_params)
-    simulation.simulation_thread = mock_simulation_thread
-
-    yield simulation
-
-    simulation.stop_simulation_thread()
-
-
-@pytest.fixture(autouse=True)
-def shared_mock_simulation(mock_simulation):
-    mock_simulation.initialize()
-    yield mock_simulation
+def mock_simulation(mock_input_config):
+    parameter_loader = initialized_parameter_loader(mock_input_config)
+    simulation = initialized_simulation(parameter_loader)
+    return parameter_loader, simulation
 
 
 @pytest.fixture
-def mock_simulation_manager(test_params_path, shared_mock_simulation, mock_parameter_loader_with_paths, mock_input_config):
-    # Create a mock simulator with the mock simulation
-    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
+def mock_robot(mock_simulation):
+    parameter_loader, simulation = mock_simulation
 
-    simulation_manager = SimulationManager(simulation=shared_mock_simulation,
-                                           parameter_loader=mock_parameter_loader_with_paths)
-    simulation_manager.initialize(test_params_path)
+    robot = Robot(parameter_loader, simulation)
 
-    yield simulation_manager
+    robot.initialise(default_robot_pos_and_orn=parameter_loader.scene_params['robot_pos_and_orn'],
+                     joint_names=parameter_loader.robot_params['joint_names'],
+                     default_pose=parameter_loader.robot_params['default_pose'],
+                     benchmark=parameter_loader.scene_params['benchmark'])
 
-
-@pytest.fixture
-def mock_robot_and_parameter_loader(mock_parameter_loader_with_paths, shared_mock_simulation, mock_input_config):
-    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
-
-    robot = Robot(mock_parameter_loader_with_paths.robot_params, shared_mock_simulation.simulation_thread.client)
-
-    yield robot, mock_parameter_loader_with_paths
+    yield robot, mock_simulation
 
 
 @pytest.fixture
-def mock_sampler_with_robot_with_parameters(mock_parameter_loader_with_paths, initialized_robot_with_parameters):
-    config = mock_parameter_loader_with_paths
-    robot = initialized_robot_with_parameters
+def mock_sampler(mock_robot):
+    robot, mock_simulation = mock_robot
+    parameter_loader, simulation = mock_simulation
 
-    sampler = Sampler(config.robot_params, robot.base_pose, robot.sphere_offsets)
+    sampler = Sampler(parameter_loader, robot)
 
-    yield robot, sampler
-
-
-@pytest.fixture
-def initialized_robot_with_parameters(mock_input_config, mock_parameter_loader_with_paths, shared_mock_simulation):
-    mock_parameter_loader_with_paths.initialize(params=mock_input_config)
-    robot = Robot(mock_parameter_loader_with_paths.robot_params, shared_mock_simulation.simulation_thread.client)
-    robot_pos_and_orn = mock_parameter_loader_with_paths.scene_params['robot_pos_and_orn']
-    joint_names = mock_parameter_loader_with_paths.robot_params['joint_names']
-    default_pose = mock_parameter_loader_with_paths.robot_params['default_pose']
-    benchmark = mock_parameter_loader_with_paths.scene_params['benchmark']
-    robot.initialise(default_robot_pos_and_orn=robot_pos_and_orn,
-                     joint_names=joint_names,
-                     default_pose=default_pose,
-                     benchmark=benchmark)
-    yield robot
+    yield robot, sampler, mock_simulation
+#
+#
+# @pytest.fixture
+# def initialized_robot_with_parameters(mock_input_config, mock_parameter_loader_with_paths, shared_mock_simulation):
+#     mock_parameter_loader_with_paths.initialize(params=mock_input_config)
+#     robot = Robot(mock_parameter_loader_with_paths.robot_params, shared_mock_simulation.simulation_thread.client)
+#     robot_pos_and_orn = mock_parameter_loader_with_paths.scene_params['robot_pos_and_orn']
+#     joint_names = mock_parameter_loader_with_paths.robot_params['joint_names']
+#     default_pose = mock_parameter_loader_with_paths.robot_params['default_pose']
+#     benchmark = mock_parameter_loader_with_paths.scene_params['benchmark']
+#     robot.initialise(default_robot_pos_and_orn=robot_pos_and_orn,
+#                      joint_names=joint_names,
+#                      default_pose=default_pose,
+#                      benchmark=benchmark)
+#     yield robot

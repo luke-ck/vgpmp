@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 import tensorflow as tf
 
@@ -13,6 +14,10 @@ from gpflow_vgpmp.utils.parameter_loader import ParameterLoader
 __all__ = 'simulator'
 
 
+def assert_component_is_initialized(component):
+    assert component.is_initialized, f"{component.__class__.__name__} must be initialized before it can be used"
+
+
 class SimulationManager:
     """
     This class is responsible for managing the interaction between the different components of the simulator.
@@ -21,68 +26,104 @@ class SimulationManager:
     the initialization of the simulation manager (preferable for running the simulator).
     """
 
-    def __init__(self, parameter_loader: ParameterLoader = None,
+    def __init__(self,
+                 parameter_loader: ParameterLoader = None,
                  simulation: Simulation = None,
                  scene: Scene = None,
                  robot: Robot = None,
                  sdf: SignedDistanceField = None,
-                 sampler: Sampler = None):
-        # Lazy initialization
-        self.client = None
-        self._config = None
-        self.robot = None
-        self.sdf = None
-        self.scene = None
-        self.sampler = None
-        self.is_initialized = False
-
-        if parameter_loader is not None:
-            assert parameter_loader.params is not None and parameter_loader.is_initialized, \
-                "Parameter Loader must be initialized if passed manually"
+                 sampler: Sampler = None,
+                 parameter_file_path=None):
+        """
+        Either initialize the components manually or by loading a parameter file during the initialization of the
+        simulation manager. At the very least, the parameter loader and the simulation must be initialized.
+        """
+        if parameter_file_path is not None:
+            self._config = ParameterLoader()
+            self.initialize_parameter_loader(parameter_file_path)
+            self.simulation = Simulation(self._config)
+            self.initialize_simulation()
+            assert_component_is_initialized(self.simulation)
+            self.scene = Scene(self._config)
+            self.initialize_scene()
+            self.robot = Robot(self._config, self.simulation)
+            self.initialize_robot()
+            assert_component_is_initialized(self.robot)
+            self.sampler = Sampler(self._config, self.robot)
+            self.sdf = SignedDistanceField.from_sdf(self.config['scene_params']["sdf_path"])
+        else:
+            assert parameter_loader is not None and parameter_loader.is_initialized, "Parameter Loader must be " \
+                                                                                     "initialized if no parameter " \
+                                                                                     "file is passed"
+            assert simulation is not None and simulation.is_initialized, "Simulation must have been initialized if no " \
+                                                                         "parameter file is passed "
             self._config = parameter_loader
-
-        if simulation is not None:
             self.simulation = simulation
             self.assert_backend_connection_is_alive()
             self.client = self.simulation.simulation_thread.client
-        if scene is not None:
-            self.assert_backend_connection_is_alive()
-            assert scene.is_initialized, "Scene must be initialized if passed manually"
-            self.scene = scene
-        if robot is not None:
-            self.assert_backend_connection_is_alive()
-            assert robot.is_initialized, "Robot must be initialized if passed manually"
-            self.robot = robot
-        if sdf is not None:
-            self.sdf = sdf
-        if sampler is not None:
-            assert self.robot is not None, "Robot must be initialized before a sampler can be added"
-            assert self.robot.is_initialized, "Robot must be initialized before a sampler can be added"
-            self.sampler = sampler
+
+            if scene is not None:
+                if scene.is_initialized:
+                    self.scene = scene
+                else:
+                    warnings.warn("You passed a scene that is not initialized. Initializing scene with default "
+                                  "parameters")
+            else:
+                self.scene = Scene(self._config)
+                self.initialize_scene()
+
+            if robot is not None:
+                if robot.is_initialized:
+                    self.robot = robot
+                else:
+                    warnings.warn("You passed a robot that is not initialized. Initializing robot with default "
+                                  "parameters")
+            else:
+                self.robot = Robot(self._config, self.simulation)
+                self.initialize_robot()
+
+            if sdf is not None:
+                self.sdf = sdf
+            else:
+                self.sdf = SignedDistanceField.from_sdf(self.config['scene_params']["sdf_path"])
+            if sampler is not None:
+                assert self.robot is not None and self.robot.is_initialized, "Robot must be initialized before a " \
+                                                                             "sampler can be added"
+                self.sampler = sampler
+            else:
+                self.sampler = Sampler(self._config, self.robot)
 
     @property
     def config(self) -> dict:
         assert self._config is not None, "Parameter Loader must be initialized before it can be accessed"
         return self._config.params
 
-    def initialize(self, parameter_file_path=None):
-        if self._config is None:
-            self._config = ParameterLoader()
-            self.initialize_parameter_loader(parameter_file_path)
-
-        if self.client is None:
-            self.simulation = Simulation(self.config['graphics_params'])
-            self.initialize_simulation()
-        if self.scene is None:
-            self.scene = Scene(self.config['scene_params'])
-            self.initialize_scene()
-        if self.robot is None:
-            self.sdf = SignedDistanceField.from_sdf(self.config['scene_params']["sdf_path"])
-        if self.robot is None:
-            self.robot = Robot(self.config['robot_params'], self.simulation.simulation_thread.client)
-            self.initialize_robot()
-        if self.sampler is None:
-            self.sampler = Sampler(self.config['robot_params'], self.robot.base_pose, self.robot.sphere_offsets)
+    # def initialize(self):
+    #     """
+    #     Initializes the simulation manager by initializing the parameter loader, the simulation, the scene, the robot,
+    #     the sdf and the sampler. If a parameter file is passed, the parameter loader is initialized with the parameter
+    #     file. Otherwise, the parameter loader is initialized with the default parameter file.
+    #     """
+    #     if self._config is None:
+    #         self._config = ParameterLoader()
+    #         self.initialize_parameter_loader(parameter_file_path)
+    #
+    #         self.simulation = Simulation(self.config['graphics_params'])
+    #         self.initialize_simulation()
+    #         self.assert_component_is_initialized(self.simulation)
+    #
+    #         self.scene = Scene(self.config['scene_params'])
+    #         self.initialize_scene()
+    #         self.assert_component_is_initialized(self.scene)
+    #
+    #         self.sdf = SignedDistanceField.from_sdf(self.config['scene_params']["sdf_path"])
+    #
+    #         self.robot = Robot(self.config['robot_params'], self.simulation.simulation_thread.client)
+    #         self.initialize_robot()
+    #         self.assert_component_is_initialized(self.robot)
+    #         self.sampler = Sampler(self.config['robot_params'], self.robot.base_pose, self.robot.sphere_offsets)
+    #     else:
+    #         self.assert_component_is_initialized(self._config)
 
     def initialize_parameter_loader(self, file_path: Path = None, params: dict = None):
         self._config.initialize(file_path=file_path, params=params)
@@ -105,12 +146,6 @@ class SimulationManager:
                               joint_names=joint_names,
                               default_pose=default_pose,
                               benchmark=benchmark)
-
-    def initialize_planner(self):
-        assert self.config is not None, "Config must be initialized before a planner can be initialized"
-        assert self.robot is not None, "Robot must be initialized before a planner can be initialized"
-        assert self.robot.is_initialized, "Robot must be initialized before a planner can be initialized"
-
 
     def loop(self, planner=None):
         exit = False
@@ -150,8 +185,13 @@ class SimulationManager:
 
 if __name__ == "__main__":
     parameter_file_path = Path(get_root_package_path()) / "parameters.yaml"
-    env = SimulationManager()
-    env.initialize(parameter_file_path)
+    env = SimulationManager(parameter_file_path=parameter_file_path)
+    # env.initialize()
 
     y = tf.constant([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype=tf.float64)
-    planner = VGPMP.initialize(sdf=env.sdf, robot=env.robot, sampler=env.sampler, query_states=y, **env.config['planner_params'])
+    planner = VGPMP.initialize(sdf=env.sdf,
+                               robot=env.robot,
+                               sampler=env.sampler,
+                               query_states=y,
+                               scene_offset=env.scene.position,
+                               **env.config['planner_params'])

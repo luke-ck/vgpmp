@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple, Optional
 import yaml
 from gpflow_vgpmp.utils.miscellaneous import get_root_package_path
+import copy
 
 def load_yaml_config(scene_config):
     with open(scene_config, 'r') as stream:
@@ -103,13 +104,14 @@ class ParameterLoader:
         environment_name = scene_params["environment_name"]
         environment_file_name = scene_params["environment_file_name"]
         sdf_file_name = scene_params["sdf_file_name"]
-        scene_params["object_path"] = []
+        scene_params["objects_path"] = []
 
         if scene_params["objects"] is not None and scene_params["objects"] is not []:
             objects_data_dir_path = self.data_dir_path / "objects"
             for obj in scene_params["objects"]:
                 object_path = objects_data_dir_path / obj
-                scene_params["object_path"].append(object_path)
+                assert object_path.exists()
+                scene_params["objects_path"].append(object_path)
 
         assert scene_params["benchmark"] is not None, "Benchmark attribute is not specified"
         assert type(scene_params["benchmark"]) is bool, "Benchmark attribute must be a boolean"
@@ -132,8 +134,6 @@ class ParameterLoader:
             planner_params = problemset.planner_params(problemset_name)
             robot_pos_and_orn = problemset.pos_and_orn(problemset_name)
 
-        del scene_params["benchmark_attributes"]
-        del scene_params["non_benchmark_attributes"]
         # all possible combinations of 2 pairs
         queries = list(itertools.combinations(states, 2))
         print(f'There are {n_states} total robot positions and a total of {len(queries)} problems')
@@ -145,8 +145,10 @@ class ParameterLoader:
         scene_params["sdf_path"] = sdf_path
         scene_params["environment_path"] = environment_path
 
-        self.scene_params = scene_params
+        self.scene_params = copy.deepcopy(scene_params)
         self.planner_params = planner_params
+        del self.scene_params["benchmark_attributes"]
+        del self.scene_params["non_benchmark_attributes"]
 
     def get_assets_path(self, environment_name: str, environment_file_name: str, sdf_file_name: str) -> Tuple[Path, Path]:
         scenes_data_dir_path = Path(self.data_dir_path) / "scenes"
