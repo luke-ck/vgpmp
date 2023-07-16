@@ -28,7 +28,7 @@ class SignedDistanceField(object):
     update to integrate tensorflow
     """
 
-    def __init__(self, data, origin, delta):
+    def __init__(self, data: np.ndarray, origin: np.ndarray, delta: float):
         self.data = data
         self.nx, self.ny, self.nz = data.shape
         self.origin = origin
