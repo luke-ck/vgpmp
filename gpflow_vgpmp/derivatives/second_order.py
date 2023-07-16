@@ -1,6 +1,7 @@
 import tensorflow as tf
 from gpflow.kernels.stationaries import SquaredExponential, Kernel, Matern52
 from tensorflow import Tensor
+from gpflow.base import TensorLike
 
 from .dispatch import K_grad_grad, K_grad
 
@@ -17,10 +18,10 @@ def second_order_derivative_se(inducing_variable_ny_scalar, inducing_variable_ny
     return second_derivative
 
 
-@K_grad_grad.register(Tensor, Tensor, Matern52)
+@K_grad_grad.register(TensorLike, TensorLike, Matern52)
 def k_grad_grad_matern52_fallback(
-        inducing_location_ny: Tensor,
-        inducing_location_nz: Tensor,
+        inducing_location_ny: TensorLike,
+        inducing_location_nz: TensorLike,
         kernel: Matern52,
 ):
     diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_nz, 0)
@@ -30,17 +31,18 @@ def k_grad_grad_matern52_fallback(
     r2 = r ** 2
     s5r = SQRT_5 * r
     exp_minus_s5r = tf.math.exp(-s5r)
-    d2kernel_dr2 = FIVE_THIRDS * (5*r2 - s5r - 1) * exp_minus_s5r
+    d2kernel_dr2 = FIVE_THIRDS * (5 * r2 - s5r - 1) * exp_minus_s5r
     term2 = d2kernel_dr2 * dr_dXn * dr_dYm
     res = kernel.variance * term2
     return tf.where(res == 0, 5 / 3 / kernel.lengthscales ** 2, res)
 
-@K_grad_grad.register(Tensor, Tensor, SquaredExponential)
+@K_grad_grad.register(TensorLike, TensorLike, SquaredExponential)
 def k_grad_grad_se_fallback(
-        inducing_location_ny: Tensor,
-        inducing_location_nz: Tensor,
+        inducing_location_ny: TensorLike,
+        inducing_location_nz: TensorLike,
         kernel: SquaredExponential,
 ):
+    print(inducing_location_ny, inducing_location_nz)
     norm = kernel.lengthscales ** 2
     inducing_diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_nz, 0)
     second_derivative = norm - inducing_diff ** 2

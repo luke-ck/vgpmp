@@ -5,7 +5,6 @@ from gpflow.base import TensorLike
 from gpflow.kernels.multioutput import SeparateIndependent, IndependentLatent
 
 from ..dispatch import K_grad
-from ..first_order import kernel_derivative
 
 
 @K_grad.register(TensorLike, TensorLike, (SeparateIndependent, IndependentLatent))
