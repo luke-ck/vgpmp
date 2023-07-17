@@ -15,7 +15,7 @@ from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, Sha
 from gpflow_vgpmp.kullback_leiblers.prior_kl import prior_kl
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
-from gpflow_vgpmp.inducing_variables.inducing_variables import VariableInducingPoints
+from gpflow_vgpmp.inducing_variables.inducing_variables import InducingPoints
 from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
 from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param, timing
 from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
@@ -81,13 +81,14 @@ class VGPMP(PathwiseSVGP, ABC):
                    num_inducing: int = 14,
                    num_samples: int = 51,
                    num_bases: int = 1024,
-                   offset: List[float] = None,
+                   scene_offset: List[float] = None,
                    num_data=None,
                    num_output_dims=None,
-                   kernels: List[Kernel] = None,
+                   kernel: List[Kernel] = None,
                    num_latent_gps: int = None,
                    epsilon: float = 0.05,
-                   q_mu: TensorLike = None):
+                   q_mu: TensorLike = None,
+                   **kwargs):
 
         if num_output_dims is None:
             num_output_dims = query_states[0].shape[-1]
@@ -104,33 +105,33 @@ class VGPMP(PathwiseSVGP, ABC):
         assert query_states is not None and query_states != [], \
             "Must pass a motion plan to initialize the model."
 
-        if offset is None:
-            offset = [0, 0, 0]
+        if scene_offset is None:
+            scene_offset = [0, 0, 0]
             warnings.warn("Offset has not been set. Defaulting to [0, 0, 0].")
 
-        print(lengthscales)
-        print(num_latent_gps)
-        print(num_output_dims)
         assert len(lengthscales) == num_latent_gps
         assert num_output_dims == num_latent_gps
         # TODO: handle velocity constraints
-
-        if kernels is None:
-            kernels = []
+        if kernel is not None:
+            assert isinstance(kernel, SeparateIndependent) or isinstance(kernel, SharedIndependent), \
+                "Kernels must be a list of kernels or a SharedIndependent kernel."
+        else:
+            warnings.warn("Kernels have not been set. Defaulting to SeparateIndependent Matern52.")
+            kernel = []
 
             for i in range(num_latent_gps):
-                kern = Matern52(lengthscales=lengthscales[i], variance=variance)
-                kernels.append(kern)
-        kernel = SeparateIndependent(kernels)
+                k = Matern52(lengthscales=lengthscales[i], variance=variance)
+                kernel.append(k)
+            kernel = SeparateIndependent(kernel)
 
         Z = initialize_Z(num_latent_gps, num_inducing)
-        _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
+        _Z = InducingPoints(Z=Z, dof=num_output_dims)
 
         likelihood = VariationalMonteCarloLikelihood(sigma_obs=sigma_obs,
                                                      robot=robot,
                                                      sdf=sdf,
                                                      sampler=sampler,
-                                                     offset=offset,
+                                                     offset=scene_offset,
                                                      epsilon=epsilon)
 
         # handle q_mu here
@@ -154,7 +155,8 @@ class VGPMP(PathwiseSVGP, ABC):
                    num_inducing=num_inducing,
                    learning_rate=learning_rate,
                    alpha=alpha,
-                   q_mu=q_mu)
+                   q_mu=q_mu,
+                   whiten=False)
 
     @property
     def q_mu(self):

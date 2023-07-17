@@ -67,7 +67,7 @@ dh_parameters: # d, a, alpha
     0.1157,   0.0,   -1.5708,  # wrist_2_joint
     0.0922,   0.0,    0.0 
    ]
-twist: [ 0., 0., 0., 0., 0., 0.]
+twist: [ 3.14, 0., 0., 0., 0., 0.]
 dof: 6
 craig_dh_convention: False
 num_frames_for_spheres: 5

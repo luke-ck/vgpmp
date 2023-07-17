@@ -47,7 +47,7 @@ class Problemset(AbstractProblemset, ABC):
     @staticmethod
     def pos_and_orn(problemset):
         if problemset == "industrial":
-            return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
+            return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
         elif problemset == "testing":

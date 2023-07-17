@@ -28,7 +28,7 @@ class Sampler(RobotMixin):
 
         super().__init__(**robot_params)
         # sphere_offsets = robot_config["sphere_offsets"]
-        self.num_spheres = len(sphere_offsets)  # if robot is set up properly this will be = as sphere_radii
+        self.sphere_offsets = sphere_offsets  # if robot is set up properly this will be = as sphere_radii
 
         # dof = robot_config["dof"]
         # base_pose = robot_config["base_pose"]
@@ -41,16 +41,16 @@ class Sampler(RobotMixin):
 
         # sphere_link_interval = robot_config["sphere_link_interval"]
         # self.spheres_to_links = np.array(sphere_link_interval)
-        # self.num_spheres = robot_config["num_spheres_list"]
+        self.num_spheres_per_link = robot.num_spheres_per_link
 
-        self.sphere_offsets = np.zeros((self.num_spheres, 4, 4))
+        self.sphere_offsets = np.zeros((len(self.sphere_offsets), 4, 4))
 
         for index, offset in enumerate(sphere_offsets):
             mat = self.get_mat(self.name, index, offset)
 
             self.sphere_offsets[index] = mat
 
-        self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(self.num_spheres, 4, 4), dtype=default_float())
+        self.sphere_offsets = tf.constant(self.sphere_offsets, shape=(len(sphere_offsets), 4, 4), dtype=default_float())
         self.joint_config_uncertainty = tf.ones(shape=(self.dof, 1), dtype=default_float())
 
 
@@ -186,7 +186,7 @@ class Sampler(RobotMixin):
         Compute the forward kinematics from joint to sphere positions
         """
         fk_pos = tf.gather(self.forward_kinematics(joint_config), self.fk_slice, axis=0)
-        fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres, axis=0)
+        fk_pos = tf.repeat(fk_pos, repeats=self.num_spheres_per_link, axis=0)
         return fk_pos
 
     @tf.function

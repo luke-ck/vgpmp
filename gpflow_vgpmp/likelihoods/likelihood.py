@@ -33,13 +33,10 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
 
         self.sdf = sdf
         self.sampler = sampler
-        Sigma_obs = tf.broadcast_to(sigma_obs, [robot.num_spheres, 1])
-        print(Sigma_obs)
-        print(robot.sphere_offsets.shape)
-        print(robot.sphere_offsets)
-        print(robot.num_spheres)
-        # Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=robot.sphere_offsets, axis=0),
-        #                        (1, robot.num_spheres))
+        num_spheres_per_joint = robot.num_spheres_per_link
+        sigma_obs_joints = tf.broadcast_to(sigma_obs, [robot.num_frames_for_spheres, 1])
+        Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=num_spheres_per_joint, axis=0), (1, robot.num_spheres))
+
         self.Sigma_obs = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.sphere_radii = tf.constant(robot.sphere_radii, dtype=default_float(), shape=(1, len(robot.sphere_radii)))

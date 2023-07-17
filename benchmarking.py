@@ -1,6 +1,7 @@
-from data.problemsets.problemset import create_problems
+from pathlib import Path
+
 from gpflow_vgpmp.utils.miscellaneous import *
-from gpflow_vgpmp.utils.simulator import RobotSimulator
+from gpflow_vgpmp.utils.simulation_manager import SimulationManager
 import os
 # set export TF_CPP_MIN_LOG_LEVEL=2 when running for your sanity
 
@@ -10,40 +11,10 @@ gpflow.config.Config(jitter=1e-6)
 
 
 if __name__ == '__main__':
-    env = RobotSimulator(parameter_file_path='./parameters.yaml')
-    robot = env.robot
-    scene = env.scene
-    sdf = env.sdf
+    parameter_file_path = Path(get_root_package_path()) / "parameters.yaml"
+    env = SimulationManager(file_path=parameter_file_path)
 
     p.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=-75, cameraPitch=-45, cameraTargetPosition=[0, 0, 0])
-
-    params = env.get_simulation_params()
-    robot_params = params.robot_params
-    print(robot_params)
-    sys.exit(0)
-    scene_params = params.scene_params
-    trainable_params = params.trainable_params
-    graphics_params = params.graphic_params
-
-    sphere_links = robot_params["spheres_over_links"]
-    active_joints = robot_params["active_joints"]
-    problemset_name = scene_params["problemset"]
-    robot_name = robot_params["robot_name"]
-
-    queries, planner_params, joint_names, default_pose, default_robot_pos_and_orn = create_problems(
-        problemset_name=problemset_name, robot_name=robot_name)
-
-    num_steps = planner_params["num_steps"]
-
-    position, orientation = default_robot_pos_and_orn
-    robot.initialise(position=position,
-                     orientation=orientation,
-                     active_joints=active_joints,
-                     sphere_links=sphere_links,
-                     start_config=default_pose,
-                     joint_names=joint_names,
-                     default_pose=default_pose,
-                     benchmark=True)
 
     # env.loop()
     # DEBUGGING CODE FOR VISUALIZING JOINTS
@@ -55,22 +26,22 @@ if __name__ == '__main__':
     # same joint configuration that is in the first tuple of the query_indices list.
     # The first element of the first tuple is the joint configuration that you visualize.
 
-    if graphics_params["debug_joint_positions"]:
-        config = np.array(queries[0][0])
-        start_pos, start_mat = robot.compute_joint_positions(config.reshape(robot.dof, -1),
-                                                             robot_params["craig_dh_convention"])
-
-        for pos in start_pos:
-            aux_pos = np.array(pos).copy()
-            aux_pos[2] += 0.05
-            p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
-
-    if graphics_params["debug_joint_positions"] and not graphics_params["debug_sphere_positions"]:
-        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
-
-        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0] - 0.5, base_pos[1], base_pos[2]), base_rot)
-        env.loop()  # The .loop() function is needed to visualize the joint positions.
+    # TODO : Make this a function in the simulation_manager.py file
+    # if graphics_params["debug_joint_positions"]:
+    #     config = np.array(queries[0][0])
+    #     start_pos, start_mat = robot.compute_joint_positions(config.reshape(robot.dof, -1))
+    #
+    #     for pos in start_pos:
+    #         aux_pos = np.array(pos).copy()
+    #         aux_pos[2] += 0.05
+    #         p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 0, 1],
+    #                            lineWidth=5.0, lifeTime=0, physicsClientId=env.simulation.client)
+    #
+    # if graphics_params["debug_joint_positions"] and not graphics_params["debug_sphere_positions"]:
+    #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+    #
+    #     p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0] - 0.5, base_pos[1], base_pos[2]), base_rot)
+    #     env.loop()  # The .loop() function is needed to visualize the joint positions.
         # It is an infinite while loop that is broken when you press the "q" key.
         # It can also give you the current joint configuration of the robot when you
         # press the "a" key.
@@ -88,15 +59,16 @@ if __name__ == '__main__':
     # query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
     #                  (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
     #                  (3, 9), (9, 4), (4, 13), (13, 8)]
-    if robot_params["robot_name"] == "wam":
-        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
-        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
-
-    elif robot_params["robot_name"] == "ur10":
-        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
-        p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
+    # if robot_params["robot_name"] == "wam":
+    #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+    #     p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
+    #
+    # elif robot_params["robot_name"] == "ur10":
+    #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
+    #     p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
     # robot.set_curr_config(np.squeeze(states[14]))
     # env.loop()
+    queries = env.config['scene_params']['queries']
     total_solved = 0
     total_runs = 3
     failed_indices = []
@@ -104,24 +76,17 @@ if __name__ == '__main__':
     for _ in range(total_runs):
 
         for i, (start_joints, end_joints) in enumerate(queries):
-            start_joints = np.array(start_joints, dtype=np.float64).reshape(1, robot.dof)
-            end_joints = np.array(end_joints, dtype=np.float64).reshape(1, robot.dof)
-            robot.set_curr_config(np.squeeze(start_joints))
+            start_joints = np.array(start_joints, dtype=np.float64).reshape(1, env.robot.dof)
+            end_joints = np.array(end_joints, dtype=np.float64).reshape(1, env.robot.dof)
+            env.robot.set_current_joint_config(np.squeeze(start_joints))
             # env.loop()
-            robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
+            env.robot.set_joint_motor_control(np.squeeze(start_joints), 300, 0.5)
             p.stepSimulation()
 
             solved, trajectory = solve_planning_problem(env=env,
-                                                        robot=robot,
-                                                        sdf=sdf,
                                                         start_joints=start_joints,
-                                                        end_joints=end_joints,
-                                                        robot_params=robot_params,
-                                                        planner_params=planner_params,
-                                                        scene_params=scene_params,
-                                                        trainable_params=trainable_params,
-                                                        graphics_params=graphics_params)
-            print(env.sim.check_simulation_thread_health())
+                                                        end_joints=end_joints)
+            print(env.simulation.check_simulation_thread_health())
             total_solved += solved
             if not solved:
                 print(f"Failed to solve problem {i}")
@@ -147,4 +112,4 @@ if __name__ == '__main__':
 
     time.sleep(10)
     # Disconnect from the simulation
-    p.disconnect()
+    env.simulation.stop_simulation_thread()

@@ -171,7 +171,7 @@ class Robot(RobotMixin):
         if len(orn) == 3:
             orn = p.getQuaternionFromEuler(orn)
         p.resetBasePositionAndOrientation(self.robot_model, pos, orn)
-        print(pos, orn)
+
         self.position = pos
         self.orientation = orn
 

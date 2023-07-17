@@ -10,7 +10,7 @@
       objects: []
       objects_position: []
       objects_orientation: []
-      benchmark: False
+      benchmark: True
       non_benchmark_attributes:
 
         states: [

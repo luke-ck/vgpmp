@@ -52,6 +52,7 @@ class SimulationManager:
             assert_component_is_initialized(self.robot)
             self.sampler = Sampler(self._config, self.robot)
             self.sdf = SignedDistanceField.from_sdf(self.config['scene_params']["sdf_path"])
+            self.client = self.simulation.simulation_thread.client
         else:
             assert parameter_loader is not None and parameter_loader.is_initialized, "Parameter Loader must be " \
                                                                                      "initialized if no parameter " \
