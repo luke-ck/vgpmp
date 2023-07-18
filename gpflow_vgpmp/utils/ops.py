@@ -9,8 +9,9 @@ from scipy.spatial.transform import Rotation as rot
 import tensorflow as tf
 import time
 
-
+# TODO: clean up this file
 # <---------------- utilities ----------------->
+
 def bounded_Z(low, high, Z):
     low, high = tf.cast(low, dtype=default_float()), tf.cast(high, dtype=default_float())
     """Make lengthscale tfp Parameter with optimization bounds."""
@@ -56,6 +57,10 @@ def set_base(translation) -> np.array:
     return T
 
 
+def translation_vector(position):
+    return np.concatenate([position, [1]]).reshape((4, 1))
+
+
 def set_vec(translation) -> np.array:
     assert len(translation) == 3
     rotation = [0] * 9
@@ -80,49 +85,6 @@ def get_world_transform(link, sphere):
     """
     return p.multiplyTransforms(link, [0, 0, 0, 1], sphere, [0, 0, 0, 1])
 
-
-def get_transform_matrix(theta, d, a, alpha):
-    """
-    compute the homogenous transform matrix for a link given theta, d, a, alpha.
-    Classic/Spong convention
-    Args:
-        theta (float): joint angle
-        d (float): link length
-        a (float): link offset from previous link
-        alpha (float): link twist angle
-    Returns:
-        (array): homogenous transform matrix
-    """
-    T = np.array([
-        [np.cos(theta), -np.sin(theta) * np.cos(alpha), np.sin(theta) * np.sin(alpha), a * np.cos(theta)],
-        [np.sin(theta), np.cos(theta) * np.cos(alpha), - np.cos(theta) * np.sin(alpha), a * np.sin(theta)],
-        [0, np.sin(alpha), np.cos(alpha), d],
-        [0, 0, 0, 1]
-    ], dtype=np.float64)
-
-    return T
-
-
-def get_transform_matrix_craig(theta, d, a, alpha):
-    """
-    compute the homogenous transform matrix for a link given theta, d, a, alpha.
-    Modified/Craig convention
-    Args:
-        theta (float): joint angle
-        d (float): link length
-        a (float): link offset from previous link
-        alpha (float): link twist angle
-    Returns:
-        (array): homogenous transform matrix
-    """
-    T = np.array([
-        [np.cos(theta), -np.sin(theta), 0, a],
-        [np.sin(theta) * np.cos(alpha), np.cos(theta) * np.cos(alpha), -np.sin(alpha), -d * np.sin(alpha)],
-        [np.sin(theta) * np.sin(alpha), np.cos(theta) * np.sin(alpha), np.cos(alpha), d * np.cos(alpha)],
-        [0, 0, 0, 1]
-    ], dtype=np.float64)
-
-    return T
 
 def timing(f):
     def wrap(*args, **kwargs):

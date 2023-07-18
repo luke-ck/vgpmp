@@ -20,7 +20,7 @@ from ..inducing_variables.inducing_variables import InducingVariables
 
 
 @Kfu.register(InducingVariables, kernels.MultioutputKernel, TensorLike)
-def _Kfu_fallback_multioutput(Z, kern, X, **kwargs):
+def _kfu_fallback_multioutput(Z, kern, X, **kwargs):
     Kuf = Kuf_dispatch(Z, kern, X, **kwargs)
     # Assume features of x and z are 1-dimensional
     ndims_x = X.shape.ndims - 1  # assume x lives in 1d space

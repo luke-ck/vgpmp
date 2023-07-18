@@ -1,4 +1,5 @@
 import sys
+import warnings
 from abc import ABC
 from typing import Callable, List, Optional
 import numpy as np
@@ -14,7 +15,7 @@ from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, Sha
 from gpflow_vgpmp.kullback_leiblers.prior_kl import prior_kl
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
-from gpflow_vgpmp.inducing_variables.inducing_variables import VariableInducingPoints
+from gpflow_vgpmp.inducing_variables.inducing_variables import InducingPoints
 from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
 from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param, timing
 from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
@@ -22,7 +23,9 @@ from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
 # <------ Exports
 __all__ = "vgpmp"
 
-from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
+from gpflow_vgpmp.utils.sdf_utils import SignedDistanceField
+from gpflow_vgpmp.utils.robot import Robot
+from gpflow_vgpmp.utils.sampler import Sampler
 
 
 # ============================================
@@ -31,111 +34,105 @@ from gpflow_vgpmp.utils.sdf_utils import SignedDensityField
 
 
 class VGPMP(PathwiseSVGP, ABC):
-    def __init__(self, *args, prior: Callable = None, alpha, query_states, num_samples, num_bases, num_inducing,
-                 parameters,
-                 learning_rate, **kwargs):
+    def __init__(self,
+                 *args,
+                 prior: Callable = None,
+                 alpha: float,
+                 query_states: List[float],
+                 num_samples: int,
+                 num_bases: int,
+                 num_inducing: int,
+                 learning_rate: float,
+                 **kwargs):
+
         super(PathwiseSVGP, self).__init__(*args, **kwargs)
         self.velocities = tf.zeros(shape=(2, self.num_latent_gps), dtype=default_float()) + \
                           tf.random.normal((2, self.num_latent_gps), mean=0.0 + 1e-5, stddev=1e-5,
                                            dtype=default_float())
         self.query_states = self.likelihood.joint_sigmoid.inverse(
             tf.constant(query_states, dtype=default_float(), shape=(2, self.num_latent_gps)))
-        self.optimizer = self.initialize_optimizer(learning_rate)
+        self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate, beta_1=0.8, beta_2=0.95)
         self.num_samples = num_samples
         self.num_bases = num_bases
         self.num_inducing = num_inducing
         self.prior = prior
-        self.planner_parameters = parameters
         self.alpha = Parameter(alpha, transform=positive(1e-4))
 
-    def reinitialize(self):
-        """
-        Since optimization is stochastic it can happen that the optimization gets stuck in a local minimum.
-        This function reinitializes the mean and variance of the variational distribution.
-        """
-        self._q_mu.assign(self.cached_q_mu)
-        self._q_sqrt.assign(self.cached_q_sqrt)
-        self.optimizer = self.initialize_optimizer(self.optimizer.learning_rate)
+    # def reinitialize(self):
+    #     """
+    #     Since optimization is stochastic it can happen that the optimization gets stuck in a local minimum.
+    #     This function reinitializes the mean and variance of the variational distribution.
+    #     """
+    #     self._q_mu.assign(self.cached_q_mu)
+    #     self._q_sqrt.assign(self.cached_q_sqrt)
+    #     self.optimizer = self.initialize_optimizer(self.optimizer.learning_rate)
 
     @classmethod
     def initialize(cls,
+                   sdf: 'SignedDistanceField',
+                   robot: 'Robot',
+                   sampler: 'Sampler',
+                   lengthscales: List[float],
+                   query_states: List[np.array],
                    sigma_obs: float = 0.05,
                    alpha: float = 1.0,
                    variance: float = 0.1,
-                   lengthscales: List[float] = None,
-                   rs: List[float] = None,
                    learning_rate: float = 0.1,
-                   num_data=None,
-                   num_output_dims=None,
                    num_inducing: int = 14,
                    num_samples: int = 51,
                    num_bases: int = 1024,
-                   num_spheres: int = None,
-                   offset: List = None,
-                   query_states: List[np.array] = None,
-                   joint_constraints: List = None,
-                   velocity_constraints: List = None,
-                   sdf: Optional['SignedDensityField'] = None,
-                   robot: Optional['Robot'] = None,
-                   kernels: List[Kernel] = None,
+                   scene_offset: List[float] = None,
+                   num_data=None,
+                   num_output_dims=None,
+                   kernel: List[Kernel] = None,
                    num_latent_gps: int = None,
-                   parameters: dict = None,
-                   train_sigma: bool = True,
-                   no_frames_for_spheres: int = 7,
-                   robot_name: str = None,
                    epsilon: float = 0.05,
                    q_mu: TensorLike = None,
                    **kwargs):
 
-        if parameters is None:
-            parameters = {}
+        if num_output_dims is None:
+            num_output_dims = query_states[0].shape[-1]
 
         if num_latent_gps is None:
             num_latent_gps = num_output_dims
 
-        if num_spheres is None:
-            print(
-                "Number of spheres has not been set. The simulator will now exit...")
-            sys.exit()
+        if num_data is None:
+            num_data = len(query_states)
 
-        if lengthscales is None:
-            print("Lengthscales have not been set. The simulator will now exit...")
-            sys.exit()
+        assert lengthscales is not None, \
+            "Lengthscales have not been set."
 
-        if offset is None:
-            offset = [0, 0, 0]
+        assert query_states is not None and query_states != [], \
+            "Must pass a motion plan to initialize the model."
 
-        assert num_output_dims == num_latent_gps
-        assert query_states is not None
-        assert joint_constraints is not None
+        if scene_offset is None:
+            scene_offset = [0, 0, 0]
+            warnings.warn("Offset has not been set. Defaulting to [0, 0, 0].")
+
         assert len(lengthscales) == num_latent_gps
-
-        Z = initialize_Z(num_latent_gps, num_inducing)
-
-        if kernels is None:
-            kernels = []
+        assert num_output_dims == num_latent_gps
+        # TODO: handle velocity constraints
+        if kernel is not None:
+            assert isinstance(kernel, SeparateIndependent) or isinstance(kernel, SharedIndependent), \
+                "Kernels must be a list of kernels or a SharedIndependent kernel."
+        else:
+            warnings.warn("Kernels have not been set. Defaulting to SeparateIndependent Matern52.")
+            kernel = []
 
             for i in range(num_latent_gps):
-                kern = Matern52(lengthscales=lengthscales[i], variance=variance)
-                kernels.append(kern)
-        kernel = SeparateIndependent(kernels)
+                k = Matern52(lengthscales=lengthscales[i], variance=variance)
+                kernel.append(k)
+            kernel = SeparateIndependent(kernel)
 
-        # Original inducing points
-        _Z = VariableInducingPoints(Z=Z, dof=num_output_dims)
+        Z = initialize_Z(num_latent_gps, num_inducing)
+        _Z = InducingPoints(Z=Z, dof=num_output_dims)
 
-        likelihood = VariationalMonteCarloLikelihood(sigma_obs,
-                                                     num_spheres,
-                                                     robot,
-                                                     parameters,
-                                                     robot_name,
-                                                     sdf,
-                                                     rs,
-                                                     offset,
-                                                     joint_constraints,
-                                                     velocity_constraints,
-                                                     train_sigma,
-                                                     no_frames_for_spheres,
-                                                     epsilon)
+        likelihood = VariationalMonteCarloLikelihood(sigma_obs=sigma_obs,
+                                                     robot=robot,
+                                                     sdf=sdf,
+                                                     sampler=sampler,
+                                                     offset=scene_offset,
+                                                     epsilon=epsilon)
 
         # handle q_mu here
         if q_mu is None:
@@ -156,11 +153,10 @@ class VGPMP(PathwiseSVGP, ABC):
                    num_data=num_data,
                    query_states=query_states,
                    num_inducing=num_inducing,
-                   parameters=parameters,
                    learning_rate=learning_rate,
                    alpha=alpha,
                    q_mu=q_mu,
-                   **kwargs)
+                   whiten=False)
 
     @property
     def q_mu(self):
@@ -172,8 +168,8 @@ class VGPMP(PathwiseSVGP, ABC):
         Manually whiten covariance matrix
         """
         # K = Kuu(self.inducing_variable.inducing_variable, self.kernel.kernel, jitter=default_jitter()) # sharedIndependent
-        K = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
-        L = tf.linalg.cholesky(K)
+        kuu = Kuu(self.inducing_variable, self.kernel, jitter=default_jitter())
+        L = tf.linalg.cholesky(kuu)
         return L @ tf.pad(self._q_sqrt, [[0, 0], [2, 0], [2, 0]]) + \
             1e-6 * tf.pad(tf.eye(2, dtype=default_float()), [[0, self.num_inducing], [0, self.num_inducing]])
 
@@ -208,8 +204,8 @@ class VGPMP(PathwiseSVGP, ABC):
         :param q_diag:
             Used to check if `q_mu` and `q_sqrt` have the correct shape or to
             construct them with the correct shape. If `q_diag` is true,
-            `q_sqrt` is two dimensional and only holds the square root of the
-            covariance diagonal elements. If False, `q_sqrt` is three dimensional.
+            `q_sqrt` is two-dimensional and only holds the square root of the
+            covariance diagonal elements. If False, `q_sqrt` is three-dimensional.
         """
 
         q_mu = self.likelihood.joint_sigmoid.inverse(q_mu)
@@ -223,7 +219,6 @@ class VGPMP(PathwiseSVGP, ABC):
         )
         self._q_sqrt = Parameter(np_q_sqrt, transform=triangular())  # [P, M, M]
         self.cached_q_sqrt = np_q_sqrt
-
 
     @tf.function
     def elbo(self, data: tf.Tensor) -> tf.Tensor:
@@ -284,8 +279,8 @@ class VGPMP(PathwiseSVGP, ABC):
 
         if compute_uncertainty:
             uncertainty = tf.stack(
-                [tf.stack([robot.compute_joint_positions(tf.reshape(tf.constant(time, dtype=default_float()), shape=[-1, 1]),
-                                                         self.likelihood.sampler.craig_dh_convention)[0][-1] for time in
+                [tf.stack([robot.compute_joint_positions(
+                    tf.reshape(tf.constant(time, dtype=default_float()), shape=[-1, 1]))[0][-1] for time in
                            sample]) for sample in samples])
             uncertainty = tfp.stats.variance(uncertainty, sample_axis=0)
         else:

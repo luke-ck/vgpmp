@@ -7,30 +7,6 @@ from problemset import AbstractProblemset
 class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
-    def default_pose(problemset):
-        if problemset == 'bookshelves':
-            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        if problemset == 'industrial':
-            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        elif problemset == 'boxes':
-            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        else:
-            raise ValueError("Unknown problem set: {}".format(problemset))
-
-    @staticmethod
-    def joint_names(problemset):
-        if problemset == 'bookshelves':
-            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
-                    'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
-                    'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
-        if problemset == 'industrial':
-            return ['panda_joint1', 'panda_joint2', 'panda_joint3', 'panda_joint4',
-                    'panda_joint5', 'panda_joint6', 'panda_joint7', 'panda_joint8',
-                    'panda_hand_joint', 'panda_finger_joint1', 'panda_finger_joint2']
-        else:
-            raise ValueError("Unknown problem set: {}".format(problemset))
-
-    @staticmethod
     def states(problemset):
         if problemset == 'bookshelves':
             n_states = 11
@@ -63,6 +39,11 @@ class Problemset(AbstractProblemset, ABC):
             states = [list() for _ in range(n_states)]
             states[0] = [-1.88327995, 0.30243233, 1.88680381, -1.32331464, 1.3319037, 1.65225616, 0.5096332]
             states[1] = [-2.88286637, -0.2759609, 0.23902162, -1.17246602, 1.19599294, 1.88570609, 0.58906756]
+        elif problemset == 'testing':
+            n_states = 2
+            states = [list() for _ in range(n_states)]
+            states[0] = [-0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0]
+            states[1] = [-0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
@@ -73,19 +54,24 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "testing":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
-    def object_position(problemset):
+    def object_positions(problemset):
         if problemset == "industrial":
-            return [-0.2, 0.0, -0.2]
+            return [[-0.2, 0.0, -0.2]]
         elif problemset == "bookshelves":
-            return [0.62, -0.15, 0.834]
+            return [[0.62, -0.15, 0.834]]
         elif problemset == "boxes":
-            return [0.0, 0.0, 0.522176]
+            return [[0.0, 0.0, 0.522176]]
+        elif problemset == "testing":
+            return [[0.0, 0.0, 0.0]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
+
     @staticmethod
     def planner_params(problemset):
         if problemset == "industrial":
@@ -129,6 +115,20 @@ class Problemset(AbstractProblemset, ABC):
                 "num_steps": 130,
                 "time_spacing_X": 70,
                 "time_spacing_Xnew": 150
+            }
+        elif problemset == "testing":
+            return {
+                "sigma_obs": 0,
+                "epsilon": 0,
+                "lengthscales": [0] * 7,
+                "variance": 0,
+                "alpha": 0,
+                "num_samples": 0,
+                "num_inducing": 0,
+                "learning_rate": 0,
+                "num_steps": 0,
+                "time_spacing_X": 0,
+                "time_spacing_Xnew": 0
             }
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))

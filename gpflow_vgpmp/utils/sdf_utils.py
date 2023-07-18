@@ -22,13 +22,13 @@ def timing(f):
     return wrap
 
 
-class SignedDensityField(object):
+class SignedDistanceField(object):
     """Data is stored in the following way
         data[x, y, z]
     update to integrate tensorflow
     """
 
-    def __init__(self, data, origin, delta):
+    def __init__(self, data: np.ndarray, origin: np.ndarray, delta: float):
         self.data = data
         self.nx, self.ny, self.nz = data.shape
         self.origin = origin
@@ -196,7 +196,6 @@ class SignedDensityField(object):
     def from_sdf(cls, sdf_file):
 
         with open(sdf_file, "r") as file:
-            axis = 2
             lines = file.readlines()
             nx, ny, nz = map(int, lines[0].split(" "))
             x0, y0, z0 = map(float, lines[1].split(" "))
@@ -247,9 +246,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     filename = args.file
     if filename.endswith(".sdf"):
-        sdf = SignedDensityField.from_sdf(filename)
+        sdf = SignedDistanceField.from_sdf(filename)
     elif filename.endswith(".pkl"):
-        sdf = SignedDensityField.from_pkl(filename)
+        sdf = SignedDistanceField.from_pkl(filename)
 
     if sdf is not None:
         print(

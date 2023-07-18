@@ -1,6 +1,26 @@
 radius: [0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.075, 0.1, 0.0675, 0.0675, 0.0675, 0.0675, 0.0675, 0.0675, 0.0675, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034, 0.034]
 num_spheres: 25 # should be dependent on robot
-spheres_over_links:
+joint_names:
+  [
+    "wam/base_yaw_joint",
+    "wam/shoulder_pitch_joint",
+    "wam/shoulder_yaw_joint",
+    "wam/elbow_pitch_joint",
+    "wam/wrist_yaw_joint",
+    "wam/wrist_pitch_joint",
+    "wam/palm_yaw_joint"
+  ]
+default_pose:
+  [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+active_links:
       [
           "wam/base_link",
           "wam/shoulder_yaw_link",
@@ -20,8 +40,8 @@ active_joints:
          "wam/wrist_pitch_joint",
          "wam/palm_yaw_joint"
       ]
-basename: "wam/base_link"
-wrist_test: "wam/wrist_pitch_link"
+link_name_base: "wam/base_link"
+link_name_wrist: "wam/wrist_pitch_link"
 path: "wam.urdf"
 joint_limits:
         [
@@ -57,6 +77,6 @@ dh_parameters: # d, a, alpha
 twist: [ 0., 0., 0., 0., 0., 0., 0. ]
 dof: 7
 craig_dh_convention: False
-no_frames_for_spheres: 4
+num_frames_for_spheres: 4
 fk_slice: [3, 5, 6, 7]
 q_mu: "None"

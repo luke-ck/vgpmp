@@ -37,6 +37,6 @@ class InducingPointsBase(InducingVariables, ABC):
         return tf.shape(self._Z)[0]
 
 
-class VariableInducingPoints(InducingPointsBase, ABC):
+class InducingPoints(InducingPointsBase, ABC):
     def __init__(self, Z, dof, name=None):
         super().__init__(Z, dof, name=name)
