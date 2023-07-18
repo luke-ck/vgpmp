@@ -59,6 +59,7 @@ if __name__ == '__main__':
     # query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
     #                  (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
     #                  (3, 9), (9, 4), (4, 13), (13, 8)]
+
     # if robot_params["robot_name"] == "wam":
     #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
     #     p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
@@ -66,11 +67,12 @@ if __name__ == '__main__':
     # elif robot_params["robot_name"] == "ur10":
     #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
     #     p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
+
     # robot.set_curr_config(np.squeeze(states[14]))
     # env.loop()
     queries = env.config['scene_params']['queries']
     total_solved = 0
-    total_runs = 3
+    total_runs = 1
     failed_indices = []
 
     for _ in range(total_runs):

@@ -37,7 +37,8 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         sigma_obs_joints = tf.broadcast_to(sigma_obs, [robot.num_frames_for_spheres, 1])
         Sigma_obs = tf.reshape(tf.repeat(sigma_obs_joints, repeats=num_spheres_per_joint, axis=0), (1, robot.num_spheres))
 
-        self.Sigma_obs = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
+        self.variance = Parameter(Sigma_obs, transform=positive(DEFAULT_VARIANCE_LOWER_BOUND))
+
         self.offset = tf.constant(offset, dtype=default_float(), shape=(1, 3))
         self.sphere_radii = tf.constant(robot.sphere_radii, dtype=default_float(), shape=(1, len(robot.sphere_radii)))
         self.joint_constraints = tf.constant(robot.joint_limits, shape=(len(robot.joint_limits) // 2, 2),
@@ -67,6 +68,37 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         return self._log_prob(F)
 
     @tf.function
+    def log_vel_prob(self, F, x):
+        r"""
+        Returns the log probability density log p(e|f) for samples S
+
+        Args:
+            F (tf.Tensor): [S x N x D]
+
+        Returns:
+            [tf.Tensor]: [S x N]
+        """
+
+        return self._log_vel_prob(F, x)
+
+    @tf.function
+    def _log_vel_prob(self, F, x):
+        r"""
+        Returns the log probability density log p(e|f) for samples S
+
+        Args:
+            F (tf.Tensor): [S x N x D]
+
+        Returns:
+            [tf.Tensor]: [S x N]
+        """
+        func = tf.range(F.shape[0])
+        print(tf.gradients(F[0], x))
+        grads = tf.map_fn(lambda i: tf.gradients(F[i], x)[0], func)
+        return -0.5 * tf.reduce_sum(tf.square(grads - 1), axis=-1)
+
+
+    @tf.function
     def _log_prob(self, f):
         r"""
         Takes in a tensor of joint configs, computes the 3D world position of sphere coordinates
@@ -89,8 +121,20 @@ class VariationalMonteCarloLikelihood(Gaussian, ABC):
         Returns:
             [tf.Tensor]: [S x N]
         """
-        cost = self._hinge_loss(f)
-        return - 0.5 * tf.reduce_sum(cost / self.Sigma_obs[None, ...] * cost, axis=-1)
+        
+        cost = self._hinge_loss(f) 
+        # main_diag = 1 / self.variance
+        # super_diag = tf.ones(self.variance.shape, dtype=tf.float64) * (1 / self.sigma_obs) * 0.9
+        # # super_diag = super_diag[None, ...]
+        # sub_diag = tf.ones(self.variance.shape, dtype=tf.float64) * (1 / self.sigma_obs) * 0.9
+        # # sub_diag = sub_diag[None, ...]
+        # main_diag = tf.reshape(tf.broadcast_to(main_diag, (cost.shape[0], 1, cost.shape[2])), (cost.shape[0], cost.shape[2]))
+        # super_diag = tf.reshape(tf.broadcast_to(super_diag, (cost.shape[0], 1, cost.shape[2])), (cost.shape[0], cost.shape[2]))
+        # sub_diag = tf.reshape(tf.broadcast_to(sub_diag, (cost.shape[0], 1, cost.shape[2])), (cost.shape[0], cost.shape[2]))
+        # diags = [super_diag, main_diag, sub_diag]
+        # rhs = tf.linalg.tridiagonal_matmul(diags, tf.transpose(cost, perm=(0, 2, 1)), diagonals_format='sequence')
+        return - 0.5 * tf.reduce_sum(cost / self.variance[None, ...] * cost, axis=-1)
+        # return -0.5 * tf.reduce_sum(cost * tf.transpose(rhs, perm=(0, 2, 1)), axis=-1)
 
     @tf.function
     def _sample_config_cost(self, f):

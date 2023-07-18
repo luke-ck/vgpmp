@@ -1,13 +1,12 @@
 import tensorflow as tf
 from gpflow.covariances.dispatch import Kuu
-from gpflow.kernels import SquaredExponential, Kernel
+from gpflow.kernels import Kernel
+from ..inducing_variables.inducing_variables import InducingPointsInterface
 
-from ..inducing_variables.inducing_variables import InducingPoints
 
-
-@Kuu.register(InducingPoints, Kernel)
-def Kuu_kernel_inducingpoints(inducing_variable: InducingPoints, kernel: SquaredExponential, *, jitter=0.0):
-    Kzz = kernel(inducing_variable.Z)  # this computes k([u, y].T)
-    Kzz += jitter * tf.eye(inducing_variable.num_inducing + 2, dtype=Kzz.dtype)
+@Kuu.register(InducingPointsInterface, Kernel)
+def Kuu_kernel_inducingpoints(inducing_variable: InducingPointsInterface, kernel: Kernel, *, jitter=0.0):
+    padding = inducing_variable.ny.shape[0]
+    Kzz = kernel(inducing_variable.Zy)  # this computes k([u, y].T)
+    Kzz += jitter * tf.eye(inducing_variable.num_inducing + padding, dtype=Kzz.dtype)
     return Kzz
-
