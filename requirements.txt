@@ -7,7 +7,7 @@ pynput >= 1.7.1
 pytest >= 6.1.2
 pyyaml >= 5.3.1
 pyglm == 0.4.8b1
-scipy == 1.9.1
+scipy == 1.10.0
 tensorflow == 2.12.0
 tensorflow-probability == 0.15.0
 setuptools>=47.1.0
