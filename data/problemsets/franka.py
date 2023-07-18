@@ -39,6 +39,11 @@ class Problemset(AbstractProblemset, ABC):
             states = [list() for _ in range(n_states)]
             states[0] = [-1.88327995, 0.30243233, 1.88680381, -1.32331464, 1.3319037, 1.65225616, 0.5096332]
             states[1] = [-2.88286637, -0.2759609, 0.23902162, -1.17246602, 1.19599294, 1.88570609, 0.58906756]
+        elif problemset == 'testing':
+            n_states = 2
+            states = [list() for _ in range(n_states)]
+            states[0] = [-0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0]
+            states[1] = [-0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
         return n_states, states
