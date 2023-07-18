@@ -1,6 +1,28 @@
 radius: [0.14, 0.14, 0.09, 0.09, 0.09, 0.09, 0.09, 0.11, 0.09, 0.09, 0.09, 0.08, 0.08, 0.08, 0.08, 0.085, 0.085, 0.08, 0.08, 0.08, 0.058]
 num_spheres: 21
-spheres_over_links:
+joint_names:
+  [
+    "iiwa_description_joint_1",
+    "iiwa_description_joint_2",
+    "iiwa_description_joint_3",
+    "iiwa_description_joint_4",
+    "iiwa_description_joint_5",
+    "iiwa_description_joint_6",
+    "iiwa_description_joint_7",
+    "iiwa_description_joint_ee"
+  ]
+default_pose:
+  [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+active_links:
       [
         "iiwa_description_link_1",
         "iiwa_description_link_2",
@@ -20,8 +42,8 @@ active_joints:
          "iiwa_description_joint_6",
          "iiwa_description_joint_7"
       ]
-basename: "iiwa_description_link_0"
-wrist_test: "iiwa_description_link_ee"
+link_name_base: "iiwa_description_link_0"
+link_name_wrist: "iiwa_description_link_ee"
 path: "kuka.urdf"
 joint_limits:
         [
@@ -57,6 +79,6 @@ dh_parameters: # d, a, alpha
 twist: [ 0., 0., 0., 0., 0., 0., 0. ]
 dof: 7
 craig_dh_convention: False
-no_frames_for_spheres: 8
+num_frames_for_spheres: 8
 fk_slice: [0, 1, 2, 3, 4, 5, 6, 7]
 q_mu: [0, 0, 0, 0, 0, 0, 0]

@@ -13,7 +13,6 @@ from gpflow import set_trainable
 from tqdm import tqdm
 import tensorflow_probability as tfp
 import gpflow
-from gpflow_vgpmp.models.vgpmp import VGPMP
 
 # from gpflow_vgpmp.utils.simulator import RobotSimulator
 
@@ -53,36 +52,8 @@ def write_parameter_to_file(model_parameter, filepath):
     tf.io.write_file(f"{filepath}.txt", param)
 
 
-def create_problems(problemset, robot_name):
-    r"""
-    For the given problemset and robot names, returns the combination of all possible problems,
-    the planner parameters for the given environment and robot, and the
-    robot joint names, their default pose and the robot position in world coordinates.
-    """
-    # Start and end joint angles
-    Problemset = import_problemsets(robot_name)
-    n_states, states = Problemset.states(problemset)
-    print('There are %s total robot positions' % n_states)
-    # all possible combinations of 2 pairs
-    benchmark = list(itertools.combinations(states, 2))
-    print('And a total of %d problems in the %s problemset' %
-          (len(benchmark), problemset))
-    names = Problemset.joint_names(problemset)
-    pose = Problemset.default_pose(problemset)
-    planner_params = Problemset.planner_params(problemset)
-    robot_pos_and_orn = Problemset.pos_and_orn(problemset)
-
-    return benchmark, planner_params, names, pose, robot_pos_and_orn
-
-
-def set_scene(robot, active_joints, initial_config_joints, initial_config_names, initial_config_pose):
-    r"""
-
-    """
-    robot.set_active_joints(active_joints)
-    for (name, val) in zip(initial_config_names, initial_config_joints):
-        idx = robot.get_joint_idx_from_name(name)
-        robot.set_joint_config(idx, val)
+def are_all_elements_integers(tup):
+    return all(isinstance(elem, int) for elem in tup)
 
 
 def optimization_step(model, closure, optimizer):
@@ -114,19 +85,10 @@ def training_loop(model, data, num_steps):
     tf_optimization_step = tf.function(optimization_step)
     closure = model.training_loss_closure(data)
     step_iterator = tqdm(range(num_steps))
-    improvement = 0
-    patience = 10
+
     for _ in step_iterator:
         loss = tf_optimization_step(model, closure, model.optimizer)
         step_iterator.set_postfix_str(f"ELBO: {-loss:.3e}")
-        if loss < improvement:
-            improvement = loss
-        elif np.abs(improvement - loss) < 1e-2:
-            patience -= 1
-            print(f"Patience: {patience}")
-            if patience == 0:
-                print("Local minimum reached, attempting reinitalization")
-                model.reinitialize()
 
 
 def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_joints, end_joints, scale=100,
@@ -151,46 +113,36 @@ def detect_joint_limit_proximity(limits, q_mu):
         return np.any(np.abs(q_mu - limits[:, 0]) < 0.1) or np.any(np.abs(q_mu - limits[:, 1]) < 0.1)
 
 
-def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_params, planner_params, scene_params,
-                           trainable_params, graphics_params, run=0, k=0):
-    grid_spacing_X = planner_params["time_spacing_X"]
-    grid_spacing_Xnew = planner_params["time_spacing_Xnew"]
-    dof = robot_params["dof"]
+def solve_planning_problem(env, start_joints, end_joints, run=0, k=0):
+    from gpflow_vgpmp.models.vgpmp import VGPMP
+
+    planner_params = env.config["planner_params"]
+    graphics_params = env.config["graphics_params"]
+    trainable_params = env.config["trainable_params"]
+
+    time_spacing_x = planner_params["time_spacing_X"]
+    time_spacing_xnew = planner_params["time_spacing_Xnew"]
     num_steps = planner_params["num_steps"]
-    X, y, Xnew = init_trainset(grid_spacing_X, grid_spacing_Xnew, dof, start_joints, end_joints, scale=1)
+
+    dof = env.robot.dof
+
+    X, y, Xnew = init_trainset(time_spacing_x, time_spacing_xnew, dof, start_joints, end_joints, scale=1)
     num_data, num_output_dims = y.shape
-    q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
+
+    # q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
     q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
                      range(planner_params["num_inducing"])])  # all ish
 
-    planner = VGPMP.initialize(num_data=num_data,
-                               num_output_dims=num_output_dims,
-                               num_spheres=robot_params["num_spheres"],
-                               num_inducing=planner_params["num_inducing"],
-                               num_samples=planner_params["num_samples"],
-                               sigma_obs=planner_params["sigma_obs"],
-                               alpha=planner_params["alpha"],
-                               variance=planner_params["variance"],
-                               learning_rate=planner_params["learning_rate"],
-                               lengthscales=planner_params["lengthscales"],
-                               offset=scene_params["position"],
-                               joint_constraints=robot_params["joint_limits"],
-                               velocity_constraints=robot_params["velocity_limits"],
-                               rs=robot.rs,
+    planner = VGPMP.initialize(sdf=env.sdf,
+                               robot=env.robot,
+                               sampler=env.sampler,
                                query_states=y,
-                               sdf=sdf,
-                               robot=robot,
-                               num_latent_gps=dof,
-                               parameters=robot_params,
-                               train_sigma=trainable_params["sigma_obs"],
-                               no_frames_for_spheres=robot_params["no_frames_for_spheres"],
-                               robot_name=robot_params["robot_name"],
-                               epsilon=planner_params["epsilon"],
+                               scene_offset=env.scene.position,
                                q_mu=q_mu,
-                               whiten=False
-                               )
-
-    assert (id(sdf) == id(planner.likelihood.sdf))
+                               **env.config['planner_params'])
+    print("Initialized planner")
+    print(y)
+    print(planner.query_states)
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     # This part of the code is used to visualize the spheres in the scene
@@ -216,7 +168,7 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
     # Finally, make sure that the radius of the spheres is correctly defined and ordered in the config file.
 
     if graphics_params["debug_sphere_positions"]:
-        start_pos = planner.likelihood.sampler._fk_cost(start_joints.reshape(dof, -1))
+        start_pos = planner.likelihood.sampler.forward_kinematics_cost(start_joints.reshape(dof, -1))
 
         for i, pos in enumerate(start_pos):
             aux_pos = np.array(pos).copy()
@@ -228,61 +180,57 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
             #                     lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
             # else:
             p.addUserDebugLine(pos, aux_pos, lineColorRGB=[0, 1, 0],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
 
-        base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
-
-        p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], base_pos[2]), base_rot)
+        # base_pos, base_rot = p.getBasePositionAndOrientation(env.robot.robot_model)
+        #
+        # p.resetBasePositionAndOrientation(env.robot.robot_model, (base_pos[0], base_pos[1], base_pos[2]), base_rot)
 
         env.loop()
 
     # ENDING DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     disable_param_opt(planner, trainable_params)
-    robot.set_joint_position(start_joints)
+
+    env.robot.set_current_joint_config(np.squeeze(start_joints))
     training_loop(model=planner, num_steps=num_steps, data=X)
-    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, robot, graphics_params[
+    sample_mean, best_sample, samples, uncertainties = planner.sample_from_posterior(Xnew, env.robot, graphics_params[
         "visualize_ee_path_uncertainty"])
-    robot.set_joint_position(start_joints)
-    robot.enable_collision_active_links(-1)
+    env.robot.set_current_joint_config(np.squeeze(start_joints))
+    env.robot.enable_collision_active_links(-1)
 
     # SAVE THE BEST SAMPLE
 
     if graphics_params["visualize_best_sample"]:
-        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
-                                                    robot_params["craig_dh_convention"])
+        link_pos, _ = env.robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
         prev = link_pos[-1]
 
         for joint_config in best_sample:
-            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
-                                                        robot_params["craig_dh_convention"])
+            link_pos, _ = env.robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 1, 0],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
 
             prev = link_pos
 
-        link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
-                                                    robot_params["craig_dh_convention"])
+        link_pos, _ = env.robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)))
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
 
     # # PLOT THE MEAN OF THE SAMPLES AND THE UNCERTAINTY in the path of the robot END EFFECTOR
     if graphics_params["visualize_ee_path_uncertainty"]:
-        link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
-                                                    robot_params["craig_dh_convention"])
+        link_pos, _ = env.robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
         prev = link_pos[-1]
 
         t = np.linspace(0, 2 * np.pi, 50)
         cos = np.cos(t)
         sin = np.sin(t)
         for joint_config, unc in zip(sample_mean, uncertainties):
-            link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
-                                                        robot_params["craig_dh_convention"])
+            link_pos, _ = env.robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
             prev = link_pos
             rx, ry, rz = unc[0], unc[1], unc[2]
             prev_xx = [rx * cos[0], ry * sin[0], 0] + link_pos
@@ -293,48 +241,44 @@ def solve_planning_problem(env, robot, sdf, start_joints, end_joints, robot_para
                 yy = [rx * cos[i], 0, rz * sin[i]] + link_pos
                 zz = [0, ry * cos[i], rz * sin[i]] + link_pos
                 p.addUserDebugLine(prev_xx, xx, lineColorRGB=[1, 0, 0],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
                 p.addUserDebugLine(prev_yy, yy, lineColorRGB=[0, 1, 0],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
                 p.addUserDebugLine(prev_zz, zz, lineColorRGB=[0, 0, 1],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
                 prev_xx = xx
                 prev_yy = yy
                 prev_zz = zz
 
-        link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
-                                                    robot_params["craig_dh_convention"])
+        link_pos, _ = env.robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)))
         link_pos = np.array(link_pos[-1])
         p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                           lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                           lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
 
     # # PLOT THE SAMPLES
     if graphics_params["visualize_drawn_samples"]:
         for sample in samples:
-            link_pos, _ = robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)),
-                                                        robot_params["craig_dh_convention"])
+            link_pos, _ = env.robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
             prev = link_pos[-1]
 
             for joint_config in sample:
-                link_pos, _ = robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)),
-                                                            robot_params["craig_dh_convention"])
+                link_pos, _ = env.robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
                 link_pos = np.array(link_pos[-1])
                 p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
-                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                                   lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
 
                 prev = link_pos
-            link_pos, _ = robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)),
-                                                        robot_params["craig_dh_convention"])
+            link_pos, _ = env.robot.compute_joint_positions(np.reshape(end_joints, (dof, 1)))
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
-                               lineWidth=5.0, lifeTime=0, physicsClientId=env.sim.client)
+                               lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
 
     # print(f" alpha {planner.alpha}")
     # for kern in planner.kernel.kernels:
     #     print(f" lengthscale {kern.lengthscales}")
     #     print(f" variance {kern.variance}")
     # print(f" likelihood variance {planner.likelihood.variance}")
-    res = robot.move_to_ee_config(best_sample)
+    res = env.robot.move_to_ee_config(best_sample)
     # pos = tf.vectorized_map(planner.likelihood.compute_fk_joints, best_sample)
     return res, best_sample
 
@@ -373,18 +317,6 @@ def draw_active_config(robot: object, config_array: np.ndarray, color: int, clie
         p.addUserDebugLine(prev, cur, lineColorRGB=color_arr,
                            lineWidth=5.0, lifeTime=0, physicsClientId=client)
         prev = cur
-
-
-def import_problemsets(robot_name):
-    from data.problemsets import config
-
-    sys.path.insert(0, os.path.abspath('data/problemsets'))
-    if robot_name not in config.robot_modules:
-        print("Robot not available. Check params file and try again... The simulator will now exit.")
-        sys.exit(-1)
-    module_name = config.robot_modules[robot_name]
-    module = importlib.import_module(module_name)
-    return module.Problemset
 
 
 def decay_sigma(sigma_obs, num_latent_gps, decay_rate):

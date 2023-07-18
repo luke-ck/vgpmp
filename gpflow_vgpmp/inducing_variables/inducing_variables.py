@@ -100,7 +100,8 @@ class FirstOrderDerivativeInducingPoints(InducingPointsInterface, ABC):
     @property
     def dny(self):
         return tf.concat([self.conditioned_timesteps], axis=0)
-
+      
     @property
     def d2ny(self):
         return tf.concat([self.conditioned_timesteps, self.conditioned_timesteps], axis=0)
+

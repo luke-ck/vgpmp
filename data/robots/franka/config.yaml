@@ -2,7 +2,35 @@ radius: [0.09, 0.11, 0.08, 0.06, 0.08, 0.08, 0.06, 0.08, 0.06, 0.06, 0.065, 0.06
          0.0625, 0.065, 0.065, 0.055, 0.055, 0.04, 0.04, 0.04, 0.05, 0.07, 0.06, 0.06,
          0.055, 0.055, 0.045, 0.015, 0.015, 0.0175, 0.015, 0.015, 0.0175, 0.06, 0.05, 0.06]
 num_spheres: 37 # should be dependent on robot
-spheres_over_links:
+joint_names:
+  [
+    'panda_joint1',
+    'panda_joint2',
+    'panda_joint3',
+    'panda_joint4',
+    'panda_joint5',
+    'panda_joint6',
+    'panda_joint7',
+    'panda_joint8',
+    'panda_hand_joint',
+    'panda_finger_joint1',
+    'panda_finger_joint2'
+  ]
+default_pose:
+  [
+    0.0,
+    0.0,
+    0.0,
+    (-0.0698 - 3.0718) / 2,
+    0.0,
+    (3.7525-0.0175) / 2,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+active_links:
   [
        "panda_link1",
        "panda_link2",
@@ -22,28 +50,28 @@ active_joints:
      "panda_joint6",
      "panda_joint7"
   ]
-basename: "panda_link0"
-wrist_test: "panda_hand"
+link_name_base: "panda_link0"
+link_name_wrist: "panda_hand"
 path: "franka_spheres.urdf"
 joint_limits:
   [ # Values in radians
-    2.8973, -2.8973,  # r_shoulder_pan_joint
-    1.7628, -1.7628,  # r_shoulder_lift_joint
-    2.8973, -2.8973,  # r_upper_arm_joint
-   -0.0698, -3.0718,  # r_elbow_flex_joint
-    2.8973, -2.8973,  # r_forearm_roll_joint
-    3.7525, -0.0175,  # r_wrist_flex_joint
-    2.8973, -2.8973  # r_wrist_roll_joint
+    2.8973, -2.8973,
+    1.7628, -1.7628,
+    2.8973, -2.8973,
+   -0.0698, -3.0718,
+    2.8973, -2.8973,
+    3.7525, -0.0175,
+    2.8973, -2.8973
   ]
 velocity_limits:
       [ # Values in radians / s
-        2.088, -2.088,  # r_shoulder_pan_joint
-        2.082, -2.082,  # r_shoulder_lift_joint
-        3.27, -3.27,  # r_upper_arm_joint
-        3.3, -3.3,  # r_elbow_flex_joint
-        3.6, -3.6,  # r_forearm_roll_joint
-        3.078, -3.078,  # r_wrist_flex_joint
-        3.6, -3.6  # r_wrist_roll_joint
+        2.088, -2.088,
+        2.082, -2.082,
+        3.27, -3.27,
+        3.3, -3.3,
+        3.6, -3.6,
+        3.078, -3.078,
+        3.6, -3.6
       ]
 dh_parameters: # d, a, alpha
   [
@@ -58,6 +86,6 @@ dh_parameters: # d, a, alpha
 twist: [ 0., 0., 0., 0., 0., 0., 0. ]
 dof: 7
 craig_dh_convention: True
-no_frames_for_spheres: 8
+num_frames_for_spheres: 8
 fk_slice: [0, 1, 2, 3, 4, 5, 6, 7]
 q_mu: None

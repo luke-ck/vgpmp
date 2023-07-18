@@ -7,14 +7,6 @@ from problemset import AbstractProblemset
 class Problemset(AbstractProblemset, ABC):
 
     @staticmethod
-    def default_pose(problemset):
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    @staticmethod
-    def default_joint_values(problemset):
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    @staticmethod
     def states(problemset):
         if problemset == "lab":
             n_states = 14
@@ -61,21 +53,14 @@ class Problemset(AbstractProblemset, ABC):
             states[8] = [-0.7003932265674542, 1.4883421234257534, 1.5471542434790984, 1.7664718354022626, 1.22, 1.59, -1.176334923255994]
             states[9] = [-0.97432256015594, 1.312356045557156, 2.0661115107288897, 0.1660797315277275, -1.7811733857335887, -0.33995896543955245, 0.1602472019090536]
             states[10] = [0.8814780601565136, 0.9755541639513481, 0.0902709169728008, 0.9092159375773388, -2.185473945460899, 0.4651907292730379, -2.58318530718]
+        elif problemset == "testing":
+            n_states = 2
+            states = [list() for _ in range(n_states)]
+            states[0] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0]
+            states[1] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0]
         else:
             raise ValueError("Unknown problemset: {}".format(problemset))
         return n_states, states
-
-    @staticmethod
-    def joint_names(problemset):
-        return [
-            "wam/base_yaw_joint",
-            "wam/shoulder_pitch_joint",
-            "wam/shoulder_yaw_joint",
-            "wam/elbow_pitch_joint",
-            "wam/wrist_yaw_joint",
-            "wam/wrist_pitch_joint",
-            "wam/palm_yaw_joint"
-            ]
 
     @staticmethod
     def pos_and_orn(problemset):
@@ -85,17 +70,21 @@ class Problemset(AbstractProblemset, ABC):
             return [0.0, 0.0, 1.3752], [0.0, 0.0, 0.0, 1.0]
         elif problemset == "bookshelves":
             return [0.0, 0.0, 0.346], [0.0, 0.0, 0.0, 1.0]
+        elif problemset == "testing":
+            return [0.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
     @staticmethod
-    def object_position(problemset):
+    def object_positions(problemset):
         if problemset == "industrial":
-            return [-0.2, 0.0, 0.08]
+            return [[-0.2, 0.0, 0.08]]
         elif problemset == "lab":
-            return [0.625, 0.275, 0.85]
+            return [[0.625, 0.275, 0.85]]
         elif problemset == "bookshelves":
-            return [0.85, -0.15, 0.834]
+            return [[0.85, -0.15, 0.834]]
+        elif problemset == "testing":
+            return [[0.0, 0.0, 0.0]]
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))
 
@@ -144,6 +133,20 @@ class Problemset(AbstractProblemset, ABC):
                 "num_steps": 200,
                 "time_spacing_X": 100,
                 "time_spacing_Xnew": 150
+            }
+        elif problemset == "testing":
+            return {
+                "sigma_obs": 0,
+                "epsilon": 0,
+                "lengthscales": [0] * 7,
+                "variance": 0,
+                "alpha": 0,
+                "num_samples": 0,
+                "num_inducing": 0,
+                "learning_rate": 0,
+                "num_steps": 0,
+                "time_spacing_X": 0,
+                "time_spacing_Xnew": 0
             }
         else:
             raise ValueError("Unknown problem set: {}".format(problemset))

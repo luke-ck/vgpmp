@@ -1,7 +1,6 @@
 import tensorflow as tf
 from gpflow.covariances.dispatch import Kuu
 from gpflow.kernels import Kernel
-
 from ..inducing_variables.inducing_variables import InducingPointsInterface
 
 
