@@ -108,7 +108,7 @@ class Robot(RobotMixin):
         except TypeError:
             position, orientation = None, None
         if position and orientation:
-            print("Setting robot position and orientation")
+            print(f"Setting robot position and orientation to {position} {orientation}")
             self.reset_pos_and_orn(position, orientation)
         if benchmark:
             self.set_scene(joint_names, default_pose)
@@ -190,7 +190,8 @@ class Robot(RobotMixin):
         return self.joint_name_to_index_dict.get(name, -1)
 
     def get_attr_name_to_index(self, attr_index=1):
-        attr_name_to_index_dict = {}
+        attr_name_to_index_dict = {p.getBodyInfo(
+            self.robot_model)[0].decode('UTF-8'): -1, }
         for _id in range(p.getNumJoints(self.robot_model)):
             _name = self.decode_joint_info_attribute(_id, attr_index)
             attr_name_to_index_dict[_name] = _id
@@ -512,12 +513,15 @@ class Robot(RobotMixin):
             cumsum += len(v)
 
     def get_sphere_transform(self, joints):
-        # Union[np.array, TensorLike]
         r""" compute the sphere translational transform from joint world frame positions in cartesian coordinates
         Args:
             joints (array): joint cartesian coordinates
         Returns:
             [np.array]: sphere cartesian coordinates
         """
-        return np.array([list(get_world_transform(joint, sphere)[0]) for i, joint in enumerate(joints) for sphere in
-                         self.sphere_link_idx[self.active_joint_indexes[i]].values()])
+
+        sphere_transform = []
+        for i, joint in enumerate(joints):
+            for sphere in self.sphere_link_idx[self.active_joint_indexes[i]].values():
+                sphere_transform.append(get_world_transform(joint, sphere)[0])
+        return np.array(sphere_transform)

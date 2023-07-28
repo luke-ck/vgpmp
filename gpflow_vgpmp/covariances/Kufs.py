@@ -5,5 +5,5 @@ from ..inducing_variables.inducing_variables import InducingPointsInterface
 
 
 @Kuf.register(InducingPointsInterface, Kernel, TensorLike)
-def Kuf_kernel_variableinducingpoints(inducing_variable: InducingPointsInterface, kernel: Kernel, Xnew):
+def _kuf_fallback(inducing_variable: InducingPointsInterface, kernel: Kernel, Xnew):
     return kernel(inducing_variable.Zy, Xnew)  # k([u, y].T, f)

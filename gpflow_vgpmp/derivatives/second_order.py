@@ -5,9 +5,10 @@ from gpflow.base import TensorLike
 
 from .dispatch import K_grad_grad, K_grad
 
-
 SQRT_5 = 2.2360679774997898
 FIVE_THIRDS = 1.6666666666666667
+
+
 @tf.function
 def second_order_derivative_se(inducing_variable_ny_scalar, inducing_variable_ny, kernel):
     funcs2 = tf.range(inducing_variable_ny.shape[0])
@@ -34,7 +35,8 @@ def k_grad_grad_matern52_fallback(
     d2kernel_dr2 = FIVE_THIRDS * (5 * r2 - s5r - 1) * exp_minus_s5r
     term2 = d2kernel_dr2 * dr_dXn * dr_dYm
     res = kernel.variance * term2
-    return tf.where(res == 0, 5 / 3 / kernel.lengthscales ** 2, res)
+    return tf.where(res == 0, FIVE_THIRDS / kernel.lengthscales ** 2, res)
+
 
 @K_grad_grad.register(TensorLike, TensorLike, SquaredExponential)
 def k_grad_grad_se_fallback(
@@ -46,7 +48,8 @@ def k_grad_grad_se_fallback(
     norm = kernel.lengthscales ** 2
     inducing_diff = tf.expand_dims(inducing_location_ny, 1) - tf.expand_dims(inducing_location_nz, 0)
     second_derivative = norm - inducing_diff ** 2
-    return second_derivative / kernel.lengthscales ** 4 * kernel(inducing_location_ny[..., None], inducing_location_nz[..., None])
+    return second_derivative / kernel.lengthscales ** 4 * kernel(inducing_location_ny[..., None],
+                                                                 inducing_location_nz[..., None])
 
 
 @tf.function
@@ -55,5 +58,6 @@ def k_grad_grad(ny, Zy, kernel):
     ny_block = K_grad_grad(ny, kernel) * block_original[:ny.shape[0], :ny.shape[0]]
     nyZy_block = K_grad(ny, Zy[ny.shape[0]:], kernel) * block_original[:ny.shape[0], ny.shape[0]:]
     upper_block = tf.concat([ny_block, nyZy_block], axis=1)
-    lower_block = tf.concat([-tf.transpose(nyZy_block, perm=(1, 0, 2)), block_original[ny.shape[0]:, ny.shape[0]:]], axis=1)
+    lower_block = tf.concat([-tf.transpose(nyZy_block, perm=(1, 0, 2)), block_original[ny.shape[0]:, ny.shape[0]:]],
+                            axis=1)
     return tf.concat([upper_block, lower_block], axis=0)

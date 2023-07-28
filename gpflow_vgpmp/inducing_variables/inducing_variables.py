@@ -6,19 +6,24 @@ import tensorflow_probability as tfp
 from gpflow.base import Parameter, TensorData, Optional, TensorType
 from gpflow.base import default_float
 from gpflow.inducing_variables import InducingVariables
-from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables, SeparateIndependentInducingVariables
+from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables, \
+    SeparateIndependentInducingVariables
+
 
 class ConditionedSharedIndependentInducingVariables(SharedIndependentInducingVariables):
     def __init__(self, inducing_variable: TensorType):
         super().__init__(inducing_variable)
 
+
 class ConditionedSeparateIndependentInducingVariables(SeparateIndependentInducingVariables):
     def __init__(self, inducing_variable: TensorType):
         super().__init__(inducing_variable)
 
+
 class ConditionedVelocitySharedIndependentInducingVariables(SharedIndependentInducingVariables):
     def __init__(self, inducing_variable: TensorType):
         super().__init__(inducing_variable)
+
 
 class InducingPointsBase(InducingVariables, ABC):
     def __init__(self, Z: TensorData, conditioned_timesteps, name: Optional[str] = None):
@@ -31,7 +36,9 @@ class InducingPointsBase(InducingVariables, ABC):
 
         self._Z = Z
         self.conditioned_timesteps = tf.cast(conditioned_timesteps, dtype=default_float())
-        assert self._Z.shape[1] == self.conditioned_timesteps.shape[1], "The number of degrees of freedom of the trainable inducing points and the conditioned timesteps must be the same. Right now it is {} and {}, respectively.".format(self._Z.shape[1], self.conditioned_timesteps.shape[1])
+        assert self._Z.shape[1] == self.conditioned_timesteps.shape[
+            1], "The number of degrees of freedom of the trainable inducing points and the conditioned timesteps must be the same. Right now it is {} and {}, respectively.".format(
+            self._Z.shape[1], self.conditioned_timesteps.shape[1])
 
     @property
     def num_inducing(self) -> int:
@@ -100,8 +107,7 @@ class FirstOrderDerivativeInducingPoints(InducingPointsInterface, ABC):
     @property
     def dny(self):
         return tf.concat([self.conditioned_timesteps], axis=0)
-      
+
     @property
     def d2ny(self):
         return tf.concat([self.conditioned_timesteps, self.conditioned_timesteps], axis=0)
-

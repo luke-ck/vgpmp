@@ -3,7 +3,7 @@ import sys
 import tensorflow as tf
 from gpflow.base import TensorLike
 from gpflow.covariances import Kuu
-from gpflow.inducing_variables import SharedIndependentInducingVariables
+from gpflow.inducing_variables import SharedIndependentInducingVariables, SeparateIndependentInducingVariables
 from gpflow.kernels import SeparateIndependent, SharedIndependent
 from gpflow.utilities import Dispatcher
 from gpflow.config import default_jitter
@@ -13,7 +13,7 @@ from gpflow.kullback_leiblers import gauss_kl
 prior_kl = Dispatcher("prior_kl")
 
 
-@prior_kl.register(SharedIndependentInducingVariables, SeparateIndependent, TensorLike, TensorLike, TensorLike)
+@prior_kl.register((SharedIndependentInducingVariables, SeparateIndependentInducingVariables), SeparateIndependent, TensorLike, TensorLike, TensorLike)
 def prior_kl_separateindependent(inducing_variable, kernel, q_mu, q_sqrt, query_states):
     """
     Computes the KL divergence between the variational posterior and the prior.
@@ -21,7 +21,7 @@ def prior_kl_separateindependent(inducing_variable, kernel, q_mu, q_sqrt, query_
     For SeparateIndependent kernel.
     """
 
-    n = 4
+    n = len(query_states)
     K = Kuu(inducing_variable, kernel, jitter=default_jitter())
     L = tf.linalg.cholesky(K)
     # Subtract prior mean from q_mu, then whiten

@@ -81,7 +81,7 @@ def training_loop(model, data, num_steps):
 
     """
     print("Starting training....")
-    # data = tf.broadcast_to(tf.sort(tf.random.uniform((10, 1), 0.0001, 0.9999, dtype=tf.float64), axis=0), [10, 7])
+    # data = tf.broadcast_to(tf.sort(tf.random.uniform((data.shape[0], 1), 0.0, 1.0, dtype=tf.float64), axis=0), [data.shape[0], 7])
     tf_optimization_step = tf.function(optimization_step)
     closure = model.training_loss_closure(data)
     step_iterator = tqdm(range(num_steps))
@@ -89,6 +89,14 @@ def training_loop(model, data, num_steps):
     for _ in step_iterator:
         loss = tf_optimization_step(model, closure, model.optimizer)
         step_iterator.set_postfix_str(f"ELBO: {-loss:.3e}")
+
+    # print model parameters
+    # for kern in model.kernel.kernels:
+    #     tf.print(f"model lengthscale: {kern.lengthscales} \nmodel variance: {kern.variance}")
+    #
+    # tf.print(f"model noise variance: {model.likelihood.variance}")
+    # tf.print(f"model q_mu: {model.q_mu}")
+    # tf.print(f"model q_sqrt: {model.q_sqrt}", summarize=-1)
 
 
 def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_joints, end_joints, scale=100,
@@ -140,9 +148,7 @@ def solve_planning_problem(env, start_joints, end_joints, run=0, k=0):
                                scene_offset=env.scene.position,
                                q_mu=q_mu,
                                **env.config['planner_params'])
-    print("Initialized planner")
-    print(y)
-    print(planner.query_states)
+
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     # This part of the code is used to visualize the spheres in the scene
@@ -272,7 +278,19 @@ def solve_planning_problem(env, start_joints, end_joints, run=0, k=0):
             link_pos = np.array(link_pos[-1])
             p.addUserDebugLine(prev, link_pos, lineColorRGB=[0, 0, 1],
                                lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
-
+    # move robot at each inducing point in q_mu
+    # link_pos, _ = env.robot.compute_joint_positions(np.reshape(start_joints, (dof, 1)))
+    # prev = link_pos[-1]
+    # for i in range(len(planner.q_mu)):
+    #     joint_config = planner.likelihood.joint_sigmoid(planner.q_mu[i])
+    #     env.robot.set_current_joint_config(joint_config)
+    #     # compute the end effector position
+    #     link_pos, _ = env.robot.compute_joint_positions(np.reshape(joint_config, (dof, 1)))
+    #     link_pos = np.array(link_pos[-1])
+    #     p.addUserDebugLine(prev, link_pos, lineColorRGB=[1, 0, 0],
+    #                         lineWidth=5.0, lifeTime=0, physicsClientId=env.client)
+    #     prev = link_pos
+    #     time.sleep(1)
     # print(f" alpha {planner.alpha}")
     # for kern in planner.kernel.kernels:
     #     print(f" lengthscale {kern.lengthscales}")
@@ -286,8 +304,8 @@ def solve_planning_problem(env, start_joints, end_joints, run=0, k=0):
 def disable_param_opt(planner, trainable_params):
     # Set priors to parameters here
 
-    # planner.likelihood.variance.prior = tfp.distributions.Normal(planner.likelihood.variance,
-    #                                                              gpflow.utilities.to_default_float(0.0001)
+    planner.likelihood.variance.prior = tfp.distributions.Normal(planner.likelihood.variance,
+                                                                 gpflow.utilities.to_default_float(0.0001))
 
     planner.alpha.prior = tfp.distributions.Normal(planner.alpha,
                                                    gpflow.utilities.to_default_float(5))
