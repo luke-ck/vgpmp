@@ -114,6 +114,10 @@ def test_transform_matrix_np_tensorflow(mock_sampler):
     assert np.alltrue(robot.DH == sampler.DH)
     assert np.alltrue(robot.twist == sampler.twist)
     assert np.alltrue(robot.base_pose == sampler.base_pose)
+    if sampler.craig_notation:  # for testing purposes, otherwise default behavior is to use vectorized form
+        sampler.transform_fn = sampler.get_transform_matrix_craig_scalar
+    else:
+        sampler.transform_fn = sampler.get_transform_matrix_scalar
 
     joint_config = np.array([0.0] * robot.dof, dtype=np.float64).reshape(-1, 1)
     angles = joint_config + robot.twist
@@ -133,3 +137,30 @@ def test_transform_matrix_np_tensorflow(mock_sampler):
     assert np.allclose(np_transform_matrices, tf_transform_matrices.numpy())
 
     simulation.stop_simulation_thread()
+
+
+def test_vectorized_transform_matrix(mock_sampler):
+    robot, sampler, mock_simulation = mock_sampler
+    parameter_loader, simulation = mock_simulation
+
+    joint_config = np.array([0.0] * robot.dof, dtype=np.float64).reshape(-1, 1)
+    angles = joint_config + robot.twist
+
+    dh_mat = tf.concat([angles, sampler.DH], axis=-1)
+
+    transform_matrices = tf.map_fn(
+        lambda j: robot.transform_fn(j[0], j[1], j[2], j[3]),
+        dh_mat, fn_output_signature=tf.float64, parallel_iterations=None)
+
+    assert robot.craig_notation == parameter_loader.robot_params['craig_dh_convention']
+    if robot.craig_notation:
+        test_fn = sampler.get_transform_matrix_craig_vec
+    else:
+        test_fn = sampler.get_transform_matrix_vec
+
+    test_transform_matrices = test_fn(angles, sampler.d, sampler.a, sampler.alpha)
+
+    tf.assert_equal(transform_matrices, test_transform_matrices)
+
+    simulation.stop_simulation_thread()
+
