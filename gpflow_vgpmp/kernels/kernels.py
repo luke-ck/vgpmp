@@ -1,7 +1,5 @@
 from gpflow.kernels import SeparateIndependent, SharedIndependent
 
-__all__ = "kernels"
-
 
 class FirstOrderKernelDerivativeSeparateIndependent(SeparateIndependent):
     def __init__(self, kernels, name=None):

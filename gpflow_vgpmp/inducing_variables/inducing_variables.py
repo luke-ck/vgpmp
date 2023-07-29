@@ -1,6 +1,4 @@
-import abc
 from abc import ABC
-
 import tensorflow as tf
 import tensorflow_probability as tfp
 from gpflow.base import Parameter, TensorData, Optional, TensorType
@@ -37,7 +35,8 @@ class InducingPointsBase(InducingVariables, ABC):
         self._Z = Z
         self.conditioned_timesteps = tf.cast(conditioned_timesteps, dtype=default_float())
         assert self._Z.shape[1] == self.conditioned_timesteps.shape[
-            1], "The number of degrees of freedom of the trainable inducing points and the conditioned timesteps must be the same. Right now it is {} and {}, respectively.".format(
+            1], "The number of degrees of freedom of the trainable inducing points and the conditioned timesteps must " \
+                "be the same. Right now it is {} and {}, respectively.".format(
             self._Z.shape[1], self.conditioned_timesteps.shape[1])
 
     @property

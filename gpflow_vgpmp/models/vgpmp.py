@@ -6,32 +6,49 @@ from typing import Callable, List, Optional
 import gpflow
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
-from gpflow import kullback_leiblers, default_jitter
-from gpflow.base import Parameter, TensorLike
-from gpflow.config import default_float
-from gpflow.covariances import Kuf
-from gpflow.inducing_variables import SeparateIndependentInducingVariables
-from gpflow.inducing_variables.multioutput import SharedIndependentInducingVariables
-from gpflow.kernels import (Kernel, SeparateIndependent, SquaredExponential, SharedIndependent, Matern52, RBF, Matern12)
-# from gpflow.kullback_leiblers import prior_kl, gauss_kl
-from gpflow_vgpmp.kullback_leiblers.prior_kl import prior_kl
+from tensorflow_probability import bijectors as tfb
+from gpflow import default_jitter
+from gpflow.base import TensorLike
+from gpflow.kernels import (Kernel, Matern52)
 from gpflow.utilities import triangular, positive
 from gpflow_sampling.models import PathwiseSVGP
-from gpflow_vgpmp.inducing_variables.inducing_variables import FirstOrderDerivativeInducingPoints, \
-    ConditionedVariableInducingPoints
-from gpflow_vgpmp.kernels.kernels import FirstOrderKernelDerivativeSeparateIndependent, \
-    VanillaConditioningSeparateIndependent
+from gpflow_vgpmp.inducing_variables.inducing_variables import *
+from gpflow_vgpmp.kernels.kernels import *
+from gpflow_vgpmp.kullback_leiblers.prior_kl import prior_kl
 from gpflow_vgpmp.likelihoods.likelihood import VariationalMonteCarloLikelihood
-from gpflow_vgpmp.utils.ops import initialize_Z, bounded_param, timing
 from gpflow_vgpmp.covariances.multioutput.Kuus import Kuu
-
-# <------ Exports
-__all__ = "vgpmp"
 
 from gpflow_vgpmp.utils.sdf_utils import SignedDistanceField
 from gpflow_vgpmp.utils.robot import Robot
 from gpflow_vgpmp.utils.sampler import Sampler
+
+# <------ Exports
+__all__ = "vgpmp"
+
+
+def bounded_Z(low, high, Z):
+    low, high = tf.cast(low, dtype=default_float()), tf.cast(high, dtype=default_float())
+    """Make lengthscale tfp Parameter with optimization bounds."""
+    sigmoid = tfb.Sigmoid(low, high)
+    parameter = Parameter(Z, transform=sigmoid, dtype=default_float())
+    return parameter
+
+
+def initialize_Z(num_latent_gps, num_inducing):
+    Z = tf.convert_to_tensor(np.array(
+        [np.full(num_latent_gps, i) for i in np.linspace(0.1, 0.9, num_inducing)], dtype=np.float64))
+
+    Z = bounded_Z(low=0.09, high=0.91, Z=Z)
+    return Z
+
+
+def bounded_param(low, high, param):
+    """Make a bounded tfp Parameter with optimization bounds."""
+    affine = tfb.Shift(shift=tf.cast(low, tf.float64))(tfb.Scale(scale=tf.cast(high - low, tf.float64)))
+    sigmoid = tfb.Sigmoid()
+    logistic = tfb.Chain([affine, sigmoid])
+    parameter = Parameter(param, transform=logistic, dtype=tf.float64)
+    return parameter
 
 
 # ============================================
@@ -85,6 +102,7 @@ class VGPMP(PathwiseSVGP, ABC):
                    num_latent_gps: int = None,
                    epsilon: float = 0.05,
                    q_mu: TensorLike = None,
+                   interpolation_method: Optional[str] = 'linear',
                    **kwargs):
 
         if num_output_dims is None:
@@ -142,10 +160,25 @@ class VGPMP(PathwiseSVGP, ABC):
 
         # handle q_mu here
         if q_mu is None:
-            q_mu = likelihood.joint_sigmoid(np.zeros(shape=(num_inducing, num_latent_gps), dtype=default_float()))
+            if interpolation_method is None:
+                warnings.warn("q_mu has not been set. Defaulting to mean joint values.")
+                q_mu = likelihood.joint_sigmoid(np.zeros(shape=(num_inducing, num_latent_gps), dtype=default_float()))
+            elif interpolation_method == 'linear':
+                warnings.warn("q_mu has not been set. Defaulting to linear trajectory interpolation.")
+                q_mu = []
+                for i in range(num_inducing):
+                    q_mu.append(query_states[0] + (query_states[1] - query_states[0]) * i / num_inducing)
+                q_mu = np.array(q_mu, dtype=default_float())
+            elif interpolation_method == 'waypoint':
+                warnings.warn("q_mu has not been set. Defaulting to waypoint interpolation.")
+                q_mu = np.concatenate([query_states[0], query_states[0] + (query_states[1] - query_states[0]) * 0.5, query_states[1]])
+                q_mu = tf.constant(q_mu, dtype=default_float())
+            else:
+                raise NotImplementedError
         else:
             assert isinstance(q_mu, np.ndarray)
             if len(q_mu.shape) == 1:
+                warnings.warn("q_mu has been passed as a 1D array. Replicating across all latent GPs.")
                 q_mu = tf.repeat(q_mu, num_inducing, axis=0)
             else:
                 assert q_mu.shape == (num_inducing, num_latent_gps)

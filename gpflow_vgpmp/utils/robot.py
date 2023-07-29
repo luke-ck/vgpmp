@@ -1,18 +1,55 @@
+import numpy as np
+import pybullet as p
+import time
 from collections import defaultdict
-from typing import Union, Tuple
-
+from typing import List, Union, Tuple
+from scipy.spatial.transform import Rotation
 from .miscellaneous import suppress_stdout, are_all_elements_integers
-from .ops import *
 from .parameter_loader import ParameterLoader
 from .robot_mixin import RobotMixin
+from .simulation import Simulation
 
 __all__ = 'robot'
 
-from .simulation import Simulation
+
+# <---------------- utilities ----------------->
+
+def quat_to_rotmat(quat: List) -> np.array:
+    transform = Rotation.from_quat(quat)
+    return transform.as_matrix()
+
+
+def translation_vector(position):
+    return np.concatenate([position, [1]]).reshape((4, 1))
+
+
+def get_base(rotation, translation) -> np.array:
+    r00, r01, r02, r10, r11, r12, r20, r21, r22 = rotation
+    px, py, pz = translation
+    T = np.array([
+        [r00, r01, r02, px],
+        [r10, r11, r12, py],
+        [r20, r21, r22, pz],
+        [0, 0, 0, 1]
+    ], dtype=np.float64)
+
+    return T
+
+
+def get_world_transform(link, sphere):
+    r""" Compute the world coordinates for each sphere by applying a translation from the link coordinate frame
+
+    Args:
+        link (tuple): link carthesian coordinates in world frame (0) and rotation quaternion (1)
+        sphere (array): sphere offset from link frame in xyz
+
+    Returns:
+        (array): world coordinates of the sphere
+    """
+    return p.multiplyTransforms(link, [0, 0, 0, 1], sphere, [0, 0, 0, 1])
 
 
 # <---------------- robot class ----------------->
-
 
 class Robot(RobotMixin):
     """
@@ -197,8 +234,8 @@ class Robot(RobotMixin):
             attr_name_to_index_dict[_name] = _id
         return attr_name_to_index_dict
 
-    def decode_joint_info_attribute(self, id, attr_index):
-        return p.getJointInfo(self.robot_model, id)[attr_index].decode('UTF-8')
+    def decode_joint_info_attribute(self, _id, attr_index):
+        return p.getJointInfo(self.robot_model, _id)[attr_index].decode('UTF-8')
 
     def set_scene(self, initial_config_joint_names, default_pose):
         assert initial_config_joint_names != [] and initial_config_joint_names is not None

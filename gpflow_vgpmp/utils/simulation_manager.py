@@ -1,5 +1,8 @@
 import warnings
 from pathlib import Path
+
+import gpflow
+import numpy as np
 import tensorflow as tf
 
 from gpflow_vgpmp.models.vgpmp import VGPMP
@@ -159,10 +162,10 @@ if __name__ == "__main__":
     env = SimulationManager(file_path=parameter_file_path)
     # env.initialize()
 
-    y = tf.constant([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype=tf.float64)
-    planner = VGPMP.initialize(sdf=env.sdf,
-                               robot=env.robot,
-                               sampler=env.sampler,
-                               query_states=y,
-                               scene_offset=env.scene.position,
-                               **env.config['planner_params'])
+    # y = tf.constant([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype=tf.float64)
+    # planner = VGPMP.initialize(sdf=env.sdf,
+    #                            robot=env.robot,
+    #                            sampler=env.sampler,
+    #                            query_states=y,
+    #                            scene_offset=env.scene.position,
+    #                            **env.config['planner_params'])

@@ -1,7 +1,4 @@
-import importlib
-import itertools
 import os
-import signal
 import sys
 import time
 from contextlib import contextmanager
@@ -14,7 +11,6 @@ from tqdm import tqdm
 import tensorflow_probability as tfp
 import gpflow
 
-# from gpflow_vgpmp.utils.simulator import RobotSimulator
 
 try:
     # Disable all GPUS
@@ -47,6 +43,19 @@ def suppress_stdout():
             # CLOEXEC may be different
 
 
+def timing(f):
+    def wrap(*args, **kwargs):
+        start = time.time()
+        ret = f(*args, **kwargs)
+        end = time.time()
+        print('{:s} function took {:.3f} ms'.format(
+            f.__name__, (end - start) * 1000.0))
+
+        return ret
+
+    return wrap
+
+
 def write_parameter_to_file(model_parameter, filepath):
     param = tf.strings.format("{}\n", model_parameter, summarize=-1)
     tf.io.write_file(f"{filepath}.txt", param)
@@ -58,7 +67,12 @@ def are_all_elements_integers(tup):
 
 def optimization_step(model, closure, optimizer):
     r"""
-
+    Performs an optimization step.
+    Args:
+        model: GPflow model.
+        closure: A closure that returns the loss to be minimized. In this case it is a subclass of
+        ExternalDataTrainingMixin.
+        optimizer: A tf.optimizers instance.
     """
     with tf.GradientTape() as tape:
         tape.watch(model.trainable_variables)
@@ -70,18 +84,16 @@ def optimization_step(model, closure, optimizer):
     return loss
 
 
-def shutdown():
-    p.disconnect()
-    print("Shutting down the simulator")
-    sys.exit(0)
-
-
-def training_loop(model, data, num_steps):
+def training_loop(model, data, num_steps, print_summary=False, randomize=False):
     r"""
 
     """
     print("Starting training....")
-    # data = tf.broadcast_to(tf.sort(tf.random.uniform((data.shape[0], 1), 0.0, 1.0, dtype=tf.float64), axis=0), [data.shape[0], 7])
+    if randomize:
+        min_time = tf.reduce_min(data[:, 0])
+        max_time = tf.reduce_max(data[:, 0])
+        random_timesteps = tf.random.uniform((data.shape[0], 1), min_time, max_time, dtype=tf.float64)
+        data = tf.broadcast_to(tf.sort(random_timesteps, axis=0), data.shape)
     tf_optimization_step = tf.function(optimization_step)
     closure = model.training_loss_closure(data)
     step_iterator = tqdm(range(num_steps))
@@ -91,22 +103,27 @@ def training_loop(model, data, num_steps):
         step_iterator.set_postfix_str(f"ELBO: {-loss:.3e}")
 
     # print model parameters
-    # for kern in model.kernel.kernels:
-    #     tf.print(f"model lengthscale: {kern.lengthscales} \nmodel variance: {kern.variance}")
-    #
-    # tf.print(f"model noise variance: {model.likelihood.variance}")
-    # tf.print(f"model q_mu: {model.q_mu}")
-    # tf.print(f"model q_sqrt: {model.q_sqrt}", summarize=-1)
+    if print_summary:
+        for kern in model.kernel.kernels:
+            tf.print(f"model lengthscale: {kern.lengthscales} \nmodel variance: {kern.variance}")
+
+        tf.print(f"model noise variance: {model.likelihood.variance}")
+        tf.print(f"model q_mu: {model.q_mu}")
+        tf.print(f"model q_sqrt: {model.q_sqrt}", summarize=-1)
 
 
-def init_trainset(grid_spacing_X, grid_spacing_Xnew, degree_of_freedom, start_joints, end_joints, scale=100,
+def init_trainset(grid_spacing_X, grid_spacing_Xnew, input_dimension, degree_of_freedom, start_joints, end_joints, scale=100,
                   end_time=1):
-    X = tf.convert_to_tensor(np.array(
-        [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_X)], dtype=np.float64))
 
-    y = tf.concat([start_joints.reshape((1, degree_of_freedom)), end_joints.reshape((1, degree_of_freedom))], axis=0)
-    Xnew = tf.convert_to_tensor(np.array(
-        [np.full(degree_of_freedom, i) for i in np.linspace(0, end_time * scale, grid_spacing_Xnew)], dtype=np.float64))
+    X_grid = np.array([np.full(input_dimension, i) for i in np.linspace(0, end_time * scale, grid_spacing_X)])
+    Xnew_grid = np.array([np.full(input_dimension, i) for i in np.linspace(0, end_time * scale, grid_spacing_Xnew)])
+
+    X = tf.convert_to_tensor(X_grid)
+    Xnew = tf.convert_to_tensor(Xnew_grid)
+
+    y = tf.concat([start_joints.reshape((1, degree_of_freedom)),
+                   end_joints.reshape((1, degree_of_freedom))], axis=0)
+
     return X, y, Xnew
 
 
@@ -134,21 +151,24 @@ def solve_planning_problem(env, start_joints, end_joints, run=0, k=0):
 
     dof = env.robot.dof
 
-    X, y, Xnew = init_trainset(time_spacing_x, time_spacing_xnew, dof, start_joints, end_joints, scale=1)
-    num_data, num_output_dims = y.shape
-
-    # q_mu = np.array(robot_params["q_mu"], dtype=np.float64).reshape(1, dof) if robot_params["q_mu"] != "None" else None
-    q_mu = np.array([y[0] + (y[1] - y[0]) * i / (planner_params["num_inducing"]) for i in
-                     range(planner_params["num_inducing"])])  # all ish
+    X, y, Xnew = init_trainset(grid_spacing_X=time_spacing_x,
+                               grid_spacing_Xnew=time_spacing_xnew,
+                               input_dimension=dof,  # for separate i.v. this is 1
+                               degree_of_freedom=dof,
+                               start_joints=start_joints,
+                               end_joints=end_joints,
+                               scale=1)
 
     planner = VGPMP.initialize(sdf=env.sdf,
                                robot=env.robot,
                                sampler=env.sampler,
                                query_states=y,
                                scene_offset=env.scene.position,
-                               q_mu=q_mu,
+                               q_mu=None,
+                               interpolation_method="linear",
                                **env.config['planner_params'])
 
+    # TODO: move all of this in the simulation manager
     # DEBUGING CODE FOR VISUALIZING THE SPHERES
 
     # This part of the code is used to visualize the spheres in the scene
