@@ -10,7 +10,7 @@ PADDING = 20
 
 __all__ = "gen_sdf"
 
-path_sdfgen = "/home/lucasck/vtk/VTK-9.1.0/build/SDFGen/build/bin/SDFGen"
+path_sdfgen = "path-to-your-VTK-to-build-SDF-from-obj"
 
 
 def generate_sdf(path_to_sdfgen, obj_filename, delta, padding):
