@@ -48,6 +48,14 @@ if __name__ == '__main__':
 
     # ENDING DEBUGGING CODE FOR VISUALIZING JOINTS
 
+
+    # PLEASE DO NOT DELETE THESE LINES.
+    # They are imporant because there is a slight mismatch between our robot urdf files and the Forward Kinematics.
+    # Our convention was to set the "base" of the FK computation as the position of the first joint in the chain.
+    # 
+    # For WAM, that -0.346 is the height of the support of the robot (the thing the first joint is positioned on).
+    # For UR10, the robot needs to be mirrored in the XY plane. Again, due to our urdf.
+
     if env.config['robot_params']['robot_name'] == "wam":
         base_pos, base_rot = p.getBasePositionAndOrientation(env.robot.robot_model)
         p.resetBasePositionAndOrientation(env.robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
