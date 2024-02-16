@@ -203,7 +203,6 @@ class VGPMP(PathwiseSVGP, ABC):
 
     @property
     def query_states(self):
-        # return tf.concat([self._velocities, self._query_states], axis=0)
         return self._query_states
 
     @property
@@ -283,18 +282,12 @@ class VGPMP(PathwiseSVGP, ABC):
             f = self.predict_f_samples(data)  # S x N x D
         g = self.likelihood.joint_sigmoid(f)
 
-        # func = tf.range(g.shape[0])
-        # grads = tf.map_fn(lambda i: tf.gradients(f[i], data)[0], func, dtype=default_float())
         kl = prior_kl(self.inducing_variable, self.kernel, self._q_mu, self._q_sqrt, self.query_states)
 
         likelihood_obs = tf.reduce_mean(self.likelihood.log_prob(g), axis=0)  # log_prob produces S x N
-        # likelihood_vel = tf.reduce_mean(self.likelihood.log_vel_prob(f, data), axis=0)  # log_prob produces S x N
-        # likelihood_vel = tf.reduce_mean(-0.5 * tf.reduce_sum(tf.square(grads - 1.), axis=-1), axis=0)  # log_prob produces S x N
-        # tf.print(tf.reduce_sum(likelihood_obs), summarize=-1)
-        # tf.print(tf.reduce_sum(kl), summarize=-1)
         return tf.reduce_sum(
-            likelihood_obs) * self.alpha - kl  # + tf.reduce_sum(( 1 / tf.squeeze(self.likelihood.variance) ) ** 2)
-
+            likelihood_obs) * self.alpha - kl
+    
     @tf.function
     def debug_likelihood(self, data) -> tf.Tensor:
         r"""
@@ -343,5 +336,4 @@ class VGPMP(PathwiseSVGP, ABC):
     @tf.autograph.experimental.do_not_convert
     def get_best_sample(self, samples):
         cost = tf.reduce_sum(self.likelihood.log_prob(samples), axis=-1)
-        # tf.print(self.likelihood.log_prob(samples)[tf.math.argmax(cost)], summarize=-1)
         return tf.math.argmax(cost)
