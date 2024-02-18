@@ -1,6 +1,6 @@
 # A Unifying Framework for Variational Gaussian Process Motion Planning
 
-This repo contains the code used to generate the results of our paper, A Unifying Framework for Variational Gaussian Process Motion Planning, which was accepted at AISTATS 2024 and can be found here: https://arxiv.org/abs/2309.00854
+This repo contains the code used to generate the results of our paper, [A Unifying Framework for Variational Gaussian Process Motion Planning](https://arxiv.org/abs/2309.00854), which was accepted at AISTATS 2024.
 
 
 ### Installation Guide
@@ -15,7 +15,7 @@ Then
 pip install -e requirements.txt
 ```
 
-After this is done you need to clone the following repo: https://github.com/j-wilson/GPflowSampling. Install their library which enables pathwise conditioning for GPs in TensorFlow.
+After this is done you need to clone the [GPflow Sampling repo](https://github.com/j-wilson/GPflowSampling). Install their library which enables pathwise conditioning for GPs in TensorFlow.
 Additionally, you need to install pyassimp which depends on your OS. For example, on Manjaro or any Arch based distribution you can simply do:
 ```bash
 yay -S python-pyassimp
