@@ -177,8 +177,3 @@ if __name__ == "__main__":
     parameter_loader = ParameterLoader(parameter_file_path)
     parameter_loader.initialize()
     print(parameter_loader.params)
-    # print(parameter_loader.params["robot_params"])
-    # print(parameter_loader.params["scene_params"])
-    # print(parameter_loader.params["planner_params"])
-    # print(parameter_loader.params["trainable_params"])
-    # print(parameter_loader.params["graphics_params"])

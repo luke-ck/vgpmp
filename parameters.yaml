@@ -1,12 +1,12 @@
 - robot:
     #Choose robot (Available: 'ur10', 'kuka', 'wam', 'franka')
-    robot_name: "franka"
+    robot_name: "wam"
 - scene:
-      position: [ 0.62, -0.15, 0.834]  # [-0.2, 0.0, 0.08] # [ 0.85, -0.15, 0.834] # [-0.2, 0, -0.2] # [ 0.625, 0.275, 0.85 ] #  #   # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.834] # [ 0.625, 0.275, 0.85 ] # [ 0.62, -0.15, 0.85 ] # [ 0.55, -0.0, 0.75] # [ 0.85, -0.15, 0.834] # [ 0.95, -0.15, 0.834]
+      position: [ 0.85, -0.15, 0.834]
       orientation: [ 0.0, 0.0, 0.0, 1.0 ]
-      environment_name: "industrial"
-      environment_file_name: "industrial"
-      sdf_file_name: "industrial_vgpmp"
+      environment_name: "bookshelves"
+      environment_file_name: "bookshelves_mesh"
+      sdf_file_name: "bookshelves_center_vgpmp"
       objects: []
       objects_position: []
       objects_orientation: []
@@ -31,7 +31,7 @@
             time_spacing_X: 70
             time_spacing_Xnew: 150
       benchmark_attributes:
-        problemset_name: "industrial"
+        problemset_name: "bookshelves"
 - trainable_params:
     q_mu: True
     q_sqrt: True

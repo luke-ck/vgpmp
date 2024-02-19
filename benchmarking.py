@@ -16,9 +16,8 @@ if __name__ == '__main__':
 
     p.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=-75, cameraPitch=-45, cameraTargetPosition=[0, 0, 0])
 
-    # env.loop()
     # DEBUGGING CODE FOR VISUALIZING JOINTS
-
+    # env.loop()
     # This part of the code takes the start_joints configuration that is above
     # and visualizes the joint positions by drawing a blue line from the joint position to 
     # +0.15 in the z direction. Change this to a lower value if you want to see the joint positions better.
@@ -49,24 +48,21 @@ if __name__ == '__main__':
 
     # ENDING DEBUGGING CODE FOR VISUALIZING JOINTS
 
-    # Writing the queries to a file
-    # with open("{}_{}.txt".format(robot_params["robot_name"], scene_params["problemset"]), "w") as f:
-    #     for query in queries:
-    #         f.write(f"{list(query)}\n")
 
-    # sys.exit()
+    # PLEASE DO NOT DELETE THESE LINES.
+    # They are imporant because there is a slight mismatch between our robot urdf files and the Forward Kinematics.
+    # Our convention was to set the "base" of the FK computation as the position of the first joint in the chain.
+    # 
+    # For WAM, that -0.346 is the height of the support of the robot (the thing the first joint is positioned on).
+    # For UR10, the robot needs to be mirrored in the XY plane. Again, due to our urdf.
 
-    # query_indices = [(3, 10), (10, 4), (4, 11), (11, 13), (13, 12), (12, 5), (5, 8), (8, 16),
-    #                  (16, 9), (9, 5), (5, 15), (15, 12), (12, 6), (6, 7), (7, 14), (14, 3),
-    #                  (3, 9), (9, 4), (4, 13), (13, 8)]
-
-    # if robot_params["robot_name"] == "wam":
-    #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
-    #     p.resetBasePositionAndOrientation(robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
-    #
-    # elif robot_params["robot_name"] == "ur10":
-    #     base_pos, base_rot = p.getBasePositionAndOrientation(robot.robot_model)
-    #     p.resetBasePositionAndOrientation(robot.robot_model, base_pos, (0, 0, 0, 1))
+    if env.config['robot_params']['robot_name'] == "wam":
+        base_pos, base_rot = p.getBasePositionAndOrientation(env.robot.robot_model)
+        p.resetBasePositionAndOrientation(env.robot.robot_model, (base_pos[0], base_pos[1], -0.346 + base_pos[2]), base_rot)
+    
+    elif env.config['robot_params']['robot_name'] == "ur10":
+        base_pos, base_rot = p.getBasePositionAndOrientation(env.robot.robot_model)
+        p.resetBasePositionAndOrientation(env.robot.robot_model, base_pos, (0, 0, 0, 1))
 
 
     queries = env.config['scene_params']['queries']
